@@ -11,6 +11,15 @@ bt?.addEventListener('click',()=>{const mini=!app.classList.contains('mini');lsS
 // ---------- nova empresa
 const PAPEL_ADM={admin:'Administrador da empresa',financeiro:'Financeiro',leitura:'Só consulta'};
 const opts=(o,sel)=>Object.entries(o).map(([v,n])=>`<option value="${v}" ${v===sel?'selected':''}>${esc(n)}</option>`).join('');
+// grupo da empresa nova (migração 0018): o master escolhe; o administrador do grupo cria dentro do grupo dele
+function campoGrupo(){
+  if(!S.grpOk)return '';
+  const pre=S._grupoNovaEmp;S._grupoNovaEmp=null;
+  if(S.master)return `<div class="field wide"><label for="eGrupo">Grupo (cliente)</label><select id="eGrupo" name="grupo"><option value="">Novo grupo com o nome desta empresa</option>${S.grupos.map(g=>`<option value="${g.id}" ${g.id===pre?'selected':''}>${esc(g.nome)}</option>`).join('')}</select></div>`;
+  const meus=typeof meusGruposAdmin==='function'?meusGruposAdmin():[];if(!meus.length)return '';
+  if(meus.length===1)return `<input type="hidden" name="grupo" value="${meus[0].id}"><p class="hint wide" style="margin:0">A empresa entra no grupo <b>${esc(meus[0].nome)}</b>.</p>`;
+  return `<div class="field wide"><label for="eGrupo">Grupo</label><select id="eGrupo" name="grupo">${meus.map(g=>`<option value="${g.id}" ${g.id===pre?'selected':''}>${esc(g.nome)}</option>`).join('')}</select></div>`;
+}
 window.formNovaEmpresa=function(){
   const cor=CORES_EMP[S.empresas.length%CORES_EMP.length];
   return `<h3>Nova empresa</h3><p class="muted" style="margin:0">Tudo o que a empresa precisa para começar: plano de contas, centros de custo, contas de transferência, conta bancária, tabela de aprovações e o primeiro usuário.</p>
@@ -22,6 +31,7 @@ window.formNovaEmpresa=function(){
     <div class="field wide"><label for="eFant">Nome fantasia (é o nome que aparece no app e nos relatórios)</label><input id="eFant" name="fantasia" autocomplete="off" placeholder="Ex.: Café Serra"></div>
     <div class="field" data-pj><label for="eReg">Regime tributário</label><select id="eReg" name="regime"><option value="">Definir depois</option>${opts(REGIMES,'simples_nacional')}</select></div>
     <div class="field" data-pj style="grid-column:span 2"><label for="eAtv">Atividade principal</label><select id="eAtv" name="atividade"><option value="">Definir depois</option>${opts(ATIVIDADES,'')}</select></div>
+    ${campoGrupo()}
     <div class="field wide"><label for="ePlano">Plano de contas</label><select id="ePlano" name="plano"><option value="" data-lbl-modelo>Plano padrão empresa (1 Receitas, 2 Pagamentos, 3 Saldos e movimentações)</option>
       ${S.empresas.map(e=>`<option value="${e.id}">Copiar de ${esc(nomeEmp(e))}</option>`).join('')}</select></div>
     <div class="field wide"><label for="eCor">Cor da empresa</label><div class="cores">${CORES_EMP.map(c=>`<button type="button" class="cor" data-cor="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join('')}<input id="eCor" type="color" name="cor" value="${cor}" aria-label="Outra cor"></div></div>
@@ -54,6 +64,7 @@ window.criarEmpresaPadrao=async function(f){
   const umail=f.umail.value.trim();if(umail&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(umail))return toast('Confira o e-mail do usuário.');
   const p={p_cnpj:doc,p_razao_social:razao,p_nome_fantasia:f.fantasia.value.trim()||null,p_tipo:tipo,
     p_regime:tipo==='pj'?f.regime.value||null:null,p_atividade:tipo==='pj'?f.atividade.value||null:null,p_cor:corValida(f.cor.value)?f.cor.value:null,p_copiar_de:f.plano.value||null};
+  if(f.grupo)p.p_grupo=f.grupo.value||null;
   let {data:id,error}=await sb.rpc('criar_empresa',p);
   if(error&&/function|parameter|schema cache/i.test(error.message)){
     if(tipo==='pf'||p.p_copiar_de)return toast('O banco ainda não foi atualizado para pessoa física e cópia de plano. Peça a atualização.');

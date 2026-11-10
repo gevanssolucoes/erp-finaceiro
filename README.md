@@ -14,6 +14,7 @@ controle de usuários pela conta master.
   - `0003_predios_bancos_conciliacao.sql` prédios, contas bancárias, extratos e importações.
   - `0004_usuarios_master.sql` conta master, perfis, cadastro só por convite, acesso por papel e por prédio, plano de contas padrão.
   - `0013_pagamentos_cnab.sql` dados bancários do fornecedor, boleto na parcela, lotes de pagamento com aprovação e arquivos de remessa e retorno.
+  - `0018_grupos_empresas.sql` grupos de empresas (um grupo por cliente): ninguém fora da equipe master é ligado a empresas de dois grupos, administrador do grupo, empresa nova dentro do grupo e `verificar_isolamento()` (só master).
   - `0007_compras.sql` esteira de compras (pedido, confirmação, cotações, aprovação com verba do orçamento, compra, entrega) e ligação com estoque e contas a pagar.
 - `supabase/functions/usuarios-admin/` – função que a tela Usuários usa para convidar, alterar e desativar acessos (só a conta master).
 - `python/nfe/` – leitura do XML da NF-e e geração de parcelas pela premissa da conta.
@@ -21,6 +22,7 @@ controle de usuários pela conta master.
 - Extratos e conciliação (menu Controle): importa extrato bancário em OFX, CSV ou PDF (layout do Nubank e layout comum
   "data histórico valor"), confere com as baixas, dá baixa em contas em aberto, lança o que falta e aprende a conta do plano
   pelo histórico (`regras_classificacao`). Leitor de PDF em `docs/vendor/pdf.min.js` (pdf.js 3.11.174), carregado só quando precisa.
+- `docs/grupos.js` – tela Grupos de empresas (Cadastros): grupos, administradores de grupo, mudar empresa de grupo, consolidado do grupo e verificação de isolamento.
 - `docs/compras.js` – módulo da esteira de compras e da tela de estoque (carregado pelo `index.html`).
 - `docs/pagamentos.js` – pagamentos a fornecedores por arquivo CNAB 240 (layout FEBRABAN): lote, aprovação, remessa e leitura do retorno (carregado pelo `compras.js`).
 - `tests/teste_cnab.js` – testes do gerador e do leitor CNAB 240: `node tests/teste_cnab.js`.

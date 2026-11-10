@@ -79,6 +79,7 @@ const CHECKS=[
   ['0013','Pagamentos ao banco (CNAB)','pagamento_lotes','id'],
   ['0014','Aprovações e cadastro PF/PJ','alcadas','id'],
   ['0015','Administração e diagnóstico do Gmail','app_config','chave'],
+  ['0018','Grupos de empresas (isolamento entre clientes)','grupos','id'],
 ];
 async function saude(){
   const res=await Promise.all(CHECKS.map(async c=>{const {error}=await sb.from(c[2]).select(c[3],{head:true,count:'exact'}).limit(1);return {c,ok:!error,erro:error?.message}}));

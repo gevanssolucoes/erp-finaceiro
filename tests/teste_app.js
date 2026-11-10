@@ -33,8 +33,10 @@ colabs[0].ferias_quitadas_ate='2025-03-14';colabs[2].ferias_quitadas_ate='2024-0
 colabs.push({id:id(),empresa_id:empresas[0].id,departamento_id:deps[2].id,predio_id:predios[0].id,nome:'João Saiu',cargo:'Vendedor',admissao:'2022-05-01',desligamento:'2026-04-30',salario:2500,contrato:'clt'});
 const aus=[[0,'ferias','2026-01-05','2026-01-24'],[1,'atestado','2026-03-10','2026-03-12'],[2,'ferias','2026-11-03','2026-11-17'],[4,'atestado','2026-11-04','2026-11-05'],[3,'falta','2026-10-14','2026-10-14'],[5,'afastamento','2026-06-01','2026-07-15'],[1,'ferias','2025-12-01','2025-12-20']].map(([ci,t,i,f])=>({id:id(),empresa_id:colabs[ci].empresa_id,colaborador_id:colabs[ci].id,tipo:t,inicio:i,fim:f,dias:Math.round((new Date(f)-new Date(i))/864e5)+1,abono_dias:0,status:'aprovada'}));
 const novaEmp=[],semPar=[];
+const grupos=[{id:id(),nome:'Café Serra',ativo:true},{id:id(),nome:'Atlântico',ativo:true}];empresas[0].grupo_id=grupos[0].id;empresas[1].grupo_id=grupos[1].id;
+perfis.push({usuario_id:'22222222-2222-4222-8222-222222222222',email:'ana@exemplo.com',nome:'Ana Souza',master:false,ativo:true});
 const auditoria=[];const fechamentos=[];
-const DB={auditoria,fechamentos,app_config:[],app_config_hist:[],alcadas:[],aprovacoes:[],pagamento_lotes:[],compras_pedidos:[],compras_cotacoes:[],boletos_email:boletos,boletos_email_token:[],extratos:[],extrato_linhas:[],regras_classificacao:[],departamentos:deps,colaboradores:colabs,ausencias:aus,acessos:[],orcamento_versoes:[],orcamento_linhas:[],orcamento_caixa:[],premissas_conta:premissas,impostos_config:impostos,acordos_cartao:acordos,apuracoes:[],empresas,predios,plano_contas:plano,centros_custo:centros,contas_bancarias:bancos,parceiros,lancamentos:lanc,parcelas:parc,perfis,usuarios_empresas:empresas.map(e=>({usuario_id:UID,empresa_id:e.id,papel:'admin'})),produtos:[],importacoes:[]};
+const DB={grupos,grupos_admins:[],auditoria,fechamentos,app_config:[],app_config_hist:[],alcadas:[],aprovacoes:[],pagamento_lotes:[],compras_pedidos:[],compras_cotacoes:[],boletos_email:boletos,boletos_email_token:[],extratos:[],extrato_linhas:[],regras_classificacao:[],departamentos:deps,colaboradores:colabs,ausencias:aus,acessos:[],orcamento_versoes:[],orcamento_linhas:[],orcamento_caixa:[],premissas_conta:premissas,impostos_config:impostos,acordos_cartao:acordos,apuracoes:[],empresas,predios,plano_contas:plano,centros_custo:centros,contas_bancarias:bancos,parceiros,lancamentos:lanc,parcelas:parc,perfis,usuarios_empresas:empresas.map(e=>({usuario_id:UID,empresa_id:e.id,papel:'admin'})),produtos:[],importacoes:[]};
 const usuarios=[{...perfis[0],ultimo_acesso:'2026-11-03T10:00:00Z',convite_aceito:true,empresas:empresas.map(e=>e.id),papel:'admin',predios:[]},{usuario_id:id(),email:'ana@exemplo.com',nome:'Ana Souza',master:false,ativo:true,ultimo_acesso:null,convite_aceito:false,empresas:[empresas[0].id],papel:'financeiro',predios:[predios[0].id]},{usuario_id:id(),email:'rita@exemplo.com',nome:'Rita Lopes',master:false,ativo:true,ultimo_acesso:'2026-11-02T10:00:00Z',convite_aceito:true,outras_empresas:1,acessos:[{empresa_id:empresas[0].id,papel:'rh',departamento_id:deps[0].id,predios:[]}],empresas:[empresas[0].id],papel:'rh',predios:[]}];
 // ---------- PostgREST falso
 function filtrar(rows,q){
@@ -53,7 +55,8 @@ async function rotear(route){const req=route.request();const u=new URL(req.url()
   if(p==='/auth/v1/logout')return route.fulfill({status:204,headers:{'access-control-allow-origin':'*'}});
   if(p==='/functions/v1/usuarios-admin'){const b=req.postDataJSON();log.push('fn:'+b.acao);if(b.acao==='listar')return J({usuarios});if(b.acao==='convidar')return J({ok:true,link:'https://vovomhtwqfnlidqlmycu.supabase.co/auth/v1/verify?token=abc&type=invite'});return J({ok:true})}
   if(p==='/functions/v1/indicadores')return J({selic:{valor:15,data:'05/11/2026'},igpm:{mes:-0.36,acum12:-1.2,data:'01/10/2026'},dolar:{valor:5.38,var:-0.4,data:'03/11/2026'}});
-  if(p==='/rest/v1/rpc/criar_empresa'){const b=req.postDataJSON();const e={id:id(),cnpj:b.p_cnpj,razao_social:b.p_razao_social,nome_fantasia:b.p_nome_fantasia,tipo_pessoa:b.p_tipo||'pj',regime_tributario:b.p_regime||null,atividade:b.p_atividade||null,cor:b.p_cor||null,ativa:true};empresas.push(e);novaEmp.push(b);log.push('rpc criar_empresa '+(b.p_tipo||'pj'));return J(e.id)}
+  if(p==='/rest/v1/rpc/verificar_isolamento'){log.push('rpc verificar_isolamento');return J(DB._iso||[])}
+  if(p==='/rest/v1/rpc/criar_empresa'){const b=req.postDataJSON();const e={grupo_id:b.p_grupo||(()=>{const g={id:id(),nome:b.p_nome_fantasia||b.p_razao_social,ativo:true};grupos.push(g);return g.id})(),id:id(),cnpj:b.p_cnpj,razao_social:b.p_razao_social,nome_fantasia:b.p_nome_fantasia,tipo_pessoa:b.p_tipo||'pj',regime_tributario:b.p_regime||null,atividade:b.p_atividade||null,cor:b.p_cor||null,ativa:true};empresas.push(e);novaEmp.push(b);log.push('rpc criar_empresa '+(b.p_tipo||'pj'));return J(e.id)}
   if(p==='/rest/v1/rpc/transferencias_sem_par')return J(semPar);
   const t=p.replace('/rest/v1/','');const tab=DB[t];if(!tab)return J({message:'tabela '+t},404);
   if(m==='HEAD'){const rows=filtrar(tab,u.searchParams);return route.fulfill({status:200,headers:{'access-control-allow-origin':'*','access-control-expose-headers':'*','content-range':'0-0/'+rows.length}})}
@@ -305,6 +308,28 @@ const srv=http.createServer((q,r)=>{let f=path.join(APP,decodeURIComponent(q.url
   await rodar({width:390,height:844},'v2mob',async pg=>{await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x');await pg.click('form[data-form=login] button');await pg.waitForSelector('[data-entra]',{timeout:8000});await pg.click('[data-entra="*"]');await pg.waitForSelector('.tile',{timeout:8000});
     for(const r of ['fechamento','historico','empresas','auditoria','plano']){await pg.evaluate(r=>location.hash=r,r);await pg.waitForTimeout(1000);await shot(pg,'m-v2-'+r)}
     await pg.click('#pgBtn');await pg.waitForSelector('#pgQ');await pg.type('#pgQ','sal');await pg.waitForTimeout(400);await shot(pg,'m-v2-pesquisa')});
+  // grupos de empresas
+  await rodar({width:1366,height:900},'grupos',async pg=>{await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x');await pg.click('form[data-form=login] button');await pg.waitForSelector('[data-entra]',{timeout:8000});await pg.click('[data-entra="*"]');await pg.waitForTimeout(600);
+    pg.on('dialog',d=>d.accept());
+    const nav=await pg.$$eval('#nav a',as=>as.map(a=>a.getAttribute('href')));if(!nav.includes('#grupos'))errs.push('menu sem Grupos de empresas');
+    await pg.evaluate(()=>location.hash='grupos');await pg.waitForTimeout(900);await shot(pg,'grupos');
+    await pg.click('[data-acao=grp-verificar]');await pg.waitForTimeout(800);await shot(pg,'grupos-isolado');if(!(await pg.textContent('#view')).includes('Tudo isolado'))errs.push('verificação de isolamento não mostrou resultado');
+    await pg.click('[data-acao=grp-novo]');await pg.waitForTimeout(200);await pg.fill('#gNome','Grupo Teste');await pg.click('form[data-form=grp-nome] button:not([type=button])');await pg.waitForTimeout(800);
+    if(!grupos.some(g=>g.nome==='Grupo Teste'))errs.push('grupo novo não gravou');
+    await pg.click(`[data-acao=grp-admin][data-grp="${grupos[0].id}"]`);await pg.waitForTimeout(200);await shot(pg,'grupos-admin');await pg.fill('#gAdm','ana@exemplo.com');await pg.click('form[data-form=grp-admin] button:not([type=button])');await pg.waitForTimeout(800);
+    if(!DB.grupos_admins.some(a=>a.grupo_id===grupos[0].id))errs.push('administrador do grupo não gravou');
+    await pg.click(`[data-acao=grp-mover][data-emp="${empresas[1].id}"]`);await pg.waitForTimeout(200);await shot(pg,'grupos-mover');await pg.selectOption('#gDest',grupos.find(g=>g.nome==='Grupo Teste').id);await pg.click('form[data-form=grp-mover] button:not([type=button])');await pg.waitForTimeout(900);
+    if(empresas[1].grupo_id!==grupos.find(g=>g.nome==='Grupo Teste').id)errs.push('empresa não mudou de grupo');
+    await pg.click(`[data-acao=grp-empresa][data-grp="${grupos[0].id}"]`);await pg.waitForTimeout(300);await shot(pg,'grupos-nova-empresa');
+    await pg.fill('#eDoc','44.444.444/0001-44');await pg.fill('#eRazao','Café Serra Filial Ltda');await pg.click('form[data-form=empresa] button:not([type=button])');await pg.waitForTimeout(1200);
+    if(novaEmp.at(-1)?.p_grupo!==grupos[0].id)errs.push('empresa nova sem o grupo: '+JSON.stringify(novaEmp.at(-1)));
+    DB._iso=[{nivel:'grave',tipo:'referencia_outro_grupo',tabela:'lancamentos',quantidade:1,detalhe:'conta_id → plano_contas'}];
+    await pg.evaluate(()=>location.hash='grupos');await pg.waitForTimeout(800);await pg.click('[data-acao=grp-verificar]');await pg.waitForTimeout(800);await shot(pg,'grupos-problema');
+    await pg.evaluate(()=>location.hash='painel');await pg.waitForTimeout(700);await pg.click('#fEmp');await pg.waitForTimeout(200);await pg.click(`[data-grpsel="${grupos[0].id}"]`);await pg.waitForTimeout(600);await shot(pg,'grupos-filtro');
+    const sel=await pg.evaluate(()=>[...S.sel].length);const esperado=await pg.evaluate(g=>unidades().filter(u=>u.emp.grupo_id===g).length,grupos[0].id);if(sel!==esperado)errs.push('filtro do grupo marcou '+sel+' de '+esperado);
+  });
+  await rodar({width:390,height:844},'grupos-mob',async pg=>{await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x');await pg.click('form[data-form=login] button');await pg.waitForSelector('[data-entra]',{timeout:8000});await pg.click('[data-entra="*"]');await pg.waitForTimeout(600);
+    await pg.evaluate(()=>location.hash='grupos');await pg.waitForTimeout(900);await shot(pg,'grupos-mob')});
   // administrador da empresa: vê Usuários e Pessoas só da própria empresa
   perfis[0].master=false;empresas.splice(1);DB.lancamentos=lanc.filter(l=>l.empresa_id===empresas[0].id);DB.usuarios_empresas.splice(0,DB.usuarios_empresas.length,{usuario_id:UID,empresa_id:empresas[0].id,papel:'admin'});
   usuarios.splice(0,usuarios.length,{...perfis[0],acessos:[{empresa_id:empresas[0].id,papel:'admin',departamento_id:deps[0].id,predios:[]}],convite_aceito:true},usuarios[1]);
@@ -315,6 +340,14 @@ const srv=http.createServer((q,r)=>{let f=path.join(APP,decodeURIComponent(q.url
     await pg.click('[data-acao=convidar]');await pg.waitForTimeout(300);await shot(pg,'adm-convite');
     const n=await pg.$$eval('[data-ue]',x=>x.length);if(n!==1)errs.push('admin vê '+n+' empresas no convite');
     await pg.evaluate(()=>location.hash='pessoas');await pg.waitForTimeout(800);await shot(pg,'adm-pessoas')});
+  // administrador do grupo (não master): vê só o próprio grupo
+  DB.grupos_admins.splice(0,DB.grupos_admins.length,{grupo_id:empresas[0].grupo_id,usuario_id:UID});
+  await rodar({width:1366,height:900},'admgrupo',async pg=>{await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x');await pg.click('form[data-form=login] button');await pg.waitForTimeout(1500);const en=await pg.$('[data-entra]');if(en){await en.click();await pg.waitForTimeout(800)}
+    await pg.evaluate(()=>location.hash='grupos');await pg.waitForTimeout(900);await shot(pg,'adm-grupo');
+    const t=await pg.textContent('#view');if(t.includes('Atlântico')||t.includes('Grupo Teste'))errs.push('administrador do grupo vê outro grupo');
+    if(await pg.$('[data-acao=grp-admin]')||await pg.$('[data-acao=grp-verificar]'))errs.push('administrador do grupo vê botões do master');
+    await pg.click('[data-acao=grp-empresa]');await pg.waitForTimeout(300);await shot(pg,'adm-grupo-nova-empresa');if(await pg.$('#eGrupo'))errs.push('admin do grupo pode escolher grupo');
+  });
   await b.close();srv.close();
   console.log('LOG',log.join(' | '));console.log('ORC',DB.orcamento_versoes.map(v=>v.nome+' '+v.tipo+' trav:'+v.congelada).join('; '),'linhas',DB.orcamento_linhas.length,'caixa',DB.orcamento_caixa.length,'premissa1',JSON.stringify(premissas[0].prazos_dias));console.log('ERROS',errs.length?errs.join('\n'):'nenhum');
   const novos=lanc.filter(l=>l.importacao_id);console.log('importados',novos.length,novos.map(l=>l.valor+' '+l.competencia+' cc:'+(centros.find(c=>c.id===l.centro_custo_id)?.nome)+' parc:'+(parceiros.find(p=>p.id===l.parceiro_id)?.nome)).join(' ; '));

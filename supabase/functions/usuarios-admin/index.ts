@@ -2,6 +2,9 @@
 //  * conta master: vê e administra todos os usuários de todas as empresas;
 //  * administrador da empresa (papel "admin"): convida e gerencia só os usuários das empresas que administra,
 //    organizados por departamento. Não enxerga nem altera a equipe master nem o acesso a outras empresas.
+//  * grupos de empresas (migração 0018): o banco impede que uma pessoa fora da equipe master seja ligada a
+//    empresas de dois grupos. Aqui, o administrador de um grupo nunca fica sabendo se um e-mail já é usado
+//    em outro grupo (a mensagem é a mesma para qualquer recusa).
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const CORS = {
@@ -119,13 +122,14 @@ Deno.serve(async (req) => {
               departamento_id: x.departamento_id ?? null,
               predios: (up ?? []).filter((y) => y.usuario_id === p.usuario_id && predioEmp.get(y.predio_id) === x.empresa_id).map((y) => y.predio_id),
             }));
-            const todas = (ue ?? []).filter((x) => x.usuario_id === p.usuario_id).length;
+            // fora do escopo: só a conta master vê a quantidade (o administrador do cliente não sabe de outros grupos)
+            const todas = master ? (ue ?? []).filter((x) => x.usuario_id === p.usuario_id).length : 0;
             return {
               ...p,
               ultimo_acesso: u?.last_sign_in_at ?? null,
               convite_aceito: !!u?.email_confirmed_at || !!u?.last_sign_in_at,
               acessos,
-              outras_empresas: todas - meus.length, // acessos fora do seu escopo (só a quantidade)
+              outras_empresas: master ? todas - meus.length : 0, // acessos fora do seu escopo (só a quantidade, só para o master)
               // formato antigo, mantido para compatibilidade
               empresas: acessos.map((a) => a.empresa_id),
               papel: acessos[0]?.papel ?? "leitura",
@@ -144,12 +148,18 @@ Deno.serve(async (req) => {
         // já tem cadastro (ex.: usa o app em outra empresa): só acrescenta o acesso
         const { data: existente } = await admin.from("perfis").select("usuario_id, master").eq("email", email).maybeSingle();
         if (existente) {
-          if (existente.master) return json({ erro: "Este e-mail é da equipe master." }, 400);
+          const recusa = "Não foi possível convidar este e-mail. Use outro e-mail ou fale com o suporte.";
+          if (existente.master) return json({ erro: master ? "Este e-mail é da equipe master." : recusa }, 400);
           const atuais = await vinculos(existente.usuario_id);
           const outros = atuais.filter((e) => !noEscopo.has(e));
           if (atuais.some((e) => noEscopo.has(e))) return json({ erro: "Esta pessoa já tem acesso. Use Editar." }, 400);
-          await gravarAcessos(existente.usuario_id, acessos);
-          return json({ ok: true, usuario_id: existente.usuario_id, existente: true, outras_empresas: outros.length });
+          try {
+            await gravarAcessos(existente.usuario_id, acessos);
+          } catch (e) {
+            const msg = (e as { message?: string })?.message ?? String(e);
+            return json({ erro: master ? msg : recusa }, 400);
+          }
+          return json({ ok: true, usuario_id: existente.usuario_id, existente: true, outras_empresas: master ? outros.length : 0 });
         }
 
         // libera o e-mail no gatilho "somente por convite" antes de criar o usuário
