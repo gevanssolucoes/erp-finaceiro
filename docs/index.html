@@ -203,6 +203,38 @@ a.btn{text-decoration:none;display:inline-block}
 .ind-s{font-size:11.5px;color:var(--ink-2)}
 .ind-src{grid-column:1/-1;font-size:11px;color:var(--ink-3);margin-top:-6px}
 .grade{font-size:12.5px}.grade th:first-child,.grade td:first-child{position:sticky;left:0;background:var(--surface);z-index:1;min-width:220px}.grade thead th{position:sticky;top:0;background:var(--surface);z-index:2}.grade thead th:first-child{z-index:3}
+/* Orçamento no celular: um mês por vez */
+.om{display:flex;flex-direction:column;gap:14px}
+.om-meses{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x proximity;margin-inline:-2px}
+.om-mes{flex:0 0 auto;scroll-snap-align:center;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:7px 10px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;font:inherit;color:var(--ink);cursor:pointer;min-width:74px}
+.om-mes b{font-size:13px}.om-mes small{font-family:var(--f-num);font-size:11px;color:var(--ink-2)}
+.om-mes.on{border-color:var(--accent);background:var(--accent-soft)}.om-mes.vazio{opacity:.55}
+.om-mes small.neg,.om-ano .neg{color:var(--bad)}
+.om-res{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.om-res div{background:var(--surface-2);border-radius:10px;padding:9px 10px;min-width:0}
+.om-res small{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2)}
+.om-res b{display:block;font-family:var(--f-num);font-size:15px;margin-top:2px;overflow-wrap:anywhere}
+.om-res .pos{color:var(--good)}.om-res .neg{color:var(--bad)}
+.om-grp{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.om-grp h4{margin:0;display:flex;justify-content:space-between;gap:8px;padding:9px 12px;background:var(--surface-2);font-size:13px}
+.om-grp h4 span{font-family:var(--f-num);font-weight:600}
+.om-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid var(--line)}
+.om-row>div{min-width:0}.om-row span{display:block;font-size:13.5px;overflow-wrap:anywhere}.om-row small{color:var(--ink-2);font-family:var(--f-num);font-size:11px}
+.om-row .cel{width:104px;font-size:15px;padding:7px 8px}
+.om-row .val{font-family:var(--f-num);font-size:14px;white-space:nowrap}
+.om-acts{display:flex;gap:8px;flex-wrap:wrap}
+.om-ano{width:100%;border-collapse:collapse;font-size:13px}.om-ano th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-2);text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
+.om-ano th:first-child,.om-ano td:first-child{text-align:left}.om-ano td{padding:7px 4px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.om-ano tr[data-orcmes],.om-ano tr[data-cxm]{cursor:pointer}.om-ano tr.on td{background:var(--accent-soft)}
+.om-salvar{position:sticky;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;justify-content:flex-end}
+.om-cx{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;font-size:13.5px}.om-cx dt{color:var(--ink-2)}.om-cx dd{margin:0;text-align:right;font-family:var(--f-num)}.om-cx .t{font-weight:700;color:var(--ink)}
+@media (max-width:640px){
+  .orc-hint{display:none}
+  .versions.orc-vers{flex-wrap:nowrap!important;overflow-x:auto;padding-bottom:4px}
+  .versions.orc-vers .ver{min-width:180px!important;flex:0 0 auto}
+  .tabs.orc-tabs{flex-wrap:nowrap;overflow-x:auto}.tabs.orc-tabs button{white-space:nowrap}
+  .orc-ctrls{width:100%}.orc-ctrls select{flex:1 1 100%}
+}
 .cel{width:78px;font:inherit;font-variant-numeric:tabular-nums;text-align:right;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:4px 6px}.cel:focus-visible{outline:2px solid var(--accent);outline-offset:0}
 .ver.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}.form-grid.f4{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media (max-width:820px){.ind-bar{grid-template-columns:minmax(0,1fr)}.chart-scroll svg{min-width:720px}.form-grid.f4{grid-template-columns:repeat(2,minmax(0,1fr))}.g-tiles[style]{grid-template-columns:repeat(2,minmax(0,1fr))!important}.tile .val{font-size:18px}.form-grid{grid-template-columns:minmax(0,1fr)}.userbox{display:none}}
@@ -1454,11 +1486,11 @@ async function vOrcamento(){
   const emp=S.orcEmp,vs=await versoesDe(emp),ed=podeEditar(emp);
   if(!vs.some(v=>v.id===S.orcVer))S.orcVer=(vs.find(v=>v.ano===S.ano&&v.tipo==='orcamento'&&v.congelada)||vs.find(v=>v.ano===S.ano)||vs[0])?.id;
   const v=vs.find(x=>x.id===S.orcVer);S.orcTab=S.orcTab||'editar';
-  const cab=`<div class="panel"><div class="ph"><div><h2>Orçamento e forecast</h2><p class="hint" style="margin:0">O orçamento travado vira o espelho oficial do ano. Os forecasts juntam o realizado até um mês com a nova previsão do restante, e mostram os desvios.</p></div>
-    <div class="ctrls"><select id="orcEmp" aria-label="Empresa">${opcoesEmp(emp,false)}</select>${ed?'<button class="btn ghost" data-acao="nova-versao" data-tipo="forecast">Novo forecast</button><button class="btn" data-acao="nova-versao" data-tipo="orcamento">Novo orçamento</button>':''}</div></div>
-    ${vs.length?`<div class="versions" style="flex-direction:row;flex-wrap:wrap">${vs.map(x=>`<button class="ver ${x.id===S.orcVer?'on':''}" data-ver="${x.id}" style="text-align:left;font:inherit;color:inherit;min-width:200px"><div><b>${esc(x.nome)}</b><small>${x.tipo==='forecast'?`Forecast · realizado até ${MESES[(x.mes_corte||1)-1]}`:'Orçamento'} · ${x.ano}</small></div>${x.congelada?'<span class="chip info">🔒 Travado</span>':'<span class="chip warn">Rascunho</span>'}</button>`).join('')}</div>`:''}</div>`;
+  const cab=`<div class="panel"><div class="ph"><div><h2>Orçamento e forecast</h2><p class="hint orc-hint" style="margin:0">O orçamento travado vira o espelho oficial do ano. Os forecasts juntam o realizado até um mês com a nova previsão do restante, e mostram os desvios.</p></div>
+    <div class="ctrls orc-ctrls"><select id="orcEmp" aria-label="Empresa">${opcoesEmp(emp,false)}</select>${ed?'<button class="btn ghost" data-acao="nova-versao" data-tipo="forecast">Novo forecast</button><button class="btn" data-acao="nova-versao" data-tipo="orcamento">Novo orçamento</button>':''}</div></div>
+    ${vs.length?`<div class="versions orc-vers" style="flex-direction:row;flex-wrap:wrap">${vs.map(x=>`<button class="ver ${x.id===S.orcVer?'on':''}" data-ver="${x.id}" style="text-align:left;font:inherit;color:inherit;min-width:200px"><div><b>${esc(x.nome)}</b><small>${x.tipo==='forecast'?`Forecast · realizado até ${MESES[(x.mes_corte||1)-1]}`:'Orçamento'} · ${x.ano}</small></div>${x.congelada?'<span class="chip info">🔒 Travado</span>':'<span class="chip warn">Rascunho</span>'}</button>`).join('')}</div>`:''}</div>`;
   if(!v)return cab+vazio('Nenhum orçamento para esta empresa','<p style="margin:0">Crie o orçamento do ano. Você pode começar do realizado do ano anterior com um percentual de ajuste e depois editar mês a mês.</p>',ed?'<button class="btn" data-acao="nova-versao" data-tipo="orcamento">Novo orçamento</button>':'');
-  const tabs=`<div class="tabs" role="tablist">${[['editar',v.congelada?'Valores':'Editar valores'],['acomp','Orçado x realizado x forecast'],['caixa','Fluxo de caixa orçado']].map(([id,n])=>`<button role="tab" data-orctab="${id}" class="${S.orcTab===id?'on':''}">${n}</button>`).join('')}</div>`;
+  const tabs=`<div class="tabs orc-tabs" role="tablist">${[['editar',v.congelada?'Valores':'Editar valores'],['acomp','Orçado x realizado x forecast'],['caixa','Fluxo de caixa orçado']].map(([id,n])=>`<button role="tab" data-orctab="${id}" class="${S.orcTab===id?'on':''}">${n}</button>`).join('')}</div>`;
   const corpo=S.orcTab==='acomp'?await abaAcomp(emp,vs,v):S.orcTab==='caixa'?await abaCaixa(emp,v):await abaEditar(emp,v,ed);
   return cab+`<div class="panel">${tabs}${corpo}</div>`;
 }
@@ -1468,6 +1500,7 @@ async function abaEditar(emp,v,ed){
   const edita=ed&&!v.congelada&&pred!=='*';S.orcEdit=S.orcEdit&&S.orcEdit.ver===v.id&&S.orcEdit.pred===pred?S.orcEdit:{ver:v.id,pred,vals:{},sujo:false};
   const val=(c,m)=>{const k_=c.id+'|'+m;return k_ in S.orcEdit.vals?S.orcEdit.vals[k_]:(M[c.id]?.[m]||0)};
   const cs=contasOrc(emp);
+  if(celular())return editarCelular(v,cs,val,edita,corte,pred,ps,ed);
   let rows='',grupo=null;const totMes=Array(12).fill(0);
   const totalGrupo=g=>MESES.map((_,m)=>sum(cs.filter(c=>c.grupo_dre===g).map(c=>val(c,m))));
   cs.forEach((c,ri)=>{
@@ -1479,6 +1512,35 @@ async function abaEditar(emp,v,ed){
     <div class="ctrls">${ps.length?`<select id="orcPredio" aria-label="Unidade"><option value="*" ${pred==='*'?'selected':''}>Todas as unidades (consolidado)</option><option value="" ${pred===''?'selected':''}>Sem unidade (empresa)</option>${ps.map(p=>`<option value="${p.id}" ${pred===p.id?'selected':''}>${esc(p.nome)}</option>`).join('')}</select>`:''}
     ${edita?`<button class="btn ghost" data-acao="excluir-versao" data-id="${v.id}" style="color:var(--bad)">Excluir rascunho</button><button class="btn ghost" data-acao="travar-versao" data-id="${v.id}">Travar</button><button class="btn" data-acao="salvar-orc" ${S.orcEdit.sujo?'':'disabled'}>Salvar alterações</button>`:''}</div></div>
     <div class="tbl-wrap" style="max-height:70vh;overflow:auto"><table class="grade"><thead><tr><th>Conta</th>${MESES.map(m=>`<th class="n">${m}/${String(v.ano).slice(2)}</th>`).join('')}<th class="n">Total</th>${edita?'<th></th>':''}</tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+const celular=()=>matchMedia('(max-width:640px)').matches;
+const fmtV=x=>num.format(Math.round(x));
+// grade do orçamento no celular: um mês por vez, só as contas com valor (com opção de ver todas)
+function editarCelular(v,cs,val,edita,corte,pred,ps,ed){
+  const yy=String(v.ano).slice(2);const tem=MESES.map((_,m)=>cs.some(c=>val(c,m)));
+  const res=MESES.map((_,m)=>{let e=0,s=0;cs.forEach(c=>{const x=val(c,m);if(x>0)e+=x;else s+=x});return {e,s,r:e+s}});
+  S.orcMes=S.orcMes||{};let mS=S.orcMes[v.id];
+  if(mS==null){const hm=+HOJE.slice(5,7)-1;mS=+HOJE.slice(0,4)===v.ano&&tem[hm]?hm:Math.max(0,tem.indexOf(true));S.orcMes[v.id]=mS}
+  const r=res[mS];let grupo=null,html='',abertos=false,ocultas=0;
+  const grupos=[];cs.forEach(c=>{if(!grupos.length||grupos[grupos.length-1].g!==c.grupo_dre)grupos.push({g:c.grupo_dre,cs:[]});grupos[grupos.length-1].cs.push(c)});
+  grupos.forEach(G=>{const vis=G.cs.filter(c=>S.orcTodas||val(c,mS)||(c.id+'|'+mS) in S.orcEdit.vals);ocultas+=G.cs.length-vis.length;if(!vis.length)return;
+    const tg=sum(G.cs.map(c=>val(c,mS)));const fixo=!edita||mS<corte;
+    html+=`<section class="om-grp"><h4>${esc(GRUPOS[G.g]||'Fora da DRE')}<span class="${tg<0?'neg':''}">${fmtV(tg)}</span></h4>${vis.map((c,ri)=>{const x=val(c,mS);
+      return `<div class="om-row"><div><span>${esc(c.nome)}</span><small>${esc(c.codigo)}</small></div>${fixo?`<span class="val ${x<0?'neg':''}">${x?fmtV(Math.abs(x)):'–'}</span>`:`<input class="cel" data-cel="${c.id}|${mS}" data-m="${mS}" inputmode="decimal" value="${fmtIn(x)}" aria-label="${esc(c.nome)} ${MESES[mS]}" placeholder="0">`}</div>`}).join('')}</section>`});
+  const aviso=pred==='*'&&!v.congelada&&ed?'<p class="hint" style="margin:0">Visão consolidada, só leitura. Escolha um prédio para editar.</p>':v.congelada?`<p class="hint" style="margin:0">Travado em ${dataBR(String(v.congelada_em||'').slice(0,10))}. Para revisar, crie um forecast.</p>`:'';
+  return `<div class="om">
+    ${ps.length?`<select id="orcPredio" aria-label="Prédio"><option value="*" ${pred==='*'?'selected':''}>Todos os prédios (consolidado)</option><option value="" ${pred===''?'selected':''}>Sem prédio (empresa)</option>${ps.map(p=>`<option value="${p.id}" ${pred===p.id?'selected':''}>${esc(p.nome)}</option>`).join('')}</select>`:''}
+    ${aviso}
+    <div class="om-meses" role="tablist" aria-label="Mês">${MESES.map((n,m)=>m<Math.max(0,tem.indexOf(true))?'':`<button role="tab" class="om-mes ${m===mS?'on':''} ${tem[m]?'':'vazio'}" data-orcmes="${m}" aria-selected="${m===mS}"><b>${n}/${yy}</b><small class="${res[m].r<0?'neg':''}">${tem[m]?fmtV(res[m].r):'sem valores'}</small></button>`).join('')}</div>
+    <div class="om-res"><div><small>Entradas</small><b class="pos">${fmtV(r.e)}</b></div><div><small>Saídas</small><b class="neg">${fmtV(Math.abs(r.s))}</b></div><div><small>Sobra do mês</small><b class="${r.r<0?'neg':'pos'}">${fmtV(r.r)}</b></div></div>
+    ${html||'<p class="muted" style="margin:0">Nenhum valor neste mês.</p>'}
+    <div class="om-acts">${ocultas||S.orcTodas?`<button class="btn ghost" data-acao="orc-todas">${S.orcTodas?'Esconder contas sem valor':`Mostrar todas as contas (+${ocultas})`}</button>`:''}${edita&&mS<11?`<button class="btn ghost" data-acao="orc-copiar-mes" data-m="${mS}">Copiar ${MESES[mS]} para os meses seguintes</button>`:''}</div>
+    <div><h3 style="font-size:14px;margin:4px 0 6px">Resumo do ano · competência</h3>
+    <table class="om-ano"><thead><tr><th>Mês</th><th>Entradas</th><th>Saídas</th><th>Sobra</th></tr></thead><tbody>${res.map((x,m)=>tem[m]?`<tr data-orcmes="${m}" class="${m===mS?'on':''}"><td>${MESES[m]}/${yy}</td><td>${fmtV(x.e)}</td><td>${fmtV(Math.abs(x.s))}</td><td class="${x.r<0?'neg':''}">${fmtV(x.r)}</td></tr>`:'').join('')}
+    <tr><td><b>Total</b></td><td><b>${fmtV(sum(res.map(x=>x.e)))}</b></td><td><b>${fmtV(Math.abs(sum(res.map(x=>x.s))))}</b></td><td class="${sum(res.map(x=>x.r))<0?'neg':''}"><b>${fmtV(sum(res.map(x=>x.r)))}</b></td></tr></tbody></table></div>
+    ${edita?`<div class="om-salvar"><button class="btn ghost" data-acao="travar-versao" data-id="${v.id}">Travar</button><button class="btn" data-acao="salvar-orc" ${S.orcEdit.sujo?'':'disabled'}>Salvar alterações</button></div>
+    <button class="linkbtn small" data-acao="excluir-versao" data-id="${v.id}" style="color:var(--bad);align-self:flex-start">Excluir rascunho</button>`:''}
+  </div>`;
 }
 async function salvarOrc(){
   const E=S.orcEdit;const v=(S.versoes[S.orcEmp]||[]).find(x=>x.id===E.ver);if(!v||v.congelada)return;
@@ -1581,7 +1643,11 @@ function chartAcum({labels,series}){
 // ---------- Fluxo de caixa orçado: orçado x já em contas a pagar/receber x realizado
 async function abaCaixa(emp,v){
   const ano=v.ano,A=String(ano);
-  const [cx,pagas,abertas]=await Promise.all([caixaDaVersao(v),parcelasPagas(ano),parcelasAbertas()]);
+  // o caixa de janeiro recebe o que o orçamento do ano anterior paga em janeiro (salário de dezembro, fatura etc.)
+  const vs=await versoesDe(emp);const vizinha=a=>vs.find(x=>x.ano===a&&x.tipo==='orcamento'&&x.congelada)||vs.find(x=>x.ano===a&&x.tipo==='orcamento');
+  const outras=[vizinha(ano-1),vizinha(ano+1)].filter(x=>x&&x.id!==v.id);
+  const [cx0,pagas,abertas,...cxOut]=await Promise.all([caixaDaVersao(v),parcelasPagas(ano),parcelasAbertas(),...outras.map(caixaDaVersao)]);
+  const cx=cx0.concat(...cxOut);
   const orc={e:Array(12).fill(0),s:Array(12).fill(0)},pago={e:Array(12).fill(0),s:Array(12).fill(0)},aberto={e:Array(12).fill(0),s:Array(12).fill(0)};
   const porConta={};const pc=c=>porConta[c]=porConta[c]||{o:Array(12).fill(0),p:Array(12).fill(0),a:Array(12).fill(0)};
   cx.filter(c=>c.data.startsWith(A)).forEach(c=>{const m=+c.data.slice(5,7)-1;(c.valor>=0?orc.e:orc.s)[m]+=c.valor;pc(c.conta_id).o[m]+=c.valor});
@@ -1591,7 +1657,9 @@ async function abaCaixa(emp,v){
   const linha=(n,arr,cls='')=>`<tr class="${cls}"><td>${n}</td>${arr.map(x=>`<td class="n ${x<0?'neg':''}">${x?num.format(Math.round(x)):''}</td>`).join('')}<td class="n ${sum(arr)<0?'neg':''}">${num.format(Math.round(sum(arr)))}</td></tr>`;
   const sE=orc.e.map((o,m)=>soOrc(o,pago.e[m],aberto.e[m])),sS=orc.s.map((o,m)=>soOrc(o,pago.s[m],aberto.s[m]));
   const prev=MESES.map((_,m)=>pago.e[m]+pago.s[m]+aberto.e[m]+aberto.s[m]+sE[m]+sS[m]);let ac=0;const prevAc=prev.map(x=>ac+=x);ac=0;const orcAc=orc.e.map((e,m)=>ac+=e+orc.s[m]);
-  const mSel=S.cxMes??Math.min(11,+HOJE.slice(5,7)-1);
+  const temCx=MESES.map((_,m)=>!!(orc.e[m]||orc.s[m]||pago.e[m]||pago.s[m]||aberto.e[m]||aberto.s[m]));
+  const hm=+HOJE.slice(5,7)-1;const mSel=S.cxMes??(+HOJE.slice(0,4)===ano||!temCx.some(Boolean)?Math.min(11,hm):Math.max(0,temCx.indexOf(true)));
+  if(celular())return caixaCelular({ano,v,orc,pago,aberto,sE,sS,prev,temCx,mSel,porConta,soOrc,outras});
   const det=Object.entries(porConta).map(([c,o])=>({c:conta(c),o:o.o[mSel],p:o.p[mSel],a:o.a[mSel]})).filter(x=>x.o||x.p||x.a).sort((a,b)=>(a.c?.codigo||'').localeCompare(b.c?.codigo||'',undefined,{numeric:true}));
   return `<p class="hint" style="margin:6px 0 10px">Caixa de ${esc(v.nome)} pelas premissas de prazo de cada conta${v.congelada?' (gravado quando a versão foi travada)':''}, comparado com o que já foi pago ou recebido e com o que já está lançado em contas a pagar e a receber. “Só no orçamento” é o que ainda não virou conta.</p>
   <div style="margin-bottom:14px">${chartAcum({labels:MESES,series:[{nome:'Orçado',cor:'var(--ink-3)',vals:MESES.map((_,m)=>orc.e[m]+orc.s[m]),tr:'4 3'},{nome:'Previsto agora',cor:'var(--accent)',vals:prev}]})}
@@ -1606,6 +1674,26 @@ async function abaCaixa(emp,v){
   <div class="ph" style="margin-top:16px"><div><h2 style="font-size:14px;margin:0">Detalhe por conta</h2><p class="hint" style="margin:0">Orçado do mês e quanto já está pago ou lançado.</p></div><select id="cxMes" aria-label="Mês">${MESES.map((m,i)=>`<option value="${i}" ${i===mSel?'selected':''}>${m}/${ano}</option>`).join('')}</select></div>
   ${det.length?`<div class="tbl-wrap"><table><thead><tr><th>Conta</th><th class="n">Orçado</th><th class="n">Pago / recebido</th><th class="n">Em contas a pagar/receber</th><th class="n">Só no orçamento</th><th class="n">Desvio</th></tr></thead><tbody>
   ${det.map(x=>{const so=soOrc(x.o,x.p,x.a);const dv=x.p+x.a+so-x.o;return `<tr><td>${esc(x.c?.codigo||'')} ${esc(x.c?.nome||'Sem conta')}</td><td class="n">${num.format(Math.round(x.o))}</td><td class="n">${num.format(Math.round(x.p))}</td><td class="n">${num.format(Math.round(x.a))}</td><td class="n">${num.format(Math.round(so))}</td><td class="n ${dv<0?'neg':''}">${Math.abs(dv)>=1?num.format(Math.round(dv)):'–'}</td></tr>`}).join('')}</tbody></table></div>`:'<p class="muted">Nada orçado ou lançado neste mês.</p>'}`;
+}
+
+// caixa orçado no celular: lista do ano (entra, sai, sobra) e o detalhe do mês tocado
+function caixaCelular({ano,v,orc,pago,aberto,sE,sS,prev,temCx,mSel,porConta,soOrc,outras}){
+  const yy=String(ano).slice(2);const sal=MESES.map((_,m)=>orc.e[m]+orc.s[m]);let ac=0;const acum=sal.map(x=>ac+=x);
+  const det=Object.entries(porConta).map(([c,o])=>({c:conta(c),o:o.o[mSel],p:o.p[mSel],a:o.a[mSel]})).filter(x=>x.o||x.p||x.a).sort((a,b)=>(a.c?.codigo||'').localeCompare(b.c?.codigo||'',undefined,{numeric:true}));
+  const dd=(n,x,cls='')=>`<dt class="${cls}">${n}</dt><dd class="${cls} ${x<0?'neg':''}">${fmtV(x)}</dd>`;
+  return `<p class="hint" style="margin:6px 0 10px">Quando o dinheiro entra e sai, pelas regras de prazo de cada conta${outras.length?` (inclui o que ${outras.map(x=>esc(x.nome)).join(' e ')} paga neste ano)`:''}. Toque num mês para ver o detalhe.</p>
+  <div class="om">
+    <table class="om-ano"><thead><tr><th>Mês</th><th>Entra</th><th>Sai</th><th>Sobra</th><th>Acum.</th></tr></thead><tbody>
+    ${MESES.map((n,m)=>temCx[m]?`<tr data-cxm="${m}" class="${m===mSel?'on':''}"><td>${n}/${yy}</td><td>${fmtV(orc.e[m])}</td><td>${fmtV(Math.abs(orc.s[m]))}</td><td class="${sal[m]<0?'neg':''}">${fmtV(sal[m])}</td><td class="${acum[m]<0?'neg':''}">${fmtV(acum[m])}</td></tr>`:'').join('')}
+    </tbody></table>
+    <section class="om-grp"><h4>${MESES[mSel]}/${yy} · caixa<span class="${sal[mSel]<0?'neg':''}">${fmtV(sal[mSel])}</span></h4>
+      <div style="padding:10px 12px"><dl class="om-cx">
+        ${dd('Entradas orçadas',orc.e[mSel],'t')}${dd('Já recebido',pago.e[mSel])}${dd('Em contas a receber',aberto.e[mSel])}${dd('Só no orçamento',sE[mSel])}
+        ${dd('Saídas orçadas',orc.s[mSel],'t')}${dd('Já pago',pago.s[mSel])}${dd('Em contas a pagar',aberto.s[mSel])}${dd('Só no orçamento',sS[mSel])}
+        ${dd('Saldo previsto agora',prev[mSel],'t')}
+      </dl></div></section>
+    ${det.length?`<section class="om-grp"><h4>Por conta<span></span></h4>${det.map(x=>`<div class="om-row"><div><span>${esc(x.c?.nome||'Sem conta')}</span><small>${esc(x.c?.codigo||'')}${x.p||x.a?` · pago ${fmtV(x.p)} · lançado ${fmtV(x.a)}`:''}</small></div><span class="val ${x.o<0?'neg':''}">${fmtV(x.o)}</span></div>`).join('')}</section>`:''}
+  </div>`;
 }
 
 // ---------- Premissas de prazo
@@ -1632,6 +1720,11 @@ function formPremissa(contaId){const c=conta(contaId),p=S.premissas.find(x=>x.co
 const ACOES_ORC={
   'nova-versao':b=>formVersao(b.dataset.tipo),
   'salvar-orc':async b=>{b.disabled=true;await salvarOrc()},
+  'orc-todas':()=>{S.orcTodas=!S.orcTodas;render(true)},
+  'orc-copiar-mes':b=>{const m=+b.dataset.m;const v=(S.versoes[S.orcEmp]||[]).find(x=>x.id===S.orcVer);const E=S.orcEdit;if(!v||!E)return;
+    const corte=v.tipo==='forecast'?(v.mes_corte||0):0;
+    document.querySelectorAll(`input[data-cel$="|${m}"]`).forEach(i=>{const c=i.dataset.cel.split('|')[0];const x=r2(Math.abs(parseCel(i.value))*sinal(conta(c)));for(let k=Math.max(m+1,corte);k<12;k++)E.vals[c+'|'+k]=x});
+    E.sujo=true;toast('Valores de '+MESES[m]+' copiados para os meses seguintes. Confira e salve.');render(true)},
   'travar-versao':b=>{const v=(S.versoes[S.orcEmp]||[]).find(x=>x.id===b.dataset.id);if(S.orcEdit?.sujo)return toast('Salve as alterações antes de travar.');
     drawer(`<h3>Travar ${esc(v.nome)}?</h3><div class="effect">Depois de travado, este ${v.tipo==='forecast'?'forecast':'orçamento'} vira um espelho: <b>não pode mais ser alterado nem apagado</b>. O fluxo de caixa calculado pelas premissas de hoje fica gravado junto. Para revisar os números, crie um forecast a partir dele.</div><div style="display:flex;gap:8px"><button class="btn" data-acao="travar-confirma" data-id="${v.id}">Travar definitivamente</button><button class="btn ghost" data-acao="fechar">Cancelar</button></div>`)},
   'travar-confirma':async b=>{b.disabled=true;await travarVersao(b.dataset.id)},
@@ -2005,8 +2098,11 @@ async function vSalario(){
     `<p class="muted" style="font-size:12px;margin:0">Estimativa pelas tabelas vigentes em 2026 (Portaria MPS/MF nº 13/2026 e Lei 15.270/2025). Pensão alimentícia, previdência privada e outras deduções não entram. O holerite real pode variar alguns centavos por arredondamento.</p>`;
 }
 async function contaAuto(emp,nome,tipo,grupo){
-  const raiz=S.contas.find(c=>c.empresa_id===emp&&c.codigo==='3'&&!c.analitica);
-  const usados=new Set(S.contas.filter(c=>c.empresa_id===emp).map(c=>c.codigo));let n=1,cod;do{cod='3.09.'+String(n++).padStart(3,'0')}while(usados.has(cod));
+  const doEmp=S.contas.filter(c=>c.empresa_id===emp);
+  // plano padrão novo: 1 Receitas e 2 Pagamentos; plano antigo: tudo sob 3
+  const novo=doEmp.some(c=>c.codigo==='1'&&!c.analitica);const base=novo?(tipo==='receita'?'1':'2'):'3';
+  const raiz=doEmp.find(c=>c.codigo===base&&!c.analitica);
+  const usados=new Set(doEmp.map(c=>c.codigo));let n=1,cod;do{cod=base+'.99.'+String(n++).padStart(3,'0')}while(usados.has(cod));
   const {data,error}=await sb.from('plano_contas').insert({empresa_id:emp,codigo:cod,nome,tipo,grupo_dre:grupo,analitica:true,ativa:true,conta_pai:raiz?.id||null}).select().single();if(error)throw error;S.contas.push(data);return data.id
 }
 
@@ -2772,7 +2868,7 @@ async function render(quieto){
   if(EM_BREVE[r]){v.innerHTML=vEmBreve(r);return}
   if(!S.empresas.length&&!['empresas','usuarios'].includes(r)){v.innerHTML=semEmpresa();return}
   if(!quieto)v.classList.add('loading');
-  try{const html=await VIEWS[r]();if(seq!==renderSeq)return;v.innerHTML=html;decorarTiles(v)}
+  try{const html=await VIEWS[r]();if(seq!==renderSeq)return;v.innerHTML=html;decorarTiles(v);v.querySelectorAll('.om-mes.on,.versions.orc-vers .ver.on').forEach(e=>{const p=e.parentElement;p.scrollLeft=e.offsetLeft-p.offsetLeft-(p.clientWidth-e.offsetWidth)/2})}
   catch(err){if(seq!==renderSeq)return;console.error(err);v.innerHTML=vazio('Não consegui carregar esta tela',`<p style="margin:0">${esc(traduz(err))}</p>`,'<button class="btn" data-acao="recarregar">Tentar de novo</button>')}
   finally{if(seq===renderSeq)v.classList.remove('loading')}
 }
@@ -2931,6 +3027,8 @@ document.addEventListener('click',async ev=>{
   const cp=ev.target.closest('[data-cp]');if(cp){S.cpLado=cp.dataset.cp;render(true);return}
   const vb=ev.target.closest('[data-ver]');if(vb){if(S.orcEdit?.sujo){toast('Há valores não salvos. Salve antes de trocar de versão.');return}S.orcVer=vb.dataset.ver;S.orcEdit=null;S.acOrc=S.acFc=null;render(true);return}
   const ot=ev.target.closest('[data-orctab]');if(ot){S.orcTab=ot.dataset.orctab;render(true);return}
+  const om=ev.target.closest('[data-orcmes]');if(om){S.orcMes=S.orcMes||{};S.orcMes[S.orcVer]=+om.dataset.orcmes;render(true);return}
+  const cxm=ev.target.closest('[data-cxm]');if(cxm){S.cxMes=+cxm.dataset.cxm;render(true);return}
   const lr=ev.target.closest('[data-lanc]');if(lr){abrirLanc(lr.dataset.lanc);return}
   const cr=ev.target.closest('[data-conta]');if(cr&&!ev.target.closest('[data-acao]')){formConta(cr.dataset.conta);return}
   const b=ev.target.closest('[data-acao]');if(!b)return;const a=b.dataset.acao;
@@ -2967,6 +3065,7 @@ document.addEventListener('click',async ev=>{
   }catch(err){console.error(err);toast(traduz(err));b.disabled=false}
 });
 addEventListener('hashchange',()=>{if(S.user){fecharDrawer();render()}});
+matchMedia('(max-width:640px)').addEventListener?.('change',()=>{if(S.user&&rota()==='orcamento')render(true)});
 iniciar();
 </script>
 <script>
