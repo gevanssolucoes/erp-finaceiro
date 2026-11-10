@@ -84,6 +84,7 @@ const srv=http.createServer((q,r)=>{let f=path.join(APP,decodeURIComponent(q.url
     await pg.click('[data-acao=bol-config]');await pg.waitForTimeout(200);await shot(pg,'boletos-ligar');await pg.click('[data-acao=bol-gerar]');await pg.waitForTimeout(800);await shot(pg,'boletos-script');
     if(!DB.boletos_email_token.length)errs.push('token não gerado');await pg.click('[data-acao=fechar]');
     await pg.click(`[data-acao=bol-lancar][data-id="${boletos[0].id}"]`);await pg.waitForTimeout(400);await shot(pg,'boletos-lancar');
+    {const bi=await pg.$('#lConta').then(e=>e.evaluateHandle(x=>x.previousElementSibling?.querySelector('input')));const inp=bi.asElement();if(!inp)errs.push('campo de conta sem pesquisa');else{await inp.type('marketing');await pg.waitForTimeout(150);await shot(pg,'lanc-conta-busca');const v=await pg.$eval('#lConta',s=>s.options[s.selectedIndex]?.textContent);if(!/Marketing/.test(v||''))errs.push('pesquisa no campo de conta não selecionou: '+v);await inp.fill('')}}
     await pg.selectOption('#lConta',{index:8});await pg.click('form[data-form=lanc] button:not([type=button])');await pg.waitForTimeout(900);await shot(pg,'boletos-depois');
     if(boletos[0].status!=='lancado')errs.push('boleto não marcado como lançado');
     DB.boletos_email_token[0].url_busca='https://script.google.com/macros/s/ABC_1/exec';let buscou=0;
@@ -233,6 +234,16 @@ const srv=http.createServer((q,r)=>{let f=path.join(APP,decodeURIComponent(q.url
      await pg.click('[data-acao=ext-gravar]');await pg.waitForTimeout(1200);await shot(pg,'ext-pdf-conc');}
     // plano de contas e transferências
     await pg.evaluate(()=>location.hash='plano');await pg.waitForTimeout(700);await pg.selectOption('#planoEmp',empresas[0].id);await pg.waitForTimeout(700);await shot(pg,'plano');
+    {await pg.keyboard.press('/');if(!await pg.evaluate(()=>document.activeElement?.id==='planoBusca'))errs.push('atalho / não foca a busca do plano');
+     await pg.type('#planoBusca','aluguel');await pg.waitForTimeout(200);await shot(pg,'plano-busca');
+     const vis=await pg.$$eval('#planoCorpo tr[data-pl]:not(.anc)',t=>t.map(r=>r.textContent));if(vis.length!==1||!/Aluguel/.test(vis[0]))errs.push('busca "aluguel" achou: '+vis.length);
+     if(!await pg.$('#planoCorpo mark'))errs.push('busca não destaca o termo');
+     await pg.fill('#planoBusca','5.0');await pg.waitForTimeout(200);const n5=await pg.$$eval('#planoCorpo tr[data-pl]:not(.anc)',t=>t.length);if(n5<3)errs.push('busca por código 5.0 achou '+n5);
+     await pg.fill('#planoBusca','salarios');await pg.waitForTimeout(200);if(!await pg.$('#planoCorpo tr[data-pl]:not(.anc) >> text=Salários'))errs.push('busca sem acento falhou');
+     await pg.fill('#planoBusca','xyzxyz');await pg.waitForTimeout(200);await shot(pg,'plano-busca-vazia');if(!await pg.$('#planoCorpo >> text=Nenhuma conta encontrada'))errs.push('sem aviso de nada encontrado');
+     await pg.click('#planoCorpo [data-acao=plano-limpar]');await pg.waitForTimeout(200);
+     await pg.click('.plano-busca [data-pf=semgrupo]');await pg.waitForTimeout(200);await shot(pg,'plano-semgrupo');const sg=await pg.$$eval('#planoCorpo tr[data-pl]:not(.anc)',t=>t.map(r=>r.children[1].textContent));if(sg.length!==1||sg[0]!=='Conta sem grupo')errs.push('filtro sem grupo: '+sg.join(','));
+     await pg.click('.plano-busca [data-pf=todas]');await pg.waitForTimeout(200);}
     {const c=plano.find(x=>x.empresa_id===empresas[0].id&&x.codigo==='5.02.001');await pg.click(`[data-acao=editar-conta][data-id="${c.id}"]`);await pg.waitForTimeout(300);await shot(pg,'conta-editar');await pg.fill('#cCod','5.02.009');await pg.fill('#cNome','Aluguel e condomínio');await pg.click('form[data-form=conta] button:not([type=button])');await pg.waitForTimeout(900);if(c.codigo!=='5.02.009'||c.nome!=='Aluguel e condomínio')errs.push('edição da conta não salvou: '+c.codigo+' '+c.nome)}
     {const pai=plano.find(x=>x.empresa_id===empresas[0].id&&x.codigo==='5');await pg.click(`[data-acao=nova-subconta][data-id="${pai.id}"]`);await pg.waitForTimeout(300);const cod=await pg.inputValue('#cCod');await pg.fill('#cNome','Plano de saúde IPASGO');await shot(pg,'subconta');await pg.click('form[data-form=conta] button:not([type=button])');await pg.waitForTimeout(900);const nv=plano.find(x=>x.nome==='Plano de saúde IPASGO');console.log('SUBCONTA',cod,nv?.conta_pai===pai.id);if(!nv)errs.push('subconta não criada')}
     await pg.click('[data-acao=criar-transf]');await pg.waitForTimeout(900);await shot(pg,'plano-transf');console.log('TRANSF CONTAS',plano.filter(x=>/Transfer/.test(x.nome)&&x.empresa_id===empresas[0].id).map(x=>x.codigo+' '+x.nome).join(', '));

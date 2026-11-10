@@ -43,6 +43,21 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 .top h1{font-size:19px;margin:0;font-weight:700;text-wrap:balance}
 .top .sub{color:var(--ink-2);font-size:12.5px}
 .ctrls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* busca no plano de contas e nos campos de conta */
+.plano-busca{display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap;margin:2px 0 12px}
+.busca-box{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:0 10px;flex:1 1 320px;min-width:0;max-width:520px}
+.busca-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.busca-box svg{width:16px;height:16px;flex:none;fill:none;stroke:var(--ink-2);stroke-width:2;stroke-linecap:round}
+.busca-box input{border:0;outline:0;background:transparent;padding:8px 0;flex:1;min-width:0;font:inherit;color:var(--ink)}
+.busca-box kbd{font-family:var(--f-num);font-size:11px;color:var(--ink-2);border:1px solid var(--line);border-radius:4px;padding:0 5px}
+.busca-box input:not(:placeholder-shown)~kbd{display:none}
+.seg-wrap{flex-wrap:wrap;max-width:100%}.plano-cont{font-size:12.5px}
+.tbl-plano mark,.sel-busca-hint mark{background:var(--warn-soft);color:inherit;border-radius:2px;padding:0 1px}
+.tbl-plano tr.anc td{color:var(--ink-2);opacity:.75}
+.tile-btn{font:inherit;color:inherit;text-align:left;cursor:pointer}.tile-btn:hover{border-color:var(--accent)}
+.sel-busca{display:flex;flex-direction:column;gap:4px}.sel-busca input{border:1px solid var(--line);border-radius:6px;padding:6px 10px;background:var(--surface);font:inherit;color:var(--ink);min-width:0}
+.sel-busca-hint{font-size:11.5px;color:var(--ink-2)}
+@media (max-width:820px){.busca-box kbd{display:none}.plano-busca .seg button{padding:6px 9px}}
 select,button,input[type=text]{font:inherit;color:var(--ink)}
 select{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 8px;max-width:100%}
 .btn{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:7px 12px;font-weight:600;cursor:pointer}
@@ -420,7 +435,7 @@ const S={
   empresas:[],produtos:[],impostos:[],acordos:[],apuracoes:null,tribEmp:null,reforma:null,predios:[],contas:[],centros:[],bancos:[],parceiros:[],
   sel:new Set(),ano:+HOJE.slice(0,4),per:{tipo:'ano',v:0},anos:[],
   lanc:{},parcAbertas:null,pagas:{},dreModo:'mes',abertos:new Set(),
-  cpLado:'pagar',lancBusca:'',planoEmp:null,imp:null,usuarios:null,
+  cpLado:'pagar',lancBusca:'',planoEmp:null,planoBusca:'',planoFiltro:'todas',imp:null,usuarios:null,
 };
 const empresa=id=>S.empresas.find(e=>e.id===id);
 const nomeEmp=e=>e?(e.nome_fantasia||e.razao_social):'';
@@ -869,26 +884,74 @@ async function abrirLanc(id){
 }
 
 // ===================== Plano de contas
+const PLANO_FILTROS=[['todas','Todas'],['receita','Receitas'],['despesa','Despesas'],['analiticas','Só analíticas'],['semgrupo','Sem grupo da DRE'],['inativas','Inativas']];
+// Texto sem acento e em maiúsculas, caractere a caractere, para achar e destacar o trecho buscado
+function normPos(s){const out=[],pos=[];[...String(s??'')].forEach((ch,i)=>{const n=norm(ch)||(ch===' '?' ':'');for(const x of n){out.push(x);pos.push(i)}});return {txt:out.join(''),pos}}
+function marcaBusca(s,termos){const chars=[...String(s??'')];if(!termos.length)return esc(s);const {txt,pos}=normPos(s);const on=new Array(chars.length).fill(false);
+  termos.forEach(t=>{let i=txt.indexOf(t);while(i>=0){for(let k=i;k<i+t.length;k++)on[pos[k]]=true;i=txt.indexOf(t,i+t.length)}});
+  let h='',ab=false;chars.forEach((ch,i)=>{if(on[i]&&!ab){h+='<mark>';ab=true}else if(!on[i]&&ab){h+='</mark>';ab=false}h+=esc(ch)});return h+(ab?'</mark>':'')}
+function planoTermos(q){return norm(q).split(/\s+/).filter(Boolean)}
+// Quais contas aparecem: as que batem com a busca e o filtro, as contas acima delas (para mostrar onde ficam) e o que está dentro de um grupo encontrado
+function planoVisiveis(cs,q,f){
+  const termos=planoTermos(q),porId=new Map(cs.map(c=>[c.id,c])),vis=new Map();
+  const passaFiltro=c=>f==='receita'?c.tipo==='receita':f==='despesa'?c.tipo!=='receita':f==='analiticas'?c.analitica:f==='semgrupo'?(c.analitica&&c.ativa&&!c.grupo_dre&&!ehTransf(c)):f==='inativas'?!c.ativa:true;
+  const bate=c=>{if(!termos.length)return true;const t=norm(c.codigo+' '+c.nome);return termos.every(x=>t.includes(x))};
+  const achadas=cs.filter(c=>bate(c)&&passaFiltro(c));achadas.forEach(c=>vis.set(c.id,'hit'));
+  if(termos.length){const filhosDe=new Map();cs.forEach(c=>{if(c.conta_pai){if(!filhosDe.has(c.conta_pai))filhosDe.set(c.conta_pai,[]);filhosDe.get(c.conta_pai).push(c)}});
+    const desce=id=>(filhosDe.get(id)||[]).forEach(c=>{if(!vis.has(c.id)&&passaFiltro(c))vis.set(c.id,'sub');desce(c.id)});
+    achadas.filter(c=>!c.analitica).forEach(c=>desce(c.id))}
+  if(termos.length||f!=='todas')[...vis.keys()].forEach(id=>{let p=porId.get(id)?.conta_pai,n=0;while(p&&n<8){if(!vis.has(p))vis.set(p,'anc');p=porId.get(p)?.conta_pai;n++}});
+  return {vis,achadas:achadas.length,termos};
+}
+function linhaPlano(c,ed,usos,nivel,est,termos){
+  return `<tr class="${ed?'click':''}${est==='anc'?' anc':''}" data-pl="${c.id}" ${ed?`data-conta="${c.id}"`:''}><td class="mono">${marcaBusca(c.codigo,termos)}</td><td style="padding-left:${10+nivel*16}px;${c.analitica?'':'font-weight:700'}">${marcaBusca(c.nome,termos)}</td><td>${c.tipo==='receita'?'Receita':'Despesa'}</td><td>${c.grupo_dre?esc(GRUPOS[c.grupo_dre]):ehTransf(c)?'<span class="chip info">transferência · fora da DRE</span>':c.analitica?'<span class="chip warn">sem grupo</span>':'<span class="muted">–</span>'}</td><td>${c.analitica?'Analítica':'<span class="muted">Sintética</span>'}</td><td class="n">${usos[c.id]||(c.analitica?'<span class="muted">0</span>':'')}</td><td>${c.ativa?'<span class="chip good">Ativa</span>':'<span class="chip mute">Inativa</span>'}</td>
+      ${ed?`<td style="white-space:nowrap"><button class="linkbtn small" data-acao="editar-conta" data-id="${c.id}">Editar</button>${c.analitica?'':` · <button class="linkbtn small" data-acao="nova-subconta" data-id="${c.id}">+ Subconta</button>`}</td>`:''}</tr>`}
+function corpoPlano(){
+  const P=S._plano;if(!P)return '';const {vis,achadas,termos}=planoVisiveis(P.cs,S.planoBusca||'',S.planoFiltro||'todas');
+  const linhas=P.cs.filter(c=>vis.has(c.id)).map(c=>linhaPlano(c,P.ed,P.usos,P.nivel(c),vis.get(c.id),termos)).join('');
+  const nCol=P.ed?8:7;
+  return linhas||`<tr><td colspan="${nCol}" style="text-align:center;padding:28px 10px"><b>Nenhuma conta encontrada</b><br><span class="muted">${S.planoBusca?'Nada com “'+esc(S.planoBusca)+'”'+(S.planoFiltro&&S.planoFiltro!=='todas'?' neste filtro':'')+'. ':''}Tente parte do nome, sem acento, ou o começo do código (ex.: 2.01).</span><br><button class="btn ghost" data-acao="plano-limpar" style="margin-top:10px">Limpar busca</button></td></tr>`;
+}
+function contagemPlano(){const P=S._plano;if(!P)return '';const {achadas}=planoVisiveis(P.cs,S.planoBusca||'',S.planoFiltro||'todas');const filtrando=(S.planoBusca||'').trim()||(S.planoFiltro&&S.planoFiltro!=='todas');
+  return filtrando?`<b>${achadas}</b> conta${achadas===1?' encontrada':'s encontradas'} de ${P.cs.length}`:`${P.cs.length} contas no plano`}
+function atualizaPlano(){const tb=document.getElementById('planoCorpo');if(!tb)return;tb.innerHTML=corpoPlano();const n=document.getElementById('planoCont');if(n)n.innerHTML=contagemPlano();
+  document.querySelectorAll('[data-pf]').forEach(b=>b.classList.toggle('on',b.dataset.pf===(S.planoFiltro||'todas')));const x=document.getElementById('planoX');if(x)x.hidden=!S.planoBusca}
 async function vPlano(){
   const emps=S.empresas;if(!emps.length)return semEmpresa();
   if(!emps.some(e=>e.id===S.planoEmp))S.planoEmp=(selEmp()[0]||emps[0]).id;
   const cs=S.contas.filter(c=>c.empresa_id===S.planoEmp).sort((a,b)=>a.codigo.localeCompare(b.codigo,undefined,{numeric:true}));
   const nivel=c=>{let n=0,p=c;while(p?.conta_pai&&n<6){p=conta(p.conta_pai);n++}return n};
   const ed=podeEditar(S.planoEmp);
-  const usos=await usoContas(S.planoEmp);S._usos=usos;
+  const usos=await usoContas(S.planoEmp);S._usos=usos;S._plano={cs,ed,usos,nivel};
   const temTr=cs.some(c=>ehTransf(c)&&c.analitica);
-  const nA=cs.filter(c=>c.analitica&&c.ativa).length,semG=cs.filter(c=>c.analitica&&c.ativa&&!c.grupo_dre&&!ehTransf(c)).length;
-  const tiles=[['Contas analíticas',String(nA),'','recebem lançamentos'],['Contas sintéticas',String(cs.filter(c=>!c.analitica).length),'','agrupam as analíticas'],
-    ['Sem grupo da DRE',String(semG),semG?'<span class="chip warn">ficam fora da DRE</span>':'<span class="chip good">tudo classificado</span>',''],
-    ['Transferências',temTr?'Prontas':'Não criadas',temTr?'<span class="chip good">fora da DRE</span>':'<span class="chip mute">opcional</span>','entre contas bancárias']];
-  return `<div class="grid g-tiles" style="grid-template-columns:repeat(4,minmax(0,1fr))">${tiles.map(([l,v,c,x])=>`<div class="tile"><span class="lbl">${l}</span><span class="val">${v}</span><span class="cmp">${c}${x}</span></div>`).join('')}</div>
-  <div class="panel"><div class="ph"><div><h2>Plano de contas</h2><p class="hint">Clique numa conta para alterar código, nome, tipo, grupo da DRE ou conta superior. Contas sem uso podem ser excluídas; as usadas podem ser inativadas.</p></div>
-    <div class="ctrls"><select id="planoEmp" aria-label="Empresa">${opcoesEmp(S.planoEmp,false)}</select>${ed&&!temTr?'<button class="btn ghost" data-acao="criar-transf">Criar contas de transferência</button>':''}${ed?'<button class="btn" data-acao="nova-conta">Nova conta</button>':''}</div></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Grupo da DRE</th><th>Uso</th><th class="n">Lançamentos</th><th>Situação</th>${ed?'<th></th>':''}</tr></thead><tbody>
-    ${cs.map(c=>`<tr class="${ed?'click':''}" ${ed?`data-conta="${c.id}"`:''}><td class="mono">${esc(c.codigo)}</td><td style="padding-left:${10+nivel(c)*16}px;${c.analitica?'':'font-weight:700'}">${esc(c.nome)}</td><td>${c.tipo==='receita'?'Receita':'Despesa'}</td><td>${c.grupo_dre?esc(GRUPOS[c.grupo_dre]):ehTransf(c)?'<span class="chip info">transferência · fora da DRE</span>':c.analitica?'<span class="chip warn">sem grupo</span>':'<span class="muted">–</span>'}</td><td>${c.analitica?'Analítica':'<span class="muted">Sintética</span>'}</td><td class="n">${usos[c.id]||(c.analitica?'<span class="muted">0</span>':'')}</td><td>${c.ativa?'<span class="chip good">Ativa</span>':'<span class="chip mute">Inativa</span>'}</td>
-      ${ed?`<td style="white-space:nowrap"><button class="linkbtn small" data-acao="editar-conta" data-id="${c.id}">Editar</button>${c.analitica?'':` · <button class="linkbtn small" data-acao="nova-subconta" data-id="${c.id}">+ Subconta</button>`}</td>`:''}</tr>`).join('')}
+  const nA=cs.filter(c=>c.analitica&&c.ativa).length,semG=cs.filter(c=>c.analitica&&c.ativa&&!c.grupo_dre&&!ehTransf(c)).length,nIn=cs.filter(c=>!c.ativa).length;
+  const tiles=[['Contas analíticas',String(nA),'','recebem lançamentos','analiticas'],['Contas sintéticas',String(cs.filter(c=>!c.analitica).length),'','agrupam as analíticas',''],
+    ['Sem grupo da DRE',String(semG),semG?'<span class="chip warn">ficam fora da DRE</span>':'<span class="chip good">tudo classificado</span>','',semG?'semgrupo':''],
+    ['Transferências',temTr?'Prontas':'Não criadas',temTr?'<span class="chip good">fora da DRE</span>':'<span class="chip mute">opcional</span>','entre contas bancárias','']];
+  const f=S.planoFiltro||'todas';
+  return `<div class="grid g-tiles" style="grid-template-columns:repeat(4,minmax(0,1fr))">${tiles.map(([l,v,c,x,pf])=>pf?`<button class="tile tile-btn" data-acao="plano-filtro" data-pf="${pf}" title="Mostrar só estas contas"><span class="lbl">${l}</span><span class="val">${v}</span><span class="cmp">${c}${x}</span></button>`:`<div class="tile"><span class="lbl">${l}</span><span class="val">${v}</span><span class="cmp">${c}${x}</span></div>`).join('')}</div>
+  <div class="panel"><div class="ph"><div><h2>Plano de contas</h2><p class="hint">Pesquise pelo código ou pelo nome. Clique numa conta para alterar código, nome, tipo, grupo da DRE ou conta superior. Contas sem uso podem ser excluídas; as usadas podem ser inativadas.</p></div>
+    <div class="ctrls"><select id="planoEmp" aria-label="Empresa">${opcoesEmp(S.planoEmp,false)}</select><button class="btn ghost" data-acao="plano-exportar" title="Baixar a lista que está na tela em Excel">Exportar Excel</button>${ed&&!temTr?'<button class="btn ghost" data-acao="criar-transf">Criar contas de transferência</button>':''}${ed?'<button class="btn" data-acao="nova-conta">Nova conta</button>':''}</div></div>
+    <div class="plano-busca">
+      <div class="busca-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input type="search" id="planoBusca" value="${esc(S.planoBusca||'')}" placeholder="Pesquisar conta: código ou nome (ex.: 2.01, aluguel, salário)" aria-label="Pesquisar no plano de contas" autocomplete="off"><kbd title="Atalho: tecla /">/</kbd><button class="linkbtn small" id="planoX" data-acao="plano-limpar" ${S.planoBusca?'':'hidden'} aria-label="Limpar busca">Limpar</button></div>
+      <div class="seg seg-wrap" role="group" aria-label="Filtrar contas">${PLANO_FILTROS.filter(([v])=>v!=='inativas'||nIn).map(([v,n])=>`<button data-acao="plano-filtro" data-pf="${v}" class="${f===v?'on':''}">${n}</button>`).join('')}</div>
+      <span class="muted plano-cont" id="planoCont" aria-live="polite">${contagemPlano()}</span>
+    </div>
+    <div class="tbl-wrap"><table class="tbl-plano"><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Grupo da DRE</th><th>Uso</th><th class="n">Lançamentos</th><th>Situação</th>${ed?'<th></th>':''}</tr></thead><tbody id="planoCorpo">
+    ${corpoPlano()}
     </tbody></table></div></div>`;
 }
+function exportarPlano(){const P=S._plano;if(!P)return;const {vis}=planoVisiveis(P.cs,S.planoBusca||'',S.planoFiltro||'todas');
+  const pai=id=>P.cs.find(c=>c.id===id);
+  const rows=P.cs.filter(c=>vis.has(c.id)).map(c=>({'Código':c.codigo,'Nome':c.nome,'Conta superior':c.conta_pai?(pai(c.conta_pai)?.codigo||''):'','Tipo':c.tipo==='receita'?'Receita':'Despesa','Grupo da DRE':c.grupo_dre?GRUPOS[c.grupo_dre]:ehTransf(c)?'Transferência (fora da DRE)':'','Uso':c.analitica?'Analítica':'Sintética','Lançamentos':P.usos[c.id]||0,'Situação':c.ativa?'Ativa':'Inativa'}));
+  const ws=XLSX.utils.json_to_sheet(rows);ws['!cols']=[{wch:12},{wch:40},{wch:14},{wch:10},{wch:30},{wch:11},{wch:12},{wch:9}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Plano de contas');
+  const e=empresa(S.planoEmp);XLSX.writeFile(wb,'plano-de-contas-'+norm(nomeEmp(e)).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'.xlsx')}
+document.addEventListener('input',ev=>{if(ev.target.id==='planoBusca'){S.planoBusca=ev.target.value;atualizaPlano()}});
+document.addEventListener('keydown',ev=>{const t=ev.target;
+  if(t.id==='planoBusca'&&ev.key==='Escape'){if(t.value){ev.preventDefault();t.value='';S.planoBusca='';atualizaPlano()}else t.blur();return}
+  if(t.id==='planoBusca'&&ev.key==='Enter'){ev.preventDefault();const r=document.querySelector('#planoCorpo tr[data-conta]:not(.anc)');if(r&&document.querySelectorAll('#planoCorpo tr[data-pl]:not(.anc)').length===1)r.click();return}
+  if(ev.key==='/'&&!ev.ctrlKey&&!ev.metaKey&&!/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)&&!t.isContentEditable){const i=document.getElementById('planoBusca');if(i){ev.preventDefault();i.focus();i.select()}}});
 async function usoContas(emp){const ls=await todos(()=>sb.from('lancamentos').select('conta_id').eq('empresa_id',emp));const o={};ls.forEach(l=>o[l.conta_id]=(o[l.conta_id]||0)+1);return o}
 function proxCodigo(emp,pai){const p=pai?conta(pai):null;const usados=new Set(S.contas.filter(c=>c.empresa_id===emp).map(c=>c.codigo));
   const irm=S.contas.filter(c=>c.empresa_id===emp&&(c.conta_pai||null)===(pai||null)).map(c=>c.codigo);
@@ -2199,6 +2262,9 @@ FORMS_PF.transf=async f=>{const emp=f.empresa.value,de=f.de.value,para=f.para.va
 const ACOES_PF={
   'nova-transf':()=>formTransf(),
   'criar-transf':async()=>{await contasTransf(S.planoEmp);toast('Contas de transferência criadas.');render(true)},
+  'plano-filtro':b=>{S.planoFiltro=(S.planoFiltro===b.dataset.pf&&b.classList.contains('tile-btn'))?'todas':b.dataset.pf;atualizaPlano()},
+  'plano-limpar':()=>{S.planoBusca='';S.planoFiltro='todas';const i=document.getElementById('planoBusca');if(i){i.value='';i.focus()}atualizaPlano()},
+  'plano-exportar':()=>exportarPlano(),
   'editar-conta':b=>formConta(b.dataset.id),
   'nova-subconta':b=>formConta(null,b.dataset.id),
   'excluir-conta':async b=>{const c=conta(b.dataset.id);if(!c||!confirm('Excluir a conta '+c.codigo+' '+c.nome+'?'))return;const {error}=await sb.from('plano_contas').delete().eq('id',c.id);
@@ -3078,4 +3144,5 @@ function mostrarLink(email,link,novo){drawer(`<h3>Link de acesso · ${esc(email)
 <script src="aprovacoes.js"></script>
 <script src="boletos.js"></script>
 <script src="admin.js"></script>
+<script src="busca.js"></script>
 </body></html>
