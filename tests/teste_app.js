@@ -33,7 +33,8 @@ colabs[0].ferias_quitadas_ate='2025-03-14';colabs[2].ferias_quitadas_ate='2024-0
 colabs.push({id:id(),empresa_id:empresas[0].id,departamento_id:deps[2].id,predio_id:predios[0].id,nome:'João Saiu',cargo:'Vendedor',admissao:'2022-05-01',desligamento:'2026-04-30',salario:2500,contrato:'clt'});
 const aus=[[0,'ferias','2026-01-05','2026-01-24'],[1,'atestado','2026-03-10','2026-03-12'],[2,'ferias','2026-11-03','2026-11-17'],[4,'atestado','2026-11-04','2026-11-05'],[3,'falta','2026-10-14','2026-10-14'],[5,'afastamento','2026-06-01','2026-07-15'],[1,'ferias','2025-12-01','2025-12-20']].map(([ci,t,i,f])=>({id:id(),empresa_id:colabs[ci].empresa_id,colaborador_id:colabs[ci].id,tipo:t,inicio:i,fim:f,dias:Math.round((new Date(f)-new Date(i))/864e5)+1,abono_dias:0,status:'aprovada'}));
 const novaEmp=[],semPar=[];
-const DB={app_config:[],app_config_hist:[],alcadas:[],aprovacoes:[],pagamento_lotes:[],compras_pedidos:[],compras_cotacoes:[],boletos_email:boletos,boletos_email_token:[],extratos:[],extrato_linhas:[],regras_classificacao:[],departamentos:deps,colaboradores:colabs,ausencias:aus,acessos:[],orcamento_versoes:[],orcamento_linhas:[],orcamento_caixa:[],premissas_conta:premissas,impostos_config:impostos,acordos_cartao:acordos,apuracoes:[],empresas,predios,plano_contas:plano,centros_custo:centros,contas_bancarias:bancos,parceiros,lancamentos:lanc,parcelas:parc,perfis,usuarios_empresas:empresas.map(e=>({usuario_id:UID,empresa_id:e.id,papel:'admin'})),produtos:[],importacoes:[]};
+const auditoria=[];const fechamentos=[];
+const DB={auditoria,fechamentos,app_config:[],app_config_hist:[],alcadas:[],aprovacoes:[],pagamento_lotes:[],compras_pedidos:[],compras_cotacoes:[],boletos_email:boletos,boletos_email_token:[],extratos:[],extrato_linhas:[],regras_classificacao:[],departamentos:deps,colaboradores:colabs,ausencias:aus,acessos:[],orcamento_versoes:[],orcamento_linhas:[],orcamento_caixa:[],premissas_conta:premissas,impostos_config:impostos,acordos_cartao:acordos,apuracoes:[],empresas,predios,plano_contas:plano,centros_custo:centros,contas_bancarias:bancos,parceiros,lancamentos:lanc,parcelas:parc,perfis,usuarios_empresas:empresas.map(e=>({usuario_id:UID,empresa_id:e.id,papel:'admin'})),produtos:[],importacoes:[]};
 const usuarios=[{...perfis[0],ultimo_acesso:'2026-11-03T10:00:00Z',convite_aceito:true,empresas:empresas.map(e=>e.id),papel:'admin',predios:[]},{usuario_id:id(),email:'ana@exemplo.com',nome:'Ana Souza',master:false,ativo:true,ultimo_acesso:null,convite_aceito:false,empresas:[empresas[0].id],papel:'financeiro',predios:[predios[0].id]},{usuario_id:id(),email:'rita@exemplo.com',nome:'Rita Lopes',master:false,ativo:true,ultimo_acesso:'2026-11-02T10:00:00Z',convite_aceito:true,outras_empresas:1,acessos:[{empresa_id:empresas[0].id,papel:'rh',departamento_id:deps[0].id,predios:[]}],empresas:[empresas[0].id],papel:'rh',predios:[]}];
 // ---------- PostgREST falso
 function filtrar(rows,q){
@@ -73,7 +74,7 @@ const srv=http.createServer((q,r)=>{let f=path.join(APP,decodeURIComponent(q.url
     await pg.route('https://vovomhtwqfnlidqlmycu.supabase.co/**',rotear);await pg.route('https://fonts.googleapis.com/**',r=>r.abort());
     await pg.goto('http://localhost:8765/');await pg.waitForTimeout(400);await passos(pg);await ctx.close()}
   const shot=async(pg,n)=>{await pg.waitForTimeout(500);const ov=await pg.evaluate(()=>document.documentElement.scrollWidth-innerWidth);if(ov>0)errs.push(n+': overflow horizontal '+ov+'px');await pg.screenshot({path:`${OUT}/t-${n}.png`,fullPage:true})};
-  await rodar({width:1366,height:900},'desk',async pg=>{
+  if(!process.env.V2ONLY)await rodar({width:1366,height:900},'desk',async pg=>{
     await shot(pg,'login');
     await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x12345678');await pg.click('form[data-form=login] button');await pg.waitForSelector('[data-entra]',{timeout:8000});await shot(pg,'entrada');await pg.click('[data-entra="*"]');await pg.waitForSelector('.tile',{timeout:8000});
     await shot(pg,'painel');
@@ -259,9 +260,51 @@ const srv=http.createServer((q,r)=>{let f=path.join(APP,decodeURIComponent(q.url
       '98.765.432/0001-10;Edifício Mar Azul;12/02/2024;;12/02/2024;3.01.002;COM;;Cliente Y;;;Aluguel;9800;Santander;0087;9999;PIX'].join('\n'))});
     await pg.waitForTimeout(600);await shot(pg,'import-conf');await pg.click('[data-acao=importar]');await pg.waitForTimeout(1500);await shot(pg,'import-feito');
   });
-  await rodar({width:390,height:844},'mob',async pg=>{await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x');await pg.click('form[data-form=login] button');await pg.waitForSelector('[data-entra]',{timeout:8000});await shot(pg,'m-entrada');await pg.click('[data-entra="*"]');await pg.waitForSelector('.tile',{timeout:8000});await shot(pg,'m-painel');await pg.evaluate(()=>location.hash='boletos');await pg.waitForTimeout(800);await shot(pg,'m-boletos');
+  if(!process.env.V2ONLY)await rodar({width:390,height:844},'mob',async pg=>{await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x');await pg.click('form[data-form=login] button');await pg.waitForSelector('[data-entra]',{timeout:8000});await shot(pg,'m-entrada');await pg.click('[data-entra="*"]');await pg.waitForSelector('.tile',{timeout:8000});await shot(pg,'m-painel');await pg.evaluate(()=>location.hash='boletos');await pg.waitForTimeout(800);await shot(pg,'m-boletos');
     for(const r of ['dre','usuarios','importar','orcamento','premissas','bancos','auditoria','pessoas','ausencias']){await pg.evaluate(r=>location.hash=r,r);await pg.waitForTimeout(700);await shot(pg,'m-'+r)}
     await pg.evaluate(()=>{location.hash='salario'});await pg.waitForTimeout(500);await pg.fill('#salBruto','5900');await pg.press('#salBruto','Enter');await pg.waitForTimeout(700);await shot(pg,'m-salario')});
+
+  // ---------- Versão 2 (Onda 1)
+  {const l0=lanc.find(l=>l.empresa_id===empresas[0].id);const c0=plano.find(c=>c.empresa_id===empresas[0].id&&/^5.02.00[19]$/.test(c.codigo));
+   auditoria.push({id:1,empresa_id:empresas[0].id,tabela:'lancamentos',registro_id:l0.id,acao:'alteracao',campos:['descricao','valor'],antes:{descricao:'Aluguel out',valor:-6000},depois:{descricao:'Aluguel outubro',valor:-6200},usuario_nome:'Ana Souza',em:new Date(Date.now()-3600e3).toISOString()},
+     {id:2,empresa_id:empresas[0].id,tabela:'plano_contas',registro_id:c0.id,acao:'alteracao',campos:['nome'],antes:{nome:'Aluguel'},depois:{nome:'Aluguel e condomínio'},usuario_nome:'Evaldo',em:new Date(Date.now()-7200e3).toISOString()},
+     {id:3,empresa_id:empresas[0].id,tabela:'parcelas',registro_id:'x',acao:'exclusao',antes:{numero:1,vencimento:'2026-10-10',valor:-150},usuario_nome:'Rita Lopes',em:new Date(Date.now()-86400e3).toISOString()});}
+  await rodar({width:1366,height:900},'v2',async pg=>{await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x');await pg.click('form[data-form=login] button');await pg.waitForSelector('[data-entra]',{timeout:8000});await pg.click('[data-entra="*"]');await pg.waitForSelector('.tile',{timeout:8000});
+    const grupos=await pg.$$eval('#nav .nav-group',g=>g.map(x=>x.textContent));console.log('MENU',grupos.join(' | '));if(!grupos.includes('Dia a dia'))errs.push('menu por objetivo não montou');
+    if(await pg.$('#nav >> text=em breve'))errs.push('menu ainda mostra tela em breve');
+    await pg.hover('#nav a[href="#dre"]');await pg.click('#nav a[href="#dre"] .fav');await pg.waitForTimeout(300);
+    if(!(await pg.$$eval('#nav .nav-group',g=>g.map(x=>x.textContent))).includes('Favoritos'))errs.push('favorito não apareceu');await shot(pg,'v2-menu');
+    // pesquisa geral
+    await pg.keyboard.press('Control+k');await pg.waitForSelector('#pgQ');await pg.waitForTimeout(600);await pg.type('#pgQ','aluguel');await pg.waitForTimeout(300);await shot(pg,'v2-pesquisa');
+    const gr=await pg.$$eval('.pg-grp',g=>g.map(x=>x.textContent));console.log('PESQUISA grupos',gr.join(','));if(!gr.includes('Plano de contas')||!gr.includes('Lançamentos'))errs.push('pesquisa geral sem contas ou lançamentos: '+gr);
+    await pg.keyboard.press('Enter');await pg.waitForTimeout(900);if(!(await pg.evaluate(()=>location.hash)).includes('plano'))errs.push('Enter da pesquisa não abriu a conta');
+    await pg.keyboard.press('Control+k');await pg.waitForSelector('#pgQ');await pg.type('#pgQ','159,90');await pg.waitForTimeout(400);await shot(pg,'v2-pesquisa-valor');await pg.keyboard.press('Escape');
+    // implantação
+    await pg.evaluate(()=>location.hash='empresas');await pg.waitForTimeout(1200);await shot(pg,'v2-implantacao');if(!await pg.$('.imp'))errs.push('assistente de implantação não apareceu');
+    // relatórios
+    await pg.evaluate(()=>location.hash='dre');await pg.waitForTimeout(900);await pg.click('#relBtn');await pg.waitForTimeout(200);await shot(pg,'v2-relatorio-menu');
+    {const [dl]=await Promise.all([pg.waitForEvent('download',{timeout:8000}).catch(()=>null),pg.click('[data-rel=xlsx]')]);if(!dl)errs.push('Excel do relatório não baixou');else{const f=OUT+'/v2-dre.xlsx';await dl.saveAs(f);const X=require(path.join(__dirname,'../docs/vendor/xlsx.full.min.js'));const wb=X.read(fs.readFileSync(f));console.log('XLSX abas',wb.SheetNames.join(','));const ws=wb.Sheets[wb.SheetNames[1]];const nums=Object.values(ws).filter(c=>c&&c.t==='n').length;console.log('XLSX células numéricas',nums);if(!nums)errs.push('Excel sem números')}}
+    await pg.click('#relBtn');await pg.click('[data-rel=pdf]');await pg.waitForTimeout(1500);
+    {const fr=await pg.$('iframe');if(!fr)errs.push('PDF: documento de impressão não montou');else{const fd=await fr.contentFrame();const t=await fd.evaluate(()=>document.body.innerText);if(!/DRE/.test(t)||!/Emitido em/.test(t))errs.push('PDF sem cabeçalho/rodapé');await fd.evaluate(()=>{document.documentElement.style.background='#fff'});const h=await fd.evaluate(()=>document.documentElement.outerHTML);fs.writeFileSync(OUT+'/v2-relatorio.html',h)}}
+    // conciliação
+    await pg.evaluate(()=>location.hash='auditoria');await pg.waitForTimeout(1200);await shot(pg,'v2-conciliacao');if(!await pg.$('.cc'))errs.push('painel de conciliação não apareceu');
+    // matriz de acessos
+    await pg.evaluate(()=>location.hash='usuarios');await pg.waitForTimeout(1200);if(!await pg.$('text=Matriz de acessos'))errs.push('matriz de acessos não apareceu');await pg.evaluate(()=>document.querySelector('h2:has(+ p)')&&[...document.querySelectorAll('h2')].find(h=>h.textContent==='Matriz de acessos')?.scrollIntoView());await shot(pg,'v2-matriz');
+    // fechamento
+    await pg.evaluate(()=>location.hash='fechamento');await pg.waitForTimeout(1500);await shot(pg,'v2-fechamento');
+    {const b=await pg.$('[data-fm=fechar][data-mes="2026-09-01"]');if(!b)errs.push('sem botão fechar setembro');else{await b.click();await pg.waitForTimeout(200);await pg.fill('#fmObs','Conferido com o contador');await shot(pg,'v2-fechar-form');await pg.click('form[data-fmform] button:not([type=button])');await pg.waitForTimeout(1200);if(fechamentos.length!==1)errs.push('fechamento não gravou');else{fechamentos[0].situacao=fechamentos[0].situacao||'fechado';fechamentos[0].fechado_por_nome='Evaldo';fechamentos[0].fechado_em=new Date().toISOString()};await pg.evaluate(()=>render(true));await pg.waitForTimeout(1200);await shot(pg,'v2-fechado')}}
+    // trilha
+    await pg.evaluate(()=>location.hash='historico');await pg.waitForTimeout(1200);await shot(pg,'v2-trilha');if(!await pg.$('text=Aluguel e condomínio'))errs.push('trilha não mostrou alteração');
+    await pg.evaluate(()=>location.hash='lancamentos');await pg.waitForTimeout(1000);await pg.click('tr[data-lanc]');await pg.waitForTimeout(800);const hb=await pg.$('[data-hist-lanc]');if(!hb)errs.push('lançamento sem botão histórico');else{await hb.click();await pg.waitForTimeout(800);await shot(pg,'v2-hist-lanc')}
+    await pg.keyboard.press('Escape');
+    // segregação e segurança
+    await pg.evaluate(()=>location.hash='aprovacoes');await pg.waitForTimeout(1200);await shot(pg,'v2-aprovacoes');
+    {const k=await pg.$('#segChave');if(!k)errs.push('chave de segregação não apareceu');else{await k.check();await pg.waitForTimeout(600);if(!empresas[0].segregar_funcoes&&!empresas.some(e=>e.segregar_funcoes))errs.push('segregação não gravou')}}
+    await pg.click('[data-acao=seguranca]');await pg.waitForTimeout(800);await shot(pg,'v2-seguranca');if(!await pg.$('text=Login em duas etapas'))errs.push('tela de segurança não abriu');
+  });
+  await rodar({width:390,height:844},'v2mob',async pg=>{await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x');await pg.click('form[data-form=login] button');await pg.waitForSelector('[data-entra]',{timeout:8000});await pg.click('[data-entra="*"]');await pg.waitForSelector('.tile',{timeout:8000});
+    for(const r of ['fechamento','historico','empresas','auditoria','plano']){await pg.evaluate(r=>location.hash=r,r);await pg.waitForTimeout(1000);await shot(pg,'m-v2-'+r)}
+    await pg.click('#pgBtn');await pg.waitForSelector('#pgQ');await pg.type('#pgQ','sal');await pg.waitForTimeout(400);await shot(pg,'m-v2-pesquisa')});
   // administrador da empresa: vê Usuários e Pessoas só da própria empresa
   perfis[0].master=false;empresas.splice(1);DB.lancamentos=lanc.filter(l=>l.empresa_id===empresas[0].id);DB.usuarios_empresas.splice(0,DB.usuarios_empresas.length,{usuario_id:UID,empresa_id:empresas[0].id,papel:'admin'});
   usuarios.splice(0,usuarios.length,{...perfis[0],acessos:[{empresa_id:empresas[0].id,papel:'admin',departamento_id:deps[0].id,predios:[]}],convite_aceito:true},usuarios[1]);
