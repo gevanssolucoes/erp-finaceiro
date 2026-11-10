@@ -45,5 +45,15 @@ t('leitura do retorno',()=>{const r=C.retorno(ret);assert.equal(r.banco,'380');a
   const by=Object.fromEntries(r.itens.map(i=>[i.seu,i]));assert.equal(by.L00001I0001.status,'pago');assert.equal(by.L00001I0001.data,'2026-11-10');assert.equal(by.L00001I0001.valor,4517.5);
   assert.equal(by.L00001I0002.status,'agendado');assert.equal(by.L00001I0003.status,'pago');assert.equal(by.L00001I0003.valor,1234.56);assert.equal(by.L00001I0004.status,'rejeitado');assert.match(by.L00001I0004.txt,/Conta do favorecido/)});
 t('arquivo que não é CNAB é recusado',()=>assert.throws(()=>C.retorno('qualquer coisa')));
+// perfis por banco
+const remDe=(banco,extra={})=>C.remessa({emp,conta:{...conta,banco,...extra},nsa:2,agora:new Date('2026-11-04T15:30:00Z'),itens:[itens[0]]}).split('\r\n').filter(Boolean);
+t('Caixa: convênio 6 + parâmetro 2 + ambiente P',()=>{const h=remDe('104',{convenio:'123456-02'})[0];assert.equal(h.slice(0,3),'104');assert.equal(h.slice(32,41),'12345602P');assert.equal(h.slice(41,52).trim(),'')});
+t('Banco do Brasil: convênio 9 dígitos + 0126',()=>{const L2=remDe('001',{convenio:'1234567'});assert.equal(L2[0].slice(32,45),'0012345670126');assert.equal(L2[1].slice(32,45),'0012345670126')});
+t('Itaú: sem convênio e DAC único na posição 72',()=>{const h=remDe('341',{convenio:'XYZ',agencia_dv:'5',conta_dv:'8'})[0];assert.equal(h.slice(32,52).trim(),'');assert.equal(h[57],' ');assert.equal(h[70],' ');assert.equal(h[71],'8')});
+t('banco padrão mantém dígitos FEBRABAN',()=>{const h=remDe('237',{convenio:'4321',agencia_dv:'5',conta_dv:'8'})[0];assert.equal(h.slice(32,38),'004321');assert.equal(h[57],'5');assert.equal(h[70],'8')});
+t('perfis: Nubank sem CNAB, Caixa com CNAB, desconhecido a verificar',()=>{assert.equal(C.perfil('260').cnab,'nao');assert.equal(C.perfil('104').cnab,'sim');assert.equal(C.perfil('999').cnab,'verificar');assert.equal(C.perfil('1').nome,'Banco do Brasil')});
+t('linha digitável a partir do código de barras',()=>assert.equal(C.linha(bar),linhaDigitavel(bar)));
+t('roteiro em planilha (PIX e boleto)',()=>{const csv=C.roteiro(itens);const ls=csv.replace(/^﻿/,'').trim().split('\r\n');assert.equal(ls.length,5);
+  assert.ok(ls[2].includes('financeiro@serraazul.com.br'));assert.ok(ls[3].includes(linhaDigitavel(bar)));assert.ok(ls[1].includes('4517,50'))});
 if(require.main===module)console.log(`\n${ok} testes passaram`);
 module.exports={montaBarras,linhaDigitavel};

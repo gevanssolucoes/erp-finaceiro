@@ -65,6 +65,10 @@ parc.push({id:id(),empresa_id:E0,lancamento_id:lb.id,numero:1,vencimento:'2026-1
 const BAR=montaBarras('237','2026-11-09',1200,'1234567890123456789012345');
 const lc={id:id(),empresa_id:E0,predio_id:predios[0].id,conta_id:ct0,parceiro_id:parceiros[1].id,competencia:'2026-11-01',valor:-1200,descricao:'Material de escritório'};lanc.push(lc);
 parc.push({id:id(),empresa_id:E0,lancamento_id:lc.id,numero:1,vencimento:'2026-11-09',valor:-1200,status:'aberta'});
+// conta Nubank (sem CNAB) e um PIX para o fim do mês, pago pelo roteiro
+const NU={id:id(),empresa_id:E0,banco_nome:'Nubank',banco_codigo:'260',agencia:'0001',conta:'9988776-5',saldo_inicial:0};bancos.push(NU);
+const ld={id:id(),empresa_id:E0,predio_id:predios[0].id,conta_id:ct0,parceiro_id:parceiros[2].id,competencia:'2026-11-01',valor:-420,descricao:'Cartões de visita'};lanc.push(ld);
+const PD={id:id(),empresa_id:E0,lancamento_id:ld.id,numero:1,vencimento:'2026-11-28',valor:-420,status:'aberta'};parc.push(PD);
 const LOGIN='teste@exemplo.com';
 (async()=>{
   const b=await chromium.launch();const errs=[];
@@ -95,6 +99,24 @@ const LOGIN='teste@exemplo.com';
   await shot('lotes');
   await pg.setInputFiles('#pgRet',{name:'RET380_00001.RET',mimeType:'text/plain',buffer:Buffer.from(ret)});await pg.waitForTimeout(1800);await shot('retorno');
   await pg.click('[data-pglote]');await pg.waitForTimeout(400);await shot('lote-detalhe');
+  // Nubank: sem arquivo CNAB -> roteiro, copiar e marcar pago
+  await pg.click('[data-acao=fechar]').catch(()=>{});await pg.waitForTimeout(300);
+  await pg.selectOption('#pgConta',NU.id);await pg.waitForTimeout(600);await pg.fill('#pgAte','2026-11-30');await pg.dispatchEvent('#pgAte','change');await pg.waitForTimeout(800);
+  if(!(await pg.textContent('main')).includes('não recebe arquivo'))errs.push('aviso do Nubank não apareceu');
+  await shot('nubank-lista');
+  await pg.click(`tr:has-text("Cartões de visita") [data-pgsel]`);await pg.waitForTimeout(400);
+  const nL=DB.pagamento_lotes.length;await pg.click('[data-pg=criar-lote]');await pg.waitForTimeout(1200);
+  const lnu=DB.pagamento_lotes.find(l=>l.conta_bancaria_id===NU.id);if(!lnu)errs.push('lote Nubank não criado');
+  await pg.click(`[data-pg=aprovar][data-id="${lnu?.id}"]`);await pg.waitForTimeout(900);
+  if(await pg.$(`[data-pg=remessa][data-id="${lnu?.id}"]`))errs.push('Nubank oferece CNAB');
+  const [dr]=await Promise.all([pg.waitForEvent('download',{timeout:8000}),pg.click(`[data-pg=roteiro][data-id="${lnu?.id}"]`)]);await pg.waitForTimeout(1200);
+  const csv=require('fs').readFileSync(await dr.path(),'utf8');if(!csv.includes('pix@grafica.com.br'))errs.push('roteiro sem a chave PIX');
+  await shot('nubank-roteiro');
+  await pg.click('[data-pg=pago]');await pg.waitForTimeout(1200);await shot('nubank-pago');
+  if(PD.status!=='paga'||!/roteiro/.test(PD.forma_pagamento||''))errs.push('parcela do roteiro não baixada: '+PD.status);
+  if(DB.pagamento_lotes.find(l=>l.id===lnu?.id)?.status!=='processado')errs.push('lote do roteiro não ficou processado');
+  await pg.click('[data-acao=fechar]').catch(()=>{});await pg.click('[data-pg=bancos-info]');await pg.waitForTimeout(400);await shot('bancos');
+  console.log('ROTEIRO',csv.trim().split('\r\n').length-1,'linha(s);',PD.status,PD.forma_pagamento);
   const m=await b.newContext({viewport:{width:390,height:844}});const mp=await m.newPage();mp.on('pageerror',e=>errs.push('mob '+e.message));await mp.route('https://vovomhtwqfnlidqlmycu.supabase.co/**',rotear);await mp.route('https://fonts.googleapis.com/**',r=>r.abort());
   await mp.goto('http://localhost:8765/#pagamentos');await mp.waitForTimeout(400);await mp.fill('#aEmail',LOGIN);await mp.fill('#aSenha','x');await mp.click('form[data-form=login] button');await mp.waitForTimeout(1200);{const en=await mp.$('[data-entra="*"]')||await mp.$('[data-entra]');if(en)await en.click()}await mp.waitForTimeout(2200);await shot('m-pagamentos',mp);
   await b.close();srv.close();
