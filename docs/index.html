@@ -677,6 +677,7 @@ async function vFluxo(){
   const corpoArv=gruposF.map(g=>{const cols=porGrupo[g];const tot=cols.map(c=>sum(c.map(x=>x.v)));const key='fx|'+g,ab=S.abertos.has(key);
     return `<tr class="l2 click" data-abre="${key}"><td>${ab?'▾ ':'▸ '}${esc(GRUPOS[g]||'Sem grupo da DRE')}</td>${tdM(tot)}</tr>`+(ab?linhasArvore(montarArvore(cols),key,1,tdM):'')}).join('');
   const tE=sum(ent),tS=sum(sai);
+  const SB=await saldosBancos(ab);
   return `<section class="grid g-tiles" style="grid-template-columns:repeat(4,minmax(0,1fr))">
     <div class="tile"><div class="lbl">Entradas ${S.ano}</div><div class="val">${k(tE)}</div><div class="cmp">recebido</div></div>
     <div class="tile"><div class="lbl">Saídas ${S.ano}</div><div class="val">${k(-tS)}</div><div class="cmp">pago</div></div>
@@ -691,8 +692,32 @@ async function vFluxo(){
     <tr class="tot"><td>Saídas</td>${sai.map(x=>`<td class="n neg">${num.format(Math.round(x))}</td>`).join('')}<td class="n neg">${num.format(Math.round(tS))}</td></tr>
     <tr class="tot"><td>Saldo do mês</td>${ent.map((x,i)=>`<td class="n ${x+sai[i]<0?'neg':''}">${num.format(Math.round(x+sai[i]))}</td>`).join('')}<td class="n">${num.format(Math.round(tE+tS))}</td></tr>
     <tr class="pct"><td>Em aberto (a vencer ou vencido)</td>${pEnt.map((x,i)=>`<td class="n">${x+pSai[i]?num.format(Math.round(x+pSai[i])):''}</td>`).join('')}<td class="n">${num.format(Math.round(sum(pEnt)+sum(pSai)))}</td></tr>
-    </tbody></table></div></div>`;
+    </tbody></table></div></div>${SB.html}`;
 }
+// saldo de cada conta bancária no início e no fim de cada mês: saldo inicial cadastrado + tudo que foi pago ou recebido nela
+// (transferências entre contas incluídas). Meses futuros: último saldo + o que vence no mês (previsto).
+async function saldosBancos(abertas){
+  const emps=selEmp();const bs=S.bancos.filter(b=>emps.some(e=>e.id===b.empresa_id)&&b.ativa!==false);
+  if(!bs.length)return {html:`<div class="panel"><h2>Saldos das contas bancárias</h2><p class="muted" style="margin:0">Cadastre as contas bancárias com o saldo inicial para ver o saldo de cada mês aqui. <a href="#bancos">Contas bancárias</a></p></div>`};
+  const ps=await movBancos();const ano=S.ano,mesAt=HOJE.slice(0,4)==String(ano)?+HOJE.slice(5,7)-1:(ano<+HOJE.slice(0,4)?11:-1);
+  const ini=i=>`${ano}-${String(i+1).padStart(2,'0')}-01`,fimM=i=>i===11?`${ano+1}-01-01`:ini(i+1);
+  const saldoAte=(b,d)=>b.data_saldo_inicial&&d<=b.data_saldo_inicial?null:+b.saldo_inicial+sum(ps.filter(p=>p.conta_bancaria_id===b.id&&(!b.data_saldo_inicial||p.data_pagamento>=b.data_saldo_inicial)&&p.data_pagamento<d).map(p=>+(p.valor_pago??p.valor)));
+  const linhas=bs.map(b=>{const abI=saldoAte(b,ini(0));const fins=MESES.map((_,i)=>i>mesAt?null:saldoAte(b,fimM(i)));return {b,abI,fins}});
+  const totI=linhas.some(l=>l.abI!=null)?sum(linhas.map(l=>l.abI??0)):null;
+  const totF=MESES.map((_,i)=>linhas.some(l=>l.fins[i]!=null)?sum(linhas.map(l=>l.fins[i]??0)):null);
+  // previsão para os meses que ainda não fecharam: parte do último saldo conhecido e soma o que vence
+  const prev=MESES.map(()=>null);let base=mesAt>=0?totF[mesAt]:totI;
+  if(base!=null)for(let i=Math.max(mesAt+1,0);i<12;i++){base=base+sum(abertas.filter(p=>p.vencimento.slice(5,7)==String(i+1).padStart(2,'0')||(i===mesAt+1&&p.vencimento<ini(Math.max(mesAt+1,0)))).map(p=>+p.valor));prev[i]=base}
+  const hoje=mesAt>=0&&HOJE.startsWith(String(ano))?sum(bs.map(b=>saldoAte(b,somaDias(HOJE,1))??0)):null;
+  const cel=(v,cls='')=>`<td class="n ${cls} ${v!=null&&v<0?'neg':''}">${v==null?'<span class="muted">–</span>':num.format(Math.round(v))}</td>`;
+  const semData=bs.filter(b=>!b.data_saldo_inicial);
+  return {hoje,html:`<div class="panel"><div class="ph"><div><h2>Saldos das contas bancárias · ${ano}</h2><p class="hint">Saldo no fim de cada mês: saldo inicial cadastrado + tudo que foi pago e recebido na conta (inclui transferências entre contas). ${prev.some(v=>v!=null)?'Os meses em itálico são previsão: último saldo + contas em aberto que vencem no mês.':''}${hoje!=null?` Saldo hoje: <b>${brl2.format(hoje)}</b>.`:''}</p></div></div>
+    ${semData.length?`<div class="effect" style="margin-bottom:10px">${semData.length} conta${semData.length>1?'s':''} sem data do saldo inicial: o saldo considera todos os lançamentos dela. Informe a data em <a href="#bancos">Contas bancárias</a>.</div>`:''}
+    <div class="tbl-wrap"><table><thead><tr><th>Conta</th><th class="n">Início do ano</th>${MESES.map(m=>`<th class="n">${m}</th>`).join('')}</tr></thead><tbody>
+    ${linhas.map(l=>`<tr><td>${esc(l.b.banco_nome)}<span class="unit">${esc(nomeEmp(empresa(l.b.empresa_id)))} · cc ${esc(l.b.conta||'')}</span></td>${cel(l.abI)}${l.fins.map(v=>cel(v)).join('')}</tr>`).join('')}
+    <tr class="tot"><td>Saldo final do mês</td>${cel(totI)}${totF.map((v,i)=>v!=null?cel(v):prev[i]!=null?`<td class="n ${prev[i]<0?'neg':''}" style="font-style:italic;opacity:.75">${num.format(Math.round(prev[i]))}</td>`:cel(null)).join('')}</tr>
+    <tr class="pct"><td>Saldo inicial do mês</td>${cel(null)}${MESES.map((_,i)=>{const v=i===0?totI:(totF[i-1]??prev[i-1]);return v!=null&&totF[i-1]==null&&i>0?`<td class="n" style="font-style:italic;opacity:.75">${num.format(Math.round(v))}</td>`:cel(v)}).join('')}</tr>
+    </tbody></table></div></div>`}}
 
 // ===================== Contas a pagar e receber
 function statusParcela(p){if(p.vencimento<HOJE)return['Vencida','bad'];if(p.vencimento===HOJE)return['Vence hoje','warn'];if(p.vencimento<=addDias(HOJE,7))return['Próx. 7 dias','info'];return['Aberta','mute']}
@@ -2360,13 +2385,59 @@ function lerTextoExtrato(pags){
     linhas.push({data:isoDe(m[1]),valor:r2((v[1]||v[3]==='D'?-1:1)*numBR(v[2])),historico:hist,documento:null})});
   return {linhas,saldo,formato:'PDF'};
 }
+// PDF que é só imagem (ex.: extrato da Caixa pelo app): lê o texto com OCR no próprio navegador
+let ocrPronto=null;
+function carregarOCR(){if(window.Tesseract)return Promise.resolve();if(ocrPronto)return ocrPronto;
+  ocrPronto=new Promise((ok,erro)=>{const s=document.createElement('script');s.src='vendor/ocr/tesseract.min.js';s.onload=ok;s.onerror=()=>{ocrPronto=null;erro(new Error('O leitor de imagem não carregou. Verifique a internet e tente de novo.'))};document.head.appendChild(s)});return ocrPronto}
+async function ocrPDF(buf,avisa){
+  await carregarPdfJs();await carregarOCR();const doc=await pdfjsLib.getDocument({data:buf}).promise;
+  const base=new URL('vendor/ocr/',location.href).href;
+  const w=await Tesseract.createWorker('por',1,{workerPath:base+'worker.min.js',corePath:base,langPath:base,workerBlobURL:false});
+  try{const pags=[];for(let p=1;p<=doc.numPages;p++){avisa?.(`lendo a imagem da página ${p} de ${doc.numPages}`);
+      const pg=await doc.getPage(p);const vp=pg.getViewport({scale:3});const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;
+      await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;const {data}=await w.recognize(c);
+      pags.push(data.text.split('\n').map(l=>l.replace(/\s+/g,' ').trim()).filter(Boolean))}
+    return pags}finally{w.terminate()}}
+// valor lido por OCR: a vírgula às vezes some ("5741 D"); os dois últimos dígitos são sempre os centavos
+const numOCR=s=>{const d=String(s).replace(/\D/g,'');return d?+d/100:NaN};
+// Caixa · "Extrato por período": data - hora, Nr. Doc, histórico, favorecido, CPF/CNPJ, valor C/D, saldo C/D (mais recente primeiro)
+function lerCaixa(pags){
+  const todas=pags.flat();const RE=/^(\d{2}\/\d{2}\/\d{4})\s*-\s*\d{2}:\d{2}(?::\d{2})?\s*(\d{6})\s+(.+?)\s+([\d.,\/]+)\s*([CD])\s+([\d.,\/]+)\s*([CD])\s*$/;
+  if(!todas.some(l=>RE.test(l.replace(/\*+/g,' * ').replace(/[º°"“”]/g,'').replace(/\s+/g,' ').trim()))||!todas.some(l=>/SALDO ANTERIOR|EXTRATO POR PER/i.test(norm(l))))return null;
+  let saldoIni=null,ini=null,fim=null;
+  for(const l of todas){const n=norm(l);
+    const sa=n.match(/SALDO ANTERIOR\s*(?:R\$)?\s*([\d.,\/]+)\s*([CD])/);if(sa&&saldoIni==null)saldoIni=(sa[2]==='D'?-1:1)*numOCR(sa[1]);
+    const pe=n.match(/PERIODO DOS LANCAMENTOS\s*(\d{2}\/\d{2}\/\d{4})\s*ATE\s*(\d{2}\/\d{2}\/\d{4})/);if(pe){ini=isoDe(pe[1]);fim=isoDe(pe[2])}}
+  const lst=[];
+  todas.forEach(l0=>{const l=l0.replace(/\*+/g,' * ').replace(/[º°"“”]/g,'').replace(/\s+/g,' ').trim();const m=l.match(RE);if(!m)return;const hist0=m[3];if(/^SALDO DIA/i.test(norm(hist0)))return;
+    // tira CPF/CNPJ mascarado e restos de OCR do fim do histórico
+    let h=hist0;const corte=h.search(/\s[^A-Za-z\s]{0,4}\s*\*{2,}|\s\**[A-Z]?\d{2,3}[.,]\d{2}|\s\*+\s/);if(corte>0)h=h.slice(0,corte);
+    let tk=h.split(' ');while(tk.length>1&&/^(?:[^\p{L}]+|\p{L}{1,2}\.|(\p{L})\1\1)$/u.test(tk.at(-1)))tk.pop();h=tk.join(' ');
+    const v=(m[5]==='D'?-1:1)*numOCR(m[4]),sd=(m[7]==='D'?-1:1)*numOCR(m[6]);
+    lst.push({data:isoDe(m[1]),valor:r2(v),historico:h,documento:null,_saldo:sd})});
+  if(!lst.length)return null;
+  // confere pelo saldo: do mais antigo ao mais recente, saldo anterior + valor = saldo da linha
+  const cron=[...lst].reverse();let s=saldoIni,avisos=0;
+  cron.forEach((l,i)=>{const prox=cron[i+1];
+    if(s!=null&&Math.abs(r2(s+l.valor)-l._saldo)<0.005){s=l._saldo;return}
+    // valor ilegível mas saldos de antes e depois legíveis: usa a diferença
+    if(s!=null&&isFinite(l._saldo)&&Math.abs(Math.abs(r2(l._saldo-s))-Math.abs(l.valor))>0.004&&prox&&Math.abs(r2(l._saldo+prox.valor)-prox._saldo)<0.005){l.valor=r2(l._saldo-s);s=l._saldo;return}
+    // saldo ilegível: segue pela soma
+    if(s!=null&&prox&&Math.abs(r2(s+l.valor+prox.valor)-prox._saldo)<0.005){s=r2(s+l.valor);return}
+    l.conferir=true;avisos++;s=isFinite(l._saldo)?l._saldo:(s!=null?r2(s+l.valor):null)});
+  const saldo=isFinite(lst[0]._saldo)?lst[0]._saldo:null;
+  const somaOk=saldoIni!=null&&saldo!=null&&Math.abs(r2(saldoIni+sum(lst.map(l=>l.valor)))-saldo)<0.005;
+  lst.forEach(l=>delete l._saldo);
+  return {linhas:cron,saldo,saldoIni,ini,fim,formato:'PDF Caixa',conferidoPeloSaldo:somaOk,avisos}}
 async function lerArquivoExtrato(f){
   const nome=f.name.toLowerCase();
   if(nome.endsWith('.ofx')||nome.endsWith('.qfx'))return lerOFX(await f.text());
   if(nome.endsWith('.csv'))return lerCSVExtrato(await f.text());
-  if(nome.endsWith('.pdf')){const pags=await textoPDF(new Uint8Array(await f.arrayBuffer()));
-    if(!pags.flat().length)throw new Error('Este PDF não tem texto (parece uma imagem ou foto). Baixe o extrato direto no app do banco, em PDF, OFX ou CSV.');
-    const r=lerTextoExtrato(pags);if(!r.linhas.length)throw new Error('Não encontrei movimentações neste PDF. Envie o extrato em OFX ou CSV, ou mande este PDF para ajustarmos a leitura.');return r}
+  if(nome.endsWith('.pdf')){const buf=await f.arrayBuffer();let pags=await textoPDF(new Uint8Array(buf.slice(0)));let ocr=false;
+    if(!pags.flat().length){ocr=true;pags=await ocrPDF(new Uint8Array(buf),t=>{const E=stExt();E.lendo=`${f.name} · ${t}`;const el=document.querySelector('[data-ext-lendo]');if(el)el.textContent='Lendo '+E.lendo+'…'})}
+    const cx=lerCaixa(pags);if(cx)return cx;
+    const r=lerTextoExtrato(pags);if(ocr)r.formato='PDF (imagem lida automaticamente)';
+    if(ocr&&!r.linhas.length)throw new Error('Este PDF é uma imagem e não consegui ler as movimentações nele. Baixe o extrato em OFX ou CSV, ou mande este PDF para ajustarmos a leitura.');if(!r.linhas.length)throw new Error('Não encontrei movimentações neste PDF. Envie o extrato em OFX ou CSV, ou mande este PDF para ajustarmos a leitura.');return r}
   throw new Error('Formato não aceito. Envie .ofx, .csv ou .pdf.');
 }
 
@@ -2382,6 +2453,9 @@ function sugerirConta(hist,empId,regras){
     [/SALARIO|FOLHA|PAGTO SAL/,/SALARIO/],[/ALUGUEL/,/ALUGUEL/],[/ENERGIA|ENEL|CEMIG|COPEL|CPFL|LIGHT|EQUATORIAL|NEOENERGIA/,/ENERGIA|LUZ/],[/SABESP|COPASA|SANEAGO|AGUA/,/AGUA/],
     [/INTERNET|VIVO|CLARO|TIM |OI /,/INTERNET|TELEFON/],[/POSTO|COMBUST|SHELL|IPIRANGA|PETROBRAS/,/COMBUST/],[/MERCADO|SUPERMERC|ATACAD|ASSAI|CARREFOUR/,/\bMERCADO\b|SUPERMERCADO|ALIMENTA/],
     [/FARMACIA|DROGA|RAIA|PAGUE MENOS/,/FARMACIA|SAUDE|MEDIC/],[/IFOOD|RESTAUR|LANCHONETE|PADARIA/,/ALIMENTA|REFEI/],[/UBER|99 ?APP|99POP/,/TRANSPORTE/],[/DAS |SIMPLES NACIONAL|DARF|RECEITA FEDERAL/,/IMPOSTO|DAS|TRIBUT/]];
+  // PIX/TED para o próprio titular costuma ser transferência entre as contas dele
+  const emp=S.empresas.find(e=>e.id===empId);const tit=norm(emp?.razao_social||emp?.nome||'').split(' ').filter(w=>w.length>3&&!/^(LTDA|EIRELI|COMERCIO|SERVICOS|PF|ME)$/.test(w));
+  if(/\b(PIX|TED|DOC|TRANSF)/.test(n)&&tit.length>=2&&tit.filter(w=>n.includes(w)).length>=2){const c=cts.find(c=>ehTransf(c)&&c.tipo===(/RECEB|CRED|ENTRADA/.test(n)?'receita':'despesa'))||cts.find(ehTransf);if(c)return {conta_id:c.id,confianca:'media',motivo:'transferência para o próprio titular'}}
   for(const [re,rc] of KW)if(re.test(n)){const c=acha(rc);if(c)return {conta_id:c.id,confianca:'media',motivo:'pela palavra no histórico'}}
   return null;
 }
@@ -2411,18 +2485,29 @@ function casar(linhas,D,ignorarExtrato){
 }
 const chaveLinha=l=>l.documento?'d|'+l.documento:`h|${l.data}|${r2(l.valor).toFixed(2)}|${chaveHist(l.historico)}`;
 
-async function lerExtratoEnviado(f){
-  const E=stExt();if(!E.banco){toast('Escolha a conta bancária antes de enviar o extrato.');return}
-  E.lendo=f.name;render(true);
-  try{const r=await lerArquivoExtrato(f);
-    if(!r.linhas.length)throw new Error('O arquivo não tem movimentações.');
-    const datas=r.linhas.map(l=>l.data).sort();const ini=r.ini&&r.ini<=datas[0]?r.ini:datas[0],fim=r.fim&&r.fim>=datas.at(-1)?r.fim:datas.at(-1);
+async function lerExtratoEnviado(fs){
+  fs=[...(fs.length!=null?fs:[fs])];const E=stExt();if(!E.banco){toast('Escolha a conta bancária antes de enviar o extrato.');return}
+  E.lendo=fs.length>1?`${fs.length} arquivos`:fs[0].name;render(true);
+  try{const lidos=[],erros=[];
+    for(const f of fs){E.lendo=fs.length>1?`${f.name} (${lidos.length+erros.length+1} de ${fs.length})`:f.name;const el=document.querySelector('[data-ext-lendo]');if(el)el.textContent='Lendo '+E.lendo+'…';
+      try{const r=await lerArquivoExtrato(f);if(!r.linhas.length)throw new Error('O arquivo não tem movimentações.');lidos.push({...r,nome:f.name})}
+      catch(err){console.error(err);erros.push(f.name+': '+(err.message||traduz(err)))}}
+    if(!lidos.length)throw new Error(erros.join(' · '));
+    if(erros.length)toast('Não li '+erros.join(' · '));
+    // junta os arquivos: a mesma movimentação em dois extratos (períodos que se cruzam) entra uma vez só
+    const vistas=new Set(),linhas=[];let repetidasEntre=0;
+    lidos.forEach(r=>r.linhas.forEach(l=>{const k=chaveLinha(l);if(vistas.has(k)){repetidasEntre++;return}vistas.add(k);linhas.push({...l,arquivo:r.nome})}));
+    linhas.sort((x,y)=>x.data.localeCompare(y.data));
+    const datas=linhas.map(l=>l.data);const iniA=lidos.map(r=>r.ini).filter(Boolean).sort()[0],fimA=lidos.map(r=>r.fim).filter(Boolean).sort().at(-1);
+    const ini=iniA&&iniA<=datas[0]?iniA:datas[0],fim=fimA&&fimA>=datas.at(-1)?fimA:datas.at(-1);
+    const ultimo=[...(lidos.some(r=>r.saldo!=null)?lidos.filter(r=>r.saldo!=null):lidos)].sort((x,y)=>(x.fim||x.linhas.at(-1).data).localeCompare(y.fim||y.linhas.at(-1).data)).at(-1);
     const D=await dadosConciliacao(E.emp,E.banco,ini,fim);
     const ja=new Set(D.ja.map(chaveLinha));
-    const lin=r.linhas.map(l=>({...l,dup:ja.has(chaveLinha(l))}));
+    const lin=linhas.map(l=>({...l,dup:ja.has(chaveLinha(l))}));
     const novas=lin.filter(l=>!l.dup);const cas=casar(novas,D);
     novas.forEach(l=>{const c=cas.get(l);l.match=c||null;if(!c||c.tipo==='aberta'){const s=sugerirConta(l.historico,E.emp,D.regras);l.sug=s}});
-    E.prev={nome:f.name,formato:r.formato,saldo:r.saldo,ini,fim,lin};E.aberto=null;
+    E.prev={nome:lidos.map(r=>r.nome).join(' + '),formato:[...new Set(lidos.map(r=>r.formato))].join(', '),saldo:ultimo.saldo??null,ini,fim,lin,repetidasEntre,
+      conferido:lidos.filter(r=>r.conferidoPeloSaldo!=null).every(r=>r.conferidoPeloSaldo),temConferencia:lidos.some(r=>r.conferidoPeloSaldo!=null),avisos:sum(lidos.map(r=>r.avisos||0)),arquivos:lidos.length};E.aberto=null;
   }catch(err){console.error(err);toast(err.message||traduz(err))}
   finally{E.lendo=null;render(true)}
 }
@@ -2448,7 +2533,16 @@ async function abrirExtratoSalvo(id){
   // transferência só fica conciliada quando o débito e o crédito aparecem nos extratos das duas contas
   const {data:sp,error:e3}=await sb.rpc('transferencias_sem_par',{p_extrato:id});
   if(!e3)(sp||[]).forEach(r=>{const l=ls.find(z=>z.id===r.linha_id);if(l)l.semPar=true});
-  return {x,ls,regras:D.regras};
+  // contas em aberto do período que nenhuma linha do extrato pagou
+  const usadasP=new Set([...ls.map(l=>l.parcela_id),...pend.map(l=>l.match?.p?.id)].filter(Boolean));
+  const ini=x.periodo_inicio||ls[0]?.data,fim=x.periodo_fim||ls.at(-1)?.data;
+  const semExtrato=D.abertas.filter(p=>!usadasP.has(p.id)&&p.vencimento>=ini&&p.vencimento<=fim).sort((a,b)=>a.vencimento.localeCompare(b.vencimento));
+  // para as linhas sem par exato: contas em aberto parecidas (mesmo sinal, valor até 20% diferente ou nome no histórico)
+  pend.filter(l=>!l.match).forEach(l=>{const n=norm(l.historico);
+    l.candidatas=D.abertas.filter(p=>!usadasP.has(p.id)&&Math.sign(+p.valor)===Math.sign(+l.valor)&&Math.abs(dias(p.vencimento,l.data))<=45&&
+      (Math.abs(+p.valor-l.valor)<=Math.abs(l.valor)*0.2||(()=>{const pn=parceiro(p.lancamentos?.parceiro_id)?.nome;const w=pn&&norm(pn).split(' ').find(w=>w.length>3);return w&&n.includes(w)})()))
+      .sort((a,b)=>Math.abs(+a.valor-l.valor)-Math.abs(+b.valor-l.valor)||Math.abs(dias(a.vencimento,l.data))-Math.abs(dias(b.vencimento,l.data))).slice(0,6)});
+  return {x,ls,regras:D.regras,semExtrato};
 }
 
 // ---------- tela
@@ -2469,7 +2563,7 @@ async function vExtratos(){
   const topo=`<div class="panel"><div class="audit-head"><div><h2>Importar extrato bancário</h2><p class="hint" style="margin-bottom:8px">Envie o extrato do banco. O sistema confere cada movimentação com as baixas já registradas, mostra o que falta lançar e sugere a conta do plano.</p>
       <div class="ctrls" style="justify-content:flex-start"><select id="extEmp" aria-label="Empresa">${emps.map(e=>`<option value="${e.id}" ${e.id===E.emp?'selected':''}>${esc(nomeEmp(e))}</option>`).join('')}</select>
       <select id="extBanco" aria-label="Conta bancária">${bs.map(b=>`<option value="${b.id}" ${b.id===E.banco?'selected':''}>${esc(b.banco_nome)} · ag ${esc(b.agencia)} · cc ${esc(b.conta)}</option>`).join('')}</select></div></div>
-    ${ed?`<label class="drop" for="arqExt" style="padding:12px 14px"><div><b>${E.lendo?'Lendo '+esc(E.lendo)+'…':'Enviar extrato'}</b><p>.ofx, .csv ou .pdf</p></div><span class="btn">Escolher arquivo</span><input type="file" id="arqExt" accept=".ofx,.qfx,.csv,.pdf" hidden></label>`:''}</div>
+    ${ed?`<label class="drop" for="arqExt" style="padding:12px 14px"><div><b data-ext-lendo>${E.lendo?'Lendo '+esc(E.lendo)+'…':'Enviar extratos'}</b><p>.ofx, .csv ou .pdf · pode escolher vários arquivos de uma vez (ex.: um por mês)</p></div><span class="btn">Escolher arquivos</span><input type="file" id="arqExt" accept=".ofx,.qfx,.csv,.pdf" multiple hidden></label>`:''}</div>
     <details class="dica"><summary>Como tirar o extrato do Nubank</summary><ol><li>No app do Nubank, abra a conta e toque em <b>Extrato</b> (ou no ícone de exportar, no canto de cima).</li><li>Escolha o período e o formato. <b>OFX</b> é o mais confiável; CSV e PDF também funcionam.</li><li>O arquivo chega por e-mail. Salve no computador ou celular e envie aqui.</li></ol><p class="muted" style="margin:6px 0 0">Movimentações que já estão em outro extrato da mesma conta são reconhecidas e não entram duas vezes.</p></details></div>`;
   let corpo='';
   if(E.prev)corpo=telaPrevia(E);
@@ -2492,12 +2586,13 @@ function telaPrevia(E){const P=E.prev;const novas=P.lin.filter(l=>!l.dup),dup=P.
   const b=banco(E.banco);
   return tilesExt(novas,`<div class="tile"><div class="lbl">Já no sistema</div><div class="val">${conc} de ${novas.length}</div><div class="cmp">${conc?'<span class="chip good">baixas encontradas</span>':'nenhuma baixa encontrada'}${dup?` · ${dup} repetida${dup>1?'s':''} ignorada${dup>1?'s':''}`:''}</div></div>
     <div class="tile"><div class="lbl">Para lançar</div><div class="val">${falta}</div><div class="cmp">${aber?`<span class="chip info">${aber} batem com contas em aberto</span>`:`${novas.filter(l=>l.sug).length} com conta sugerida`}</div></div>`)+
-  `<div class="panel"><div class="ph"><div><h2>Prévia · ${esc(P.nome)}</h2><p class="hint">${esc(P.formato)} · ${dataBR(P.ini)} a ${dataBR(P.fim)} · ${esc(b?.banco_nome||'')} ag ${esc(b?.agencia||'')} cc ${esc(b?.conta||'')}${P.saldo!=null?' · saldo final '+brl2.format(P.saldo):''}. Confira se a conta está certa antes de gravar.</p></div>
+  `<div class="panel"><div class="ph"><div><h2>Prévia · ${esc(P.nome)}</h2><p class="hint">${esc(P.formato)} · ${dataBR(P.ini)} a ${dataBR(P.fim)} · ${esc(b?.banco_nome||'')} ag ${esc(b?.agencia||'')} cc ${esc(b?.conta||'')}${P.saldo!=null?' · saldo final '+brl2.format(P.saldo):''}${P.repetidasEntre?` · ${P.repetidasEntre} movimentaç${P.repetidasEntre>1?'ões':'ão'} que aparecia${P.repetidasEntre>1?'m':''} em dois arquivos entrou uma vez só`:''}. Confira se a conta está certa antes de gravar.</p>
+    ${P.temConferencia?(P.conferido&&!P.avisos?'<p class="hint" style="margin:6px 0 0"><span class="chip good">Saldo confere</span> saldo anterior + movimentações = saldo final do extrato.</p>':`<div class="effect" style="margin-top:8px">O PDF é uma imagem e foi lido automaticamente. ${P.avisos?`<b>${P.avisos} linha${P.avisos>1?'s':''} marcada${P.avisos>1?'s':''} para conferir</b>: o valor não bateu com o saldo do extrato.`:'O saldo final não bateu com a soma das movimentações.'} Compare com o PDF antes de gravar.</div>`):''}</div>
     <div class="ctrls"><button class="btn ghost" data-acao="ext-cancelar">Cancelar</button><button class="btn" data-acao="ext-gravar" ${novas.length?'':'disabled'}>Gravar ${novas.length} linha${novas.length===1?'':'s'} e conciliar</button></div></div>
    <div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Histórico do banco</th><th class="n">Valor</th><th>Situação</th><th>No sistema / sugestão</th></tr></thead><tbody>
    ${P.lin.slice(0,800).map(l=>{const m=l.match;const st=l.dup?'<span class="chip mute">Já importada</span>':m?.tipo==='conciliado'?'<span class="chip good">Conciliado</span>':m?.tipo==='valor_diferente'?'<span class="chip warn">Valor diferente</span>':m?.tipo==='aberta'?'<span class="chip info">Conta em aberto</span>':'<span class="chip bad">Não lançado</span>';
      const ct=l.sug&&conta(l.sug.conta_id);const info=m?`${esc(m.p.lancamentos?.descricao||'Lançamento')}<span class="unit">${m.tipo==='aberta'?'vence '+dataBR(m.p.vencimento):'pago '+dataBR(m.p.data_pagamento)}${m.tipo==='valor_diferente'?' · diferença '+brl2.format(m.dif):''}</span>`:ct?`${esc(ct.codigo)} ${esc(ct.nome)}<span class="unit">${l.sug.confianca==='alta'?'regra aprendida':'sugestão pelo histórico'}</span>`:'<span class="muted">escolher depois de gravar</span>';
-     return `<tr class="${l.dup?'muted':''}"><td class="mono">${dataBR(l.data)}</td><td class="wrap">${esc(l.historico)}</td><td class="n ${l.valor<0?'neg':''}">${brl2.format(l.valor)}</td><td>${st}</td><td class="wrap">${info}</td></tr>`}).join('')}
+     return `<tr class="${l.dup?'muted':''}"><td class="mono">${dataBR(l.data)}</td><td class="wrap">${esc(l.historico)}${l.conferir?' <span class="chip warn">conferir valor</span>':''}${P.arquivos>1&&l.arquivo?`<span class="unit">${esc(l.arquivo)}</span>`:''}</td><td class="n ${l.valor<0?'neg':''}">${brl2.format(l.valor)}</td><td>${st}</td><td class="wrap">${info}</td></tr>`}).join('')}
    </tbody></table></div>${P.lin.length>800?`<p class="muted">Mostrando 800 de ${P.lin.length} linhas; todas serão gravadas.</p>`:''}</div>`}
 function telaConciliacao(A,ed){const E=stExt();const {x,ls}=A;E._ls=ls;
   const cont=s=>ls.filter(l=>l.status===s).length;const pend=ls.filter(l=>l.status==='nao_lancado');
@@ -2513,7 +2608,11 @@ function telaConciliacao(A,ed){const E=stExt();const {x,ls}=A;E._ls=ls;
     let acao='';
     if(pe&&ed){acao=m?.tipo==='aberta'?`<div class="ext-acao"><span class="why">Bate com <b>${esc(m.p.lancamentos?.descricao||'conta em aberto')}</b>, vencimento ${dataBR(m.p.vencimento)}</span><button class="btn ghost" data-acao="ext-baixar" data-id="${l.id}" data-parc="${m.p.id}">Dar baixa</button></div>`:
       m?.tipo==='conciliado'||m?.tipo==='valor_diferente'?`<div class="ext-acao"><span class="why">Encontrei a baixa <b>${esc(m.p.lancamentos?.descricao||'')}</b> de ${dataBR(m.p.data_pagamento)}</span><button class="btn ghost" data-acao="ext-vincular" data-id="${l.id}" data-parc="${m.p.id}">Vincular</button></div>`:'';
-      acao+=`<div class="ext-acao">${selectConta(x.empresa_id,E.contas[l.id]??l.conta_sugerida_id,`data-extconta="${l.id}" aria-label="Conta do plano"`)}${l.conta_sugerida_id&&!(l.id in E.contas)?`<span class="chip ${l.confianca==='alta'?'good':'info'}" title="${esc(l.motivo_sugestao||'')}">${l.confianca==='alta'?'regra':'sugerida'}</span>`:''}</div>`}
+      if(l.candidatas?.length)acao+=`<div class="ext-acao"><select data-extbaixa="${l.id}" aria-label="Dar baixa numa conta em aberto" style="max-width:280px"><option value="">Dar baixa numa conta em aberto…</option>${l.candidatas.map(p=>`<option value="${p.id}">${esc(p.lancamentos?.descricao||parceiro(p.lancamentos?.parceiro_id)?.nome||'Conta')} · ${brl2.format(+p.valor)} · vence ${dataBR(p.vencimento)}</option>`).join('')}</select></div>`;
+      const cid=E.contas[l.id]??l.conta_sugerida_id;
+      acao+=`<div class="ext-acao">${selectConta(x.empresa_id,cid,`data-extconta="${l.id}" aria-label="Conta do plano"`)}${l.conta_sugerida_id&&!(l.id in E.contas)?`<span class="chip ${l.confianca==='alta'?'good':'info'}" title="${esc(l.motivo_sugestao||'')}">${l.confianca==='alta'?'regra':'sugerida'}</span>`:''}</div>`;
+      if(ehTransf(conta(cid))){const outras=S.bancos.filter(b=>b.empresa_id===x.empresa_id&&b.id!==x.conta_bancaria_id&&b.ativa!==false);
+        acao+=outras.length?`<div class="ext-acao"><label class="why" for="et${l.id}">${+l.valor<0?'Foi para qual conta?':'Veio de qual conta?'}</label><select id="et${l.id}" data-exttransf="${l.id}" style="max-width:280px"><option value="">Escolha a conta…</option>${outras.map(b=>`<option value="${b.id}" ${(E.transf||{})[l.id]===b.id?'selected':''}>${esc(bancoTxt(b))}</option>`).join('')}</select></div>`:'<div class="ext-acao"><span class="why">Cadastre a outra conta bancária em Contas bancárias para registrar a transferência.</span></div>'}}
     else if(l.semPar)acao=`<span class="muted">Transferência: o ${+l.valor<0?'crédito na conta de destino':'débito na conta de origem'} ainda não apareceu em outro extrato. Importe o extrato da outra conta.</span>`;
     else if(l.parc||l.parcela_id)acao=`<span class="muted">${esc(l.parc?.lancamentos?.descricao||'Baixa vinculada')}${l.parc?.data_pagamento?' · pago '+dataBR(l.parc.data_pagamento):''}${l.diferenca?` · diferença ${brl2.format(+l.diferenca)}`:''}</span>`;
     return `<tr><td>${pe&&ed?`<input type="checkbox" data-extsel="${l.id}" ${E.sel.has(l.id)?'checked':''} aria-label="Selecionar">`:''}</td><td class="mono">${dataBR(l.data)}</td><td class="wrap">${esc(l.historico)}</td><td class="n ${+l.valor<0?'neg':''}">${brl2.format(+l.valor)}</td>
@@ -2524,7 +2623,10 @@ function telaConciliacao(A,ed){const E=stExt();const {x,ls}=A;E._ls=ls;
     <div class="tile"><div class="lbl">Falta lançar</div><div class="val">${pend.length}</div><div class="cmp">${pend.length?`<span class="chip bad">${brl2.format(sum(pend.map(l=>+l.valor)))}</span>`:'<span class="chip good">tudo certo</span>'}${cont('valor_diferente')?` · ${cont('valor_diferente')} com valor diferente`:''}${semPar.length?` · ${semPar.length} transferência${semPar.length>1?'s':''} sem par`:''}</div></div>`)+barraSit+
   `<div class="panel"><div class="ph"><div><h2>Conciliação · ${esc(x.arquivo_nome||'extrato')}</h2><p class="hint">${esc(b?.banco_nome||'')} ag ${esc(b?.agencia||'')} cc ${esc(b?.conta||'')} · ${dataBR(x.periodo_inicio)} a ${dataBR(x.periodo_fim)}${x.saldo_final!=null?' · saldo final '+brl2.format(+x.saldo_final):''}. Escolha a conta do plano nas linhas não lançadas, marque e clique em lançar. O sistema aprende: na próxima vez, o mesmo histórico já vem com a conta.</p></div>
     <div class="ctrls">${ed&&pend.length?`<button class="linkbtn" data-acao="ext-sel-todas">Marcar as que têm conta</button><button class="btn" data-acao="ext-lancar">Lançar ${E.sel.size||''} selecionada${E.sel.size===1?'':'s'}</button>`:''}<button class="btn ghost" data-acao="ext-fechar">Fechar</button></div></div>
-   <div class="tbl-wrap"><table><thead><tr><th></th><th>Data</th><th>Histórico do banco</th><th class="n">Valor</th><th>Situação</th><th>Conta do plano / baixa</th><th></th></tr></thead><tbody>${vis.map(linha).join('')}</tbody></table></div></div>`}
+   <div class="tbl-wrap"><table><thead><tr><th></th><th>Data</th><th>Histórico do banco</th><th class="n">Valor</th><th>Situação</th><th>Conta do plano / baixa</th><th></th></tr></thead><tbody>${vis.map(linha).join('')}</tbody></table></div></div>`+painelSemExtrato(A)}
+function painelSemExtrato(A){const se=A.semExtrato||[];if(!se.length)return '';const tot=sum(se.map(p=>+p.valor));
+  return `<div class="panel"><div class="ph"><div><h2>Em aberto no período e fora do extrato</h2><p class="hint">Contas a pagar e a receber com vencimento entre ${dataBR(A.x.periodo_inicio)} e ${dataBR(A.x.periodo_fim)} que não apareceram neste extrato. Se foram pagas por outra conta, dê baixa por ela; se não foram, ficam atrasadas. Total ${brl2.format(tot)}.</p></div></div>
+   <div class="tbl-wrap"><table><thead><tr><th>Vencimento</th><th>Descrição</th><th class="n">Valor</th><th>Situação</th><th></th></tr></thead><tbody>${se.map(p=>`<tr><td class="mono">${dataBR(p.vencimento)}</td><td class="wrap">${esc(p.lancamentos?.descricao||'')}${p.lancamentos?.parceiro_id?`<span class="unit">${esc(parceiro(p.lancamentos.parceiro_id)?.nome||'')}</span>`:''}</td><td class="n ${+p.valor<0?'neg':''}">${brl2.format(+p.valor)}</td><td>${p.vencimento<HOJE?'<span class="chip bad">Vencida</span>':'<span class="chip info">A vencer</span>'}</td><td><button class="linkbtn small" data-acao="ext-ver-lanc" data-id="${p.lancamento_id}">Abrir</button></td></tr>`).join('')}</tbody></table></div></div>`}
 
 // ---------- ações
 async function lancarLinhas(){
@@ -2532,8 +2634,27 @@ async function lancarLinhas(){
   if(!ls.length){toast('Marque as linhas que quer lançar.');return}
   const semConta=ls.filter(l=>!(E.contas[l.id]??l.conta_sugerida_id));if(semConta.length){toast(`Escolha a conta do plano em ${semConta.length} linha${semConta.length>1?'s':''} marcada${semConta.length>1?'s':''}.`);return}
   const x=(await sb.from('extratos').select('empresa_id,conta_bancaria_id').eq('id',E.aberto).single()).data;
+  E.transf=E.transf||{};
+  const trs=ls.filter(l=>ehTransf(conta(E.contas[l.id]??l.conta_sugerida_id)));
+  const semDest=trs.filter(l=>!E.transf[l.id]);if(semDest.length){toast(`Diga para qual conta foi a transferência em ${semDest.length} linha${semDest.length>1?'s':''}.`);document.querySelector(`[data-exttransf="${semDest[0].id}"]`)?.focus();return}
+  const avisosTr=[];
+  if(trs.length){const {ent,sai}=await contasTransf(x.empresa_id);
+    for(const l of trs){const v=r2(+l.valor),dest=E.transf[l.id],bd=banco(x.conta_bancaria_id),bp=banco(dest);
+      const desc=l.historico.slice(0,300),idA=uuid(),idB=uuid(),pA=uuid(),pB=uuid();
+      await lotes('lancamentos',[{id:idA,empresa_id:x.empresa_id,conta_id:(v<0?sai:ent).id,competencia:l.data,descricao:desc,valor:v,origem:'manual'}]);
+      await lotes('lancamentos',[{id:idB,empresa_id:x.empresa_id,conta_id:(v<0?ent:sai).id,competencia:l.data,descricao:desc,valor:-v,vinculo_id:idA,origem:'manual'}]);
+      await lotes('parcelas',[{id:pA,empresa_id:x.empresa_id,lancamento_id:idA,numero:1,vencimento:l.data,valor:v,data_pagamento:l.data,valor_pago:v,forma_pagamento:'Transferência',status:'paga',conta_bancaria_id:x.conta_bancaria_id},
+        {id:pB,empresa_id:x.empresa_id,lancamento_id:idB,numero:1,vencimento:l.data,valor:-v,data_pagamento:l.data,valor_pago:-v,forma_pagamento:'Transferência',status:'paga',conta_bancaria_id:dest}]);
+      const {error:eu}=await sb.from('extrato_linhas').update({status:'lancado_na_auditoria',parcela_id:pA,conta_sugerida_id:(v<0?sai:ent).id}).eq('id',l.id);if(eu)throw eu;
+      // a outra ponta: se o extrato da conta de destino já foi importado, concilia a linha dele; senão, avisa
+      const {data:exD}=await sb.from('extratos').select('id,periodo_inicio,periodo_fim').eq('conta_bancaria_id',dest);
+      let par=null;if(exD?.length){const {data:cand}=await sb.from('extrato_linhas').select('id,data,valor,status').in('extrato_id',exD.map(e=>e.id)).eq('status','nao_lancado').gte('data',somaDias(l.data,-3)).lte('data',somaDias(l.data,3));
+        par=(cand||[]).filter(c=>Math.abs(+c.valor+v)<0.005).sort((a,b)=>Math.abs(dias(a.data,l.data))-Math.abs(dias(b.data,l.data)))[0]}
+      if(par){await sb.from('extrato_linhas').update({status:'conciliado',parcela_id:pB}).eq('id',par.id)}
+      else{const cobre=(exD||[]).some(e=>e.periodo_inicio<=l.data&&e.periodo_fim>=l.data);
+        avisosTr.push(`${brl2.format(Math.abs(v))} em ${dataBR(l.data)} ${v<0?'para':'de'} ${bp?.banco_nome||'outra conta'}: ${cobre?'o extrato dessa conta já cobre a data, mas não tem esse valor. Confira.':'falta importar o extrato dessa conta para fechar a outra ponta.'}`)}}}
   const L=[],P=[],up=[];
-  ls.forEach(l=>{const cid=E.contas[l.id]??l.conta_sugerida_id;const id=uuid(),pid=uuid();const v=r2(+l.valor);
+  ls.filter(l=>!trs.includes(l)).forEach(l=>{const cid=E.contas[l.id]??l.conta_sugerida_id;const id=uuid(),pid=uuid();const v=r2(+l.valor);
     L.push({id,empresa_id:x.empresa_id,conta_id:cid,competencia:l.data,descricao:l.historico.slice(0,300),valor:v,origem:'manual'});
     P.push({id:pid,empresa_id:x.empresa_id,lancamento_id:id,numero:1,vencimento:l.data,valor:v,data_pagamento:l.data,valor_pago:v,status:'paga',forma_pagamento:'Extrato bancário',conta_bancaria_id:x.conta_bancaria_id});
     up.push([l,pid,cid])});
@@ -2545,7 +2666,9 @@ async function lancarLinhas(){
     if(r){await sb.from('regras_classificacao').update({conta_id:cid,vezes_usada:(r.vezes_usada||0)+1}).eq('id',r.id);r.conta_id=cid;r.vezes_usada++}
     else novas.set(ch,{empresa_id:x.empresa_id,padrao:ch,conta_id:cid,vezes_usada:1})}
   if(novas.size)await sb.from('regras_classificacao').insert([...novas.values()]);
-  E.sel=new Set();E.contas={};invalidar();toast(`${ls.length} lançamento${ls.length>1?'s':''} criado${ls.length>1?'s':''} e conciliado${ls.length>1?'s':''}.`);render(true);
+  E.sel=new Set();E.contas={};E.transf={};invalidar();toast(`${ls.length} lançamento${ls.length>1?'s':''} criado${ls.length>1?'s':''} e conciliado${ls.length>1?'s':''}.`);
+  if(avisosTr.length)drawer(`<h3>Transferências lançadas</h3><p class="muted" style="margin:0">A saída e a entrada foram registradas nas duas contas. Para a conciliação fechar, a outra ponta precisa aparecer no extrato da conta de destino.</p><ul>${avisosTr.map(a=>`<li>${esc(a)}</li>`).join('')}</ul><div><button class="btn" data-acao="fechar">Entendi</button></div>`);
+  render(true);
 }
 // antes de apagar lançamentos: solta as linhas de extrato que apontam para as parcelas deles
 async function soltarExtrato(lancIds){
@@ -2568,13 +2691,17 @@ const ACOES_EXT={
   'ext-baixar':async b=>{const E=stExt();const l=E._ls.find(x=>x.id===b.dataset.id);if(!l)return;const x=(await sb.from('extratos').select('conta_bancaria_id').eq('id',E.aberto).single()).data;
     const {error}=await sb.from('parcelas').update({status:'paga',data_pagamento:l.data,valor_pago:r2(+l.valor),conta_bancaria_id:x.conta_bancaria_id,forma_pagamento:'Extrato bancário'}).eq('id',b.dataset.parc);if(error)throw error;
     const {error:e2}=await sb.from('extrato_linhas').update({status:'conciliado',parcela_id:b.dataset.parc}).eq('id',l.id);if(e2)throw e2;invalidar();toast('Baixa registrada pelo extrato.');render(true)},
+  'ext-ver-lanc':b=>abrirLanc(b.dataset.id),
   'ext-sel-todas':()=>{const E=stExt();(E._ls||[]).filter(l=>l.status==='nao_lancado'&&(E.contas[l.id]??l.conta_sugerida_id)).forEach(l=>E.sel.add(l.id));render(true)},
   'ext-lancar':async b=>{b.disabled=true;await lancarLinhas()},
 };
 document.addEventListener('change',ev=>{const t=ev.target;
-  if(t.id==='arqExt'&&t.files[0]){lerExtratoEnviado(t.files[0]);t.value=''}
+  if(t.id==='arqExt'&&t.files.length){lerExtratoEnviado([...t.files]);t.value=''}
   else if(t.id==='extEmp'){const E=stExt();E.emp=t.value;E.banco=null;E.prev=null;E.aberto=null;render(true)}
   else if(t.id==='extBanco'){const E=stExt();E.banco=t.value;E.prev=null;E.aberto=null;render(true)}
+  else if(t.dataset?.extbaixa&&t.value){const b=document.createElement('button');b.dataset.id=t.dataset.extbaixa;b.dataset.parc=t.value;t.disabled=true;Promise.resolve(ACOES_EXT['ext-baixar'](b)).catch(err=>{t.disabled=false;toast(traduz(err))})}
+  else if(t.dataset?.exttransf){const E=stExt();(E.transf||(E.transf={}))[t.dataset.exttransf]=t.value||null;if(t.value)E.sel.add(t.dataset.exttransf);const c=document.querySelector(`[data-extsel="${t.dataset.exttransf}"]`);if(c&&t.value)c.checked=true}
+  else if(t.dataset?.extconta&&ehTransf(conta(t.value))&&!(stExt().transf||{})[t.dataset.extconta]){const E=stExt();E.contas[t.dataset.extconta]=t.value;E.sel.add(t.dataset.extconta);render(true)}
   else if(t.dataset?.extconta){const E=stExt();E.contas[t.dataset.extconta]=t.value||null;if(t.value)E.sel.add(t.dataset.extconta);const bt=document.querySelector('[data-acao=ext-lancar]');const c=document.querySelector(`[data-extsel="${t.dataset.extconta}"]`);if(c)c.checked=!!t.value||c.checked;if(bt)bt.textContent=`Lançar ${E.sel.size||''} selecionada${E.sel.size===1?'':'s'}`}
   else if(t.dataset?.extsel){const E=stExt();t.checked?E.sel.add(t.dataset.extsel):E.sel.delete(t.dataset.extsel);const bt=document.querySelector('[data-acao=ext-lancar]');if(bt)bt.textContent=`Lançar ${E.sel.size||''} selecionada${E.sel.size===1?'':'s'}`}
 });
