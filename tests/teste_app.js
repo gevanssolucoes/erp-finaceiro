@@ -88,7 +88,22 @@ const srv=http.createServer((q,r)=>{let f=path.join(APP,decodeURIComponent(q.url
     await pg.click('[data-acao=bol-config]');await pg.waitForTimeout(200);await shot(pg,'boletos-ligar');await pg.click('[data-acao=bol-gerar]');await pg.waitForTimeout(800);await shot(pg,'boletos-script');
     if(!DB.boletos_email_token.length)errs.push('token não gerado');await pg.click('[data-acao=fechar]');
     await pg.click(`[data-acao=bol-lancar][data-id="${boletos[0].id}"]`);await pg.waitForTimeout(400);await shot(pg,'boletos-lancar');
-    {const bi=await pg.$('#lConta').then(e=>e.evaluateHandle(x=>x.previousElementSibling?.querySelector('input')));const inp=bi.asElement();if(!inp)errs.push('campo de conta sem pesquisa');else{await inp.type('marketing');await pg.waitForTimeout(150);await shot(pg,'lanc-conta-busca');const v=await pg.$eval('#lConta',s=>s.options[s.selectedIndex]?.textContent);if(!/Marketing/.test(v||''))errs.push('pesquisa no campo de conta não selecionou: '+v);await inp.fill('')}}
+    {const b=await pg.$('#lConta').then(e=>e.evaluateHandle(x=>x.parentElement?.querySelector('.cb-btn')));const btn=b.asElement();if(!btn)errs.push('campo de conta sem seletor com pesquisa');else{
+      const t0=await btn.innerText();if(/^\d/.test(t0.trim()))errs.push('seletor mostra código: '+t0);
+      await btn.click();await pg.waitForTimeout(150);const inp=await pg.$('.cb-pop input');if(!inp)errs.push('seletor não abriu a pesquisa');else{
+        if(!await inp.evaluate(x=>x===document.activeElement))errs.push('pesquisa do seletor sem foco');
+        const nOps=await pg.$$eval('.cb-pop .cb-o',x=>x.length);const temCod=await pg.$$eval('.cb-pop .cb-o .n',x=>x.some(e=>/^\d+\.\d/.test(e.textContent)));if(nOps<5||temCod)errs.push('lista do seletor: '+nOps+' opções, código visível '+temCod);
+        await inp.type('marketing');await pg.waitForTimeout(150);await shot(pg,'lanc-conta-busca');
+        const n=await pg.$$eval('.cb-pop .cb-o',x=>x.length);if(n!==1)errs.push('pesquisa por nome achou '+n);
+        await pg.keyboard.press('Enter');await pg.waitForTimeout(150);
+        const v=await pg.$eval('#lConta',s=>s.options[s.selectedIndex]?.textContent);if(!/Marketing/.test(v||''))errs.push('pesquisa no campo de conta não selecionou: '+v);
+        if(!/^Marketing$/.test((await btn.innerText()).trim()))errs.push('botão não mostra o nome: '+await btn.innerText());
+        if(await pg.$('.cb-pop'))errs.push('seletor não fechou após escolher');
+        await btn.click();await pg.waitForTimeout(100);await pg.keyboard.type('5.01.001');await pg.waitForTimeout(100);
+        const n2=await pg.$$eval('.cb-pop .cb-o .n',x=>x.map(e=>e.textContent));if(n2.length!==1||!/Sal/.test(n2[0]))errs.push('pesquisa por código: '+n2);
+        await pg.keyboard.press('Escape');await pg.keyboard.press('Escape');await pg.waitForTimeout(100);if(await pg.$('.cb-pop'))errs.push('Esc não fechou o seletor');
+        await pg.$eval('#lConta',s=>{s.value=[...s.options].find(o=>/Aluguel/.test(o.textContent)).value});if(!/Aluguel/.test(await btn.innerText()))errs.push('botão não acompanhou valor por código');
+        await pg.$eval('#lConta',s=>{s.value=[...s.options].find(o=>/Marketing/.test(o.textContent)).value})}}}
     await pg.selectOption('#lConta',{index:8});await pg.click('form[data-form=lanc] button:not([type=button])');await pg.waitForTimeout(900);await shot(pg,'boletos-depois');
     if(boletos[0].status!=='lancado')errs.push('boleto não marcado como lançado');
     DB.boletos_email_token[0].url_busca='https://script.google.com/macros/s/ABC_1/exec';let buscou=0;
@@ -220,7 +235,7 @@ const srv=http.createServer((q,r)=>{let f=path.join(APP,decodeURIComponent(q.url
      const ofx=`OFXHEADER:100\nDATA:OFXSGML\n<OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS><BANKTRANLIST><DTSTART>20261001<DTEND>20261031\n<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20261011120000<TRNAMT>${v}<FITID>A1<MEMO>PAGTO BOLETO\n</STMTTRN><STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20261015<TRNAMT>-45.90<FITID>A2<MEMO>TARIFA PACOTE DE SERVICOS\n</STMTTRN><STMTTRN><TRNTYPE>CREDIT<DTPOSTED>20261020<TRNAMT>500.00<FITID>A3<MEMO>PIX RECEBIDO CLIENTE ABC LTDA\n</STMTTRN></BANKTRANLIST><LEDGERBAL><BALAMT>1234.56<DTASOF>20261031</LEDGERBAL></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>`;
      await pg.evaluate(()=>location.hash='auditoria');await pg.waitForTimeout(800);await pg.selectOption('#extEmp',empresas[0].id);await pg.waitForTimeout(500);await pg.selectOption('#extBanco',bancos[0].id);await pg.waitForTimeout(500);await shot(pg,'ext-vazio');
      await pg.setInputFiles('#arqExt',{name:'itau_out.ofx',mimeType:'application/x-ofx',buffer:Buffer.from(ofx)});await pg.waitForTimeout(1200);await shot(pg,'ext-previa');
-     await pg.click('[data-acao=ext-gravar]');await pg.waitForTimeout(1200);await shot(pg,'ext-conc');
+     await pg.click('[data-acao=ext-gravar]');await pg.waitForTimeout(1200);await shot(pg,'ext-conc');{const b=await pg.$('table .cb-btn');if(!b)errs.push('extrato: conta sem seletor com pesquisa');else{await b.click();await pg.waitForTimeout(200);await pg.keyboard.type('tarifa');await pg.waitForTimeout(200);await pg.screenshot({path:`${OUT}/t-ext-conta-busca.png`});await pg.keyboard.press('Escape');await pg.keyboard.press('Escape')}}
      const st=DB.extrato_linhas.map(l=>l.status+':'+l.valor+':'+(l.conta_sugerida_id?plano.find(c=>c.id===l.conta_sugerida_id).nome:'-'));console.log('EXT OFX',st.join(' | '));
      if(DB.extrato_linhas.find(l=>l.documento==='A1')?.status!=='conciliado')errs.push('OFX: linha com baixa não conciliou');
      const pix=DB.extrato_linhas.find(l=>l.documento==='A3');await pg.selectOption(`[data-extconta="${pix.id}"]`,ct(empresas[0].id,'3.01.002'));await pg.waitForTimeout(200);
@@ -235,7 +250,37 @@ const srv=http.createServer((q,r)=>{let f=path.join(APP,decodeURIComponent(q.url
      await pg.setInputFiles('#arqExt',path.join(__dirname,'fixtures/extrato_nubank_exemplo.pdf'));await pg.waitForTimeout(2500);await shot(pg,'ext-pdf');
      const lidas=await pg.evaluate(()=>S.ext.prev&&S.ext.prev.lin.map(l=>l.data+' '+l.valor+' '+l.historico));console.log('EXT PDF',JSON.stringify(lidas));
      if(!lidas||lidas.length!==4)errs.push('PDF Nubank: esperava 4 movimentações');
-     await pg.click('[data-acao=ext-gravar]');await pg.waitForTimeout(1200);await shot(pg,'ext-pdf-conc');}
+     await pg.click('[data-acao=ext-gravar]');await pg.waitForTimeout(1200);await shot(pg,'ext-pdf-conc');
+     // vários arquivos de uma vez: PDF da Caixa que é só imagem (lido por OCR) enviado duas vezes + um OFX
+     {const e0=empresas[0].id;const mk=(desc,v,venc,cod)=>{const lid=id();lanc.push({id:lid,empresa_id:e0,conta_id:ct(e0,cod),competencia:venc,descricao:desc,valor:v,origem:'manual'});const pid=id();parc.push({id:pid,empresa_id:e0,lancamento_id:lid,numero:1,vencimento:venc,valor:v,status:'aberta',conta_bancaria_id:null});return pid};
+      const pEnergia=mk('Conta de energia outubro',-200,'2026-10-19','5.02.001'),pFora=mk('Aluguel sala 2',-999,'2026-10-25','5.02.001');
+      await pg.selectOption('#extBanco',bancos[0].id);await pg.waitForTimeout(600);
+      const ofx2=`OFXHEADER:100\nDATA:OFXSGML\n<OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS><BANKTRANLIST><DTSTART>20261001<DTEND>20261031\n<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20261028<TRNAMT>-12.34<FITID>Z9<MEMO>TARIFA AVULSA\n</STMTTRN></BANKTRANLIST></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>`;
+      const cx=path.join(__dirname,'fixtures/extrato_caixa_imagem_exemplo.pdf');
+      await pg.setInputFiles('#arqExt',[{name:'caixa_out.pdf',mimeType:'application/pdf',buffer:fs.readFileSync(cx)},{name:'caixa_copia.pdf',mimeType:'application/pdf',buffer:fs.readFileSync(cx)},{name:'tarifa.ofx',mimeType:'application/x-ofx',buffer:Buffer.from(ofx2)}]);
+      await pg.waitForFunction(()=>S.ext.prev||!S.ext.lendo,null,{timeout:90000}).catch(()=>{});await pg.waitForTimeout(800);await shot(pg,'ext-caixa-previa');
+      const P=await pg.evaluate(()=>S.ext.prev&&{lin:S.ext.prev.lin.map(l=>l.data+' '+l.valor+' '+l.historico),rep:S.ext.prev.repetidasEntre,conf:S.ext.prev.conferido,fmt:S.ext.prev.formato,saldo:S.ext.prev.saldo});console.log('EXT CAIXA',JSON.stringify(P));
+      if(!P)errs.push('Caixa: prévia não abriu');else{
+        if(P.lin.length!==4)errs.push('Caixa+OFX: esperava 4 linhas, veio '+P.lin.length);if(P.rep!==3)errs.push('Caixa duplicado: esperava 3 repetidas entre arquivos, veio '+P.rep);
+        if(!P.lin.some(l=>/^2026-10-05 3000 RECEBIMENTO TED/.test(l))||!P.lin.some(l=>/^2026-10-20 -215.5 PAGAMENTO DE BOLETO/.test(l))||!P.lin.some(l=>/^2026-10-15 -1200 DEB PIX CHAVE/.test(l)))errs.push('Caixa: valores lidos errados');
+        if(!P.conf)errs.push('Caixa: saldo não conferiu');if(P.saldo!==2584.5)errs.push('Caixa: saldo final '+P.saldo)}
+      await pg.click('[data-acao=ext-gravar]');await pg.waitForTimeout(1500);await shot(pg,'ext-caixa-conc');
+      // conta parecida em aberto: dá baixa pela lista
+      const lBol=DB.extrato_linhas.find(l=>l.valor===-215.5);const sel=await pg.$(`[data-extbaixa="${lBol?.id}"]`);
+      if(!sel)errs.push('extrato: sem sugestão de conta em aberto parecida');else{await sel.selectOption(pEnergia);await pg.waitForTimeout(1500);
+        const pp=parc.find(p=>p.id===pEnergia);if(pp.status!=='paga'||pp.valor_pago!==-215.5||pp.conta_bancaria_id!==bancos[0].id)errs.push('baixa pela conta parecida não gravou '+JSON.stringify(pp))}
+      // em aberto e fora do extrato
+      const fora=await pg.$$eval('.panel h2',hs=>hs.some(h=>/fora do extrato/.test(h.textContent)));const txt=await pg.evaluate(()=>document.body.innerText);
+      if(!fora||!/Aluguel sala 2/.test(txt))errs.push('extrato: painel de contas em aberto fora do extrato não apareceu');
+      // transferência: pede a conta de destino e cria as duas pontas
+      const lPix=DB.extrato_linhas.find(l=>l.valor===-1200);const trSai=await pg.evaluate(async e=>(await contasTransf(e)).sai.id,e0);await pg.evaluate(()=>render(true));await pg.waitForTimeout(1200);await pg.selectOption(`[data-extconta="${lPix.id}"]`,trSai);await pg.waitForTimeout(1500);
+      const dst=await pg.$(`[data-exttransf="${lPix.id}"]`);if(!dst)errs.push('transferência: não pediu a conta de destino');else{
+        await dst.selectOption(bancos[1].id);await pg.waitForTimeout(200);await shot(pg,'ext-transf-destino');
+        const n0=lanc.length;await pg.evaluate(id=>{S.ext.sel=new Set([id])},lPix.id);await pg.click('[data-acao=ext-lancar]');await pg.waitForTimeout(2000);await shot(pg,'ext-transf-aviso');
+        const novos=lanc.slice(n0);const ps=parc.filter(p=>novos.some(l=>l.id===p.lancamento_id));
+        if(novos.length!==2||!novos.some(l=>l.vinculo_id)||!ps.some(p=>p.conta_bancaria_id===bancos[1].id&&p.valor===1200)||!ps.some(p=>p.conta_bancaria_id===bancos[0].id&&p.valor===-1200))errs.push('transferência pelo extrato: pontas erradas '+JSON.stringify(ps.map(p=>[p.valor,p.conta_bancaria_id===bancos[1].id])));
+        if(!/falta importar o extrato|já cobre a data, mas não tem esse valor/.test(await pg.evaluate(()=>document.body.innerText)))errs.push('transferência: não avisou do extrato da outra conta');
+        await pg.click('[data-acao=fechar]').catch(()=>{})}}}
     // plano de contas e transferências
     await pg.evaluate(()=>location.hash='plano');await pg.waitForTimeout(700);await pg.selectOption('#planoEmp',empresas[0].id);await pg.waitForTimeout(700);await shot(pg,'plano');
     {await pg.keyboard.press('/');if(!await pg.evaluate(()=>document.activeElement?.id==='planoBusca'))errs.push('atalho / não foca a busca do plano');
@@ -250,7 +295,7 @@ const srv=http.createServer((q,r)=>{let f=path.join(APP,decodeURIComponent(q.url
      await pg.click('.plano-busca [data-pf=todas]');await pg.waitForTimeout(200);}
     {const c=plano.find(x=>x.empresa_id===empresas[0].id&&x.codigo==='5.02.001');await pg.click(`[data-acao=editar-conta][data-id="${c.id}"]`);await pg.waitForTimeout(300);await shot(pg,'conta-editar');await pg.fill('#cCod','5.02.009');await pg.fill('#cNome','Aluguel e condomínio');await pg.click('form[data-form=conta] button:not([type=button])');await pg.waitForTimeout(900);if(c.codigo!=='5.02.009'||c.nome!=='Aluguel e condomínio')errs.push('edição da conta não salvou: '+c.codigo+' '+c.nome)}
     {const pai=plano.find(x=>x.empresa_id===empresas[0].id&&x.codigo==='5');await pg.click(`[data-acao=nova-subconta][data-id="${pai.id}"]`);await pg.waitForTimeout(300);const cod=await pg.inputValue('#cCod');await pg.fill('#cNome','Plano de saúde IPASGO');await shot(pg,'subconta');await pg.click('form[data-form=conta] button:not([type=button])');await pg.waitForTimeout(900);const nv=plano.find(x=>x.nome==='Plano de saúde IPASGO');console.log('SUBCONTA',cod,nv?.conta_pai===pai.id);if(!nv)errs.push('subconta não criada')}
-    await pg.click('[data-acao=criar-transf]');await pg.waitForTimeout(900);await shot(pg,'plano-transf');console.log('TRANSF CONTAS',plano.filter(x=>/Transfer/.test(x.nome)&&x.empresa_id===empresas[0].id).map(x=>x.codigo+' '+x.nome).join(', '));
+    if(await pg.$('[data-acao=criar-transf]')){await pg.click('[data-acao=criar-transf]');await pg.waitForTimeout(900)}await shot(pg,'plano-transf');console.log('TRANSF CONTAS',plano.filter(x=>/Transfer/.test(x.nome)&&x.empresa_id===empresas[0].id).map(x=>x.codigo+' '+x.nome).join(', '));
     await pg.evaluate(()=>location.hash='bancos');await pg.waitForTimeout(800);await pg.click('[data-acao=nova-transf]');await pg.waitForTimeout(300);await pg.selectOption('#tEmp',empresas[0].id);await pg.dispatchEvent('#tEmp','change');await pg.fill('#tVal','1.000,00');await shot(pg,'transf');
     {const n0=lanc.length,p0=parc.length;await pg.click('form[data-form=transf] button:not([type=button])');await pg.waitForTimeout(1200);if(lanc.length!==n0+2||parc.length!==p0+2)errs.push('transferência não gravou 2+2');await shot(pg,'bancos-transf');console.log('TRANSF',JSON.stringify(lanc.slice(-2).map(l=>[l.valor,l.vinculo_id?'vinc':''])))}
     await pg.evaluate(()=>location.hash='dre');await pg.waitForTimeout(800);if(await pg.evaluate(()=>!!document.querySelector('.chip.warn')&&/sem grupo/.test(document.body.textContent)))console.log('aviso sem grupo presente (pode ser de dado antigo)');
@@ -307,7 +352,11 @@ const srv=http.createServer((q,r)=>{let f=path.join(APP,decodeURIComponent(q.url
   });
   await rodar({width:390,height:844},'v2mob',async pg=>{await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x');await pg.click('form[data-form=login] button');await pg.waitForSelector('[data-entra]',{timeout:8000});await pg.click('[data-entra="*"]');await pg.waitForSelector('.tile',{timeout:8000});
     for(const r of ['fechamento','historico','empresas','auditoria','plano']){await pg.evaluate(r=>location.hash=r,r);await pg.waitForTimeout(1000);await shot(pg,'m-v2-'+r)}
-    await pg.click('#pgBtn');await pg.waitForSelector('#pgQ');await pg.type('#pgQ','sal');await pg.waitForTimeout(400);await shot(pg,'m-v2-pesquisa')});
+    await pg.click('#pgBtn');await pg.waitForSelector('#pgQ');await pg.type('#pgQ','sal');await pg.waitForTimeout(400);await shot(pg,'m-v2-pesquisa');
+    await pg.keyboard.press('Escape');await pg.evaluate(()=>{location.hash='lancamentos'});await pg.waitForTimeout(800);await pg.evaluate(()=>formLanc());await pg.waitForTimeout(600);
+    const cbm=await pg.$('#lConta')?await pg.$eval('#lConta',s=>!!s.parentElement.querySelector('.cb-btn')):false;if(!cbm)errs.push('celular: campo de conta sem seletor');else{await pg.click('#lConta + *, .cb:has(#lConta) .cb-btn');await pg.waitForTimeout(300);await shot(pg,'m-conta-aberta');await pg.keyboard.type('alu');await pg.waitForTimeout(200);await shot(pg,'m-conta-busca');
+      const box=await pg.$eval('.cb-pop',e=>{const r=e.getBoundingClientRect();return [r.left,r.right,Math.round(r.bottom)]});if(box[0]!==0||box[1]!==390||box[2]!==844)errs.push('celular: lista não abriu na base da tela '+box);
+      await pg.click('.cb-pop .cb-o');await pg.waitForTimeout(200);const tx=await pg.$eval('.cb:has(#lConta) .cb-btn',b=>b.innerText);if(!/alug/i.test(tx))errs.push('celular: não escolheu '+tx);await shot(pg,'m-conta-escolhida')}});
   // grupos de empresas
   await rodar({width:1366,height:900},'grupos',async pg=>{await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x');await pg.click('form[data-form=login] button');await pg.waitForSelector('[data-entra]',{timeout:8000});await pg.click('[data-entra="*"]');await pg.waitForTimeout(600);
     pg.on('dialog',d=>d.accept());
