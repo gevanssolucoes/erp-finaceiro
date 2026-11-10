@@ -9,7 +9,7 @@ const GRUPOS_V2=[
   ['Relatórios',['dre','fluxo','faturamento']],
   ['Controle e auditoria',['auditoria','fechamento','historico','excecoes','compras','estoque','nfs']],
   ['Planejamento',['orcamento','premissas','salario']],
-  ['Cadastros',['plano','empresas','bancos','tributos','importar','usuarios']],
+  ['Cadastros',['plano','empresas','grupos','bancos','tributos','importar','usuarios']],
   ['Pessoas',['pessoas','ausencias']],
   ['Sistema',['admin']],
 ];
