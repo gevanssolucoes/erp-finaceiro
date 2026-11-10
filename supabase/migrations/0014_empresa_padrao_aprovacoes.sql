@@ -1,89 +1,14 @@
 -- Cadastro padronizado de empresa (PJ ou pessoa física) e tabela de aprovações (alçadas)
 -- para compra, pagamento e conclusão de conciliação. Só acrescenta; nada é apagado.
+-- Rodar depois da 0016 (planos padrão PF e PJ).
 
 -- ===================== 1) Empresa: pessoa jurídica ou física
 alter table public.empresas
   add column if not exists tipo_pessoa text not null default 'pj' check (tipo_pessoa in ('pj', 'pf'));
 
--- ===================== 2) Modelos de plano de contas (PJ e PF)
-alter table public.plano_contas_modelo add column if not exists modelo text not null default 'pj'
-  check (modelo in ('pj', 'pf'));
-alter table public.plano_contas_modelo drop constraint if exists plano_contas_modelo_pkey;
-alter table public.plano_contas_modelo add primary key (modelo, codigo);
-
--- contas de transferência entre contas bancárias (não entram na DRE) nos dois modelos
-insert into public.plano_contas_modelo (modelo, codigo, nome, pai, tipo, grupo_dre, analitica) values
- ('pj','8','Transferências entre contas',null,'despesa',null,false),
- ('pj','8.01.001','Transferência · entrada','8','receita',null,true),
- ('pj','8.01.002','Transferência · saída','8','despesa',null,true)
-on conflict do nothing;
-
-insert into public.plano_contas_modelo (modelo, codigo, nome, pai, tipo, grupo_dre, analitica) values
- ('pf','3','Receitas',null,'receita',null,false),
- ('pf','3.01','Rendimentos','3','receita',null,false),
- ('pf','3.01.001','Salário','3.01','receita','receita_bruta',true),
- ('pf','3.01.002','13º salário e férias','3.01','receita','receita_bruta',true),
- ('pf','3.01.003','Pró-labore e retiradas','3.01','receita','receita_bruta',true),
- ('pf','3.01.004','Aluguéis recebidos','3.01','receita','receita_bruta',true),
- ('pf','3.01.005','Serviços e trabalhos extras','3.01','receita','receita_bruta',true),
- ('pf','3.01.006','Outras receitas','3.01','receita','receita_bruta',true),
- ('pf','3.02','Descontos na fonte','3','despesa',null,false),
- ('pf','3.02.001','INSS','3.02','despesa','deducoes',true),
- ('pf','3.02.002','IRRF','3.02','despesa','deducoes',true),
- ('pf','5','Despesas',null,'despesa',null,false),
- ('pf','5.01','Moradia','5','despesa',null,false),
- ('pf','5.01.001','Aluguel, condomínio e IPTU','5.01','despesa','despesas_operacionais',true),
- ('pf','5.01.002','Energia, água e gás','5.01','despesa','despesas_operacionais',true),
- ('pf','5.01.003','Internet, TV e telefone','5.01','despesa','despesas_operacionais',true),
- ('pf','5.02','Alimentação','5','despesa',null,false),
- ('pf','5.02.001','Mercado','5.02','despesa','despesas_operacionais',true),
- ('pf','5.02.002','Restaurantes e delivery','5.02','despesa','despesas_operacionais',true),
- ('pf','5.03','Transporte','5','despesa',null,false),
- ('pf','5.03.001','Combustível e transporte','5.03','despesa','despesas_operacionais',true),
- ('pf','5.03.002','Carro: seguro, IPVA e manutenção','5.03','despesa','despesas_operacionais',true),
- ('pf','5.04','Saúde','5','despesa',null,false),
- ('pf','5.04.001','Plano de saúde','5.04','despesa','despesas_operacionais',true),
- ('pf','5.04.002','Farmácia e consultas','5.04','despesa','despesas_operacionais',true),
- ('pf','5.05','Educação, lazer e pessoal','5','despesa',null,false),
- ('pf','5.05.001','Educação','5.05','despesa','despesas_operacionais',true),
- ('pf','5.05.002','Lazer e viagens','5.05','despesa','despesas_operacionais',true),
- ('pf','5.05.003','Roupas e cuidados pessoais','5.05','despesa','despesas_operacionais',true),
- ('pf','5.05.004','Assinaturas e aplicativos','5.05','despesa','despesas_operacionais',true),
- ('pf','5.05.005','Outras despesas','5.05','despesa','despesas_operacionais',true),
- ('pf','6','Resultado financeiro',null,'despesa',null,false),
- ('pf','6.01.001','Tarifas bancárias e IOF','6','despesa','resultado_financeiro',true),
- ('pf','6.01.002','Rendimentos de aplicações','6','receita','resultado_financeiro',true),
- ('pf','6.01.003','Juros e multas pagos','6','despesa','resultado_financeiro',true),
- ('pf','6.02.001','Empréstimos e financiamentos','6','despesa','resultado_financeiro',true),
- ('pf','7','Imposto de renda',null,'despesa',null,false),
- ('pf','7.01.001','Imposto de renda pessoa física','7','despesa','ir_csll',true),
- ('pf','8','Transferências entre contas',null,'despesa',null,false),
- ('pf','8.01.001','Transferência · entrada','8','receita',null,true),
- ('pf','8.01.002','Transferência · saída','8','despesa',null,true)
-on conflict do nothing;
-
-create or replace function privado.copiar_plano_padrao(p_empresa uuid, p_modelo text default 'pj')
-returns void language plpgsql security definer set search_path = public as $$
-declare r record;
-begin
-  for r in select * from public.plano_contas_modelo where modelo = coalesce(p_modelo, 'pj') order by length(codigo), codigo loop
-    insert into public.plano_contas (empresa_id, codigo, nome, tipo, grupo_dre, analitica, conta_pai)
-    values (p_empresa, r.codigo, r.nome, coalesce(r.tipo, 'despesa'), r.grupo_dre, r.analitica,
-            (select id from public.plano_contas where empresa_id = p_empresa and codigo = r.pai))
-    on conflict (empresa_id, codigo) do nothing;
-  end loop;
-  if coalesce(p_modelo, 'pj') = 'pf' then
-    insert into public.centros_custo (empresa_id, codigo, nome) values
-      (p_empresa, 'CASA', 'Casa'), (p_empresa, 'PES', 'Pessoal')
-    on conflict (empresa_id, codigo) do nothing;
-  else
-    insert into public.centros_custo (empresa_id, codigo, nome) values
-      (p_empresa, 'COM', 'Comercial'), (p_empresa, 'OPE', 'Operação'),
-      (p_empresa, 'ADM', 'Administrativo'), (p_empresa, 'FIN', 'Financeiro')
-    on conflict (empresa_id, codigo) do nothing;
-  end if;
-end $$;
-revoke execute on function privado.copiar_plano_padrao(uuid, text) from public, anon, authenticated;
+-- ===================== 2) Modelos de plano de contas PF e PJ
+-- Os modelos e a função privado.copiar_plano_padrao(empresa, modelo) vêm da migração 0016
+-- (planilha aprovada pelo Evaldo). Esta migração não mexe em plano_contas_modelo.
 
 -- copia o plano de contas e os centros de custo de outra empresa (cliente parecido)
 create or replace function privado.copiar_plano_de(p_empresa uuid, p_origem uuid)
@@ -126,20 +51,6 @@ begin
     on conflict do nothing;
   if p_copiar_de is not null then
     perform privado.copiar_plano_de(v_id, p_copiar_de);
-    -- garante as contas de transferência mesmo copiando de outra empresa
-    insert into public.plano_contas (empresa_id, codigo, nome, tipo, grupo_dre, analitica, conta_pai)
-      select v_id, m.codigo, m.nome, m.tipo, m.grupo_dre, m.analitica, null
-        from public.plano_contas_modelo m
-       where m.modelo = v_tipo and m.codigo = '8'
-         and not exists (select 1 from public.plano_contas x where x.empresa_id = v_id and x.nome ilike 'transfer%')
-    on conflict (empresa_id, codigo) do nothing;
-    insert into public.plano_contas (empresa_id, codigo, nome, tipo, grupo_dre, analitica, conta_pai)
-      select v_id, m.codigo, m.nome, m.tipo, m.grupo_dre, m.analitica,
-             (select id from public.plano_contas where empresa_id = v_id and codigo = '8')
-        from public.plano_contas_modelo m
-       where m.modelo = v_tipo and m.pai = '8'
-         and exists (select 1 from public.plano_contas where empresa_id = v_id and codigo = '8' and nome ilike 'transfer%')
-    on conflict (empresa_id, codigo) do nothing;
   else
     perform privado.copiar_plano_padrao(v_id, v_tipo);
   end if;

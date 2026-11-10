@@ -22,7 +22,7 @@ window.formNovaEmpresa=function(){
     <div class="field wide"><label for="eFant">Nome fantasia (é o nome que aparece no app e nos relatórios)</label><input id="eFant" name="fantasia" autocomplete="off" placeholder="Ex.: Café Serra"></div>
     <div class="field" data-pj><label for="eReg">Regime tributário</label><select id="eReg" name="regime"><option value="">Definir depois</option>${opts(REGIMES,'simples_nacional')}</select></div>
     <div class="field" data-pj style="grid-column:span 2"><label for="eAtv">Atividade principal</label><select id="eAtv" name="atividade"><option value="">Definir depois</option>${opts(ATIVIDADES,'')}</select></div>
-    <div class="field wide"><label for="ePlano">Plano de contas</label><select id="ePlano" name="plano"><option value="" data-lbl-modelo>Modelo padrão para empresa (receitas, deduções, custos, despesas, IR/CSLL)</option>
+    <div class="field wide"><label for="ePlano">Plano de contas</label><select id="ePlano" name="plano"><option value="" data-lbl-modelo>Plano padrão empresa (1 Receitas, 2 Pagamentos, 3 Saldos e movimentações)</option>
       ${S.empresas.map(e=>`<option value="${e.id}">Copiar de ${esc(nomeEmp(e))}</option>`).join('')}</select></div>
     <div class="field wide"><label for="eCor">Cor da empresa</label><div class="cores">${CORES_EMP.map(c=>`<button type="button" class="cor" data-cor="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join('')}<input id="eCor" type="color" name="cor" value="${cor}" aria-label="Outra cor"></div></div>
     <div class="wide sec-tit">Conta bancária principal <span class="muted">(opcional, dá para cadastrar mais depois)</span></div>
@@ -41,7 +41,7 @@ function trocaTipo(f){const pf=f.tipo.value==='pf';
   f.querySelector('[data-lbl-doc]').textContent=pf?'CPF':'CNPJ';f.doc.placeholder=pf?'000.000.000-00':'00.000.000/0001-00';
   f.querySelector('[data-lbl-razao]').textContent=pf?'Nome completo':'Razão social';
   f.fantasia.placeholder=pf?'Ex.: Evaldo (pessoal)':'Ex.: Café Serra';
-  f.querySelector('[data-lbl-modelo]').textContent=pf?'Modelo padrão pessoa física (salário, moradia, alimentação, saúde, IRPF)':'Modelo padrão para empresa (receitas, deduções, custos, despesas, IR/CSLL)';
+  f.querySelector('[data-lbl-modelo]').textContent=pf?'Plano padrão pessoa física (1 Receitas, 2 Pagamentos, 3 Saldos e movimentações)':'Plano padrão empresa (1 Receitas, 2 Pagamentos, 3 Saldos e movimentações)';
   if(f.alcadas)f.alcadas.checked=!pf}
 document.addEventListener('change',ev=>{const f=ev.target.form;if(f?.dataset.form==='empresa'&&ev.target.name==='tipo')trocaTipo(f)});
 document.addEventListener('click',ev=>{const c=ev.target.closest('form[data-form=empresa] [data-cor]');if(c){c.closest('form').cor.value=c.dataset.cor}});
