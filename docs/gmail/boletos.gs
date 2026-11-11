@@ -28,6 +28,7 @@ const CONFIG = {
   DIAS_PADRAO: 60,
   MAX_CONVERSAS: 300,      // por execução; o que sobrar fica para a próxima
   TEMPO_MAX_MS: 270000,    // o Google corta em 6 min; paramos antes
+  URL_APP: '',             // opcional: endereço /exec do app da web (botão "Buscar agora")
 };
 
 function instalar() {
@@ -40,7 +41,11 @@ function instalar() {
 
 // Se o script estiver publicado como app da web, avisa o app do endereço para o botão "Buscar agora".
 function registrarBotao() {
-  const url = ScriptApp.getService().getUrl();
+  // Rodando pelo editor, o Google devolve o endereço de teste (/dev); nesse caso use CONFIG.URL_APP
+  // (Implantar > Gerenciar implantações > copiar o endereço que termina em /exec).
+  let url = ScriptApp.getService().getUrl();
+  if (CONFIG.URL_APP) url = CONFIG.URL_APP;
+  if (url && /\/dev$/.test(url)) { console.log('Publicado, mas o editor só mostra o endereço de teste: copie o endereço /exec em Implantar > Gerenciar implantações para CONFIG.URL_APP e execute "instalar" de novo.'); return; }
   if (!url || !/\/exec$/.test(url)) { console.log('Ainda não publicado como app da web: o botão "Buscar agora" fica desligado.'); return; }
   chamarApp('registrar_busca_boletos', { p_token: CONFIG.TOKEN, p_url: url });
   console.log('Botão "Buscar agora" ligado no app.');
