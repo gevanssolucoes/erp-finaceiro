@@ -253,7 +253,7 @@ const srv=http.createServer((q,r)=>{let f=path.join(APP,decodeURIComponent(q.url
      await pg.click('[data-acao=ext-gravar]');await pg.waitForTimeout(1200);await shot(pg,'ext-pdf-conc');
      // vários arquivos de uma vez: PDF da Caixa que é só imagem (lido por OCR) enviado duas vezes + um OFX
      {const e0=empresas[0].id;const mk=(desc,v,venc,cod)=>{const lid=id();lanc.push({id:lid,empresa_id:e0,conta_id:ct(e0,cod),competencia:venc,descricao:desc,valor:v,origem:'manual'});const pid=id();parc.push({id:pid,empresa_id:e0,lancamento_id:lid,numero:1,vencimento:venc,valor:v,status:'aberta',conta_bancaria_id:null});return pid};
-      const pEnergia=mk('Conta de energia outubro',-200,'2026-10-19','5.02.001'),pFora=mk('Aluguel sala 2',-999,'2026-10-25','5.02.001');
+      const pEnergia=mk('Conta de energia outubro',-200,'2026-10-19','5.02.001'),pFora=mk('Aluguel sala 2',-999,'2026-10-25','5.02.001');const pOutra=mk('Tarifa avulsa lançada no Nubank',-12.34,'2026-10-27','6.01.001');Object.assign(parc.find(p=>p.id===pOutra),{status:'paga',data_pagamento:'2026-10-27',valor_pago:-12.34,conta_bancaria_id:bancos[1].id});
       await pg.selectOption('#extBanco',bancos[0].id);await pg.waitForTimeout(600);
       const ofx2=`OFXHEADER:100\nDATA:OFXSGML\n<OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS><BANKTRANLIST><DTSTART>20261001<DTEND>20261031\n<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20261028<TRNAMT>-12.34<FITID>Z9<MEMO>TARIFA AVULSA\n</STMTTRN></BANKTRANLIST></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>`;
       const cx=path.join(__dirname,'fixtures/extrato_caixa_imagem_exemplo.pdf');
@@ -269,6 +269,16 @@ const srv=http.createServer((q,r)=>{let f=path.join(APP,decodeURIComponent(q.url
       const lBol=DB.extrato_linhas.find(l=>l.valor===-215.5);const sel=await pg.$(`[data-extbaixa="${lBol?.id}"]`);
       if(!sel)errs.push('extrato: sem sugestão de conta em aberto parecida');else{await sel.selectOption(pEnergia);await pg.waitForTimeout(1500);
         const pp=parc.find(p=>p.id===pEnergia);if(pp.status!=='paga'||pp.valor_pago!==-215.5||pp.conta_bancaria_id!==bancos[0].id)errs.push('baixa pela conta parecida não gravou '+JSON.stringify(pp))}
+      // pago em outra conta: oferece vincular e passar para esta
+      {const lt=DB.extrato_linhas.find(l=>l.valor===-12.34);const bm=await pg.$(`[data-acao=ext-mover][data-id="${lt?.id}"]`);if(!bm)errs.push('extrato: não achou o pagamento lançado em outra conta');else{await bm.click();await pg.waitForTimeout(1500);const pp=parc.find(p=>p.id===pOutra);if(pp.conta_bancaria_id!==bancos[0].id||lt.status!=='conciliado')errs.push('vincular e passar para esta conta não gravou')}}
+      // no sistema e fora do extrato + conferência de saldo
+      if(!await pg.$$eval('.panel h2',hs=>hs.some(h=>/No sistema e fora do extrato/.test(h.textContent))))errs.push('extrato: sem painel do que está no sistema e fora do extrato');
+      if(!await pg.$('[data-acao=ext-saldo-ini]'))errs.push('extrato: sem botão de usar o saldo do extrato');else{await pg.click('[data-acao=ext-saldo-ini]');await pg.waitForTimeout(1500);if(bancos[0].saldo_inicial!==1012.34||bancos[0].data_saldo_inicial!=='2026-10-01')errs.push('saldo inicial pelo extrato: '+bancos[0].saldo_inicial+' '+bancos[0].data_saldo_inicial)}
+      // cliente sugerido pelo histórico e competência
+      {const lr=DB.extrato_linhas.find(l=>l.valor===3000);const ip=await pg.$(`[data-extparc="${lr?.id}"]`);const v=ip&&await ip.inputValue();if(!/Cliente Teste Ltda/i.test(v||''))errs.push('cliente não sugerido pelo histórico: '+v);
+        else{await pg.selectOption(`[data-extconta="${lr.id}"]`,ct(e0,'3.01.002'));await pg.waitForTimeout(300);await pg.fill(`[data-extcomp="${lr.id}"]`,'2026-09-30');await pg.dispatchEvent(`[data-extcomp="${lr.id}"]`,'change');
+          await pg.evaluate(id=>{S.ext.sel=new Set([id])},lr.id);const n0=lanc.length;await pg.click('[data-acao=ext-lancar]');await pg.waitForTimeout(2000);await shot(pg,'ext-parceiro-lancado');
+          const nl=lanc.slice(n0)[0];const pr=nl&&DB.parceiros.find(p=>p.id===nl.parceiro_id);if(!nl||nl.competencia!=='2026-09-30'||!/Cliente Teste/i.test(pr?.nome||''))errs.push('lançamento pelo extrato sem cliente/competência: '+JSON.stringify(nl))}}
       // em aberto e fora do extrato
       const fora=await pg.$$eval('.panel h2',hs=>hs.some(h=>/fora do extrato/.test(h.textContent)));const txt=await pg.evaluate(()=>document.body.innerText);
       if(!fora||!/Aluguel sala 2/.test(txt))errs.push('extrato: painel de contas em aberto fora do extrato não apareceu');
