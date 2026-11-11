@@ -1012,7 +1012,7 @@ function vEmpresas(){
   return `${S.master?'<div style="display:flex;justify-content:flex-end"><button class="btn" data-acao="nova-empresa">Nova empresa</button></div>':''}
   ${S.empresas.map(e=>{const ed=podeEditar(e.id),ps=S.predios.filter(p=>p.empresa_id===e.id),bs=S.bancos.filter(b=>b.empresa_id===e.id),cc=S.centros.filter(c=>c.empresa_id===e.id);
   const ma=S.master||S.papeis[e.id]==='admin';
-  return `<div class="panel"><div class="ph"><div><h2 style="display:flex;align-items:center;gap:10px">${seloEmp(e,32)}${esc(nomeEmp(e))}${e.tipo_pessoa==='pf'?'<span class="chip info" style="font-size:11px">Pessoa física</span>':''}</h2><p class="hint" style="margin:0">${e.nome_fantasia?esc(e.razao_social)+' · ':''}${docTipo(e)} <span class="mono">${esc(fmtCnpj(e.cnpj))}</span>${e.regime_tributario?' · '+esc(REGIMES[e.regime_tributario]||''):''} · seu acesso: ${S.master?'master':esc({admin:'administrador',financeiro:'financeiro',rh:'RH',leitura:'leitura'}[S.papeis[e.id]]||'')}</p></div>
+  return `<div class="panel"><div class="ph"><div><h2 style="display:flex;align-items:center;gap:10px">${seloEmp(e,32)}${esc(nomeEmp(e))}${e.tipo_pessoa==='pf'?'<span class="chip info" style="font-size:11px">Pessoa física</span>':''}</h2><p class="hint" style="margin:0">${e.nome_fantasia?esc(e.razao_social)+' · ':''}${docTipo(e)} <span class="mono">${esc(fmtCnpj(e.cnpj))}</span>${e.regime_tributario?' · '+esc(REGIMES[e.regime_tributario]||''):''}${e.cnae_principal?' · CNAE <span class="mono">'+esc(e.cnae_principal)+'</span>':''}${e.municipio?' · '+esc(e.municipio)+(e.uf?'/'+esc(e.uf):''):''} · seu acesso: ${S.master?'master':esc({admin:'administrador',financeiro:'financeiro',rh:'RH',leitura:'leitura'}[S.papeis[e.id]]||'')}</p></div>
     ${ed||ma?`<div class="ctrls">${ma?`<button class="btn ghost" data-acao="dados-emp" data-emp="${e.id}">Editar dados</button><button class="btn ghost" data-acao="marca-emp" data-emp="${e.id}">Identidade visual</button>`:''}${ed?`<button class="btn ghost" data-acao="novo-predio" data-emp="${e.id}">+ Unidade</button><button class="btn ghost" data-acao="novo-banco" data-emp="${e.id}">+ Conta bancária</button><button class="btn ghost" data-acao="novo-centro" data-emp="${e.id}">+ Centro de custo</button>`:''}</div>`:''}</div>
     <div class="grid g-2e" style="grid-template-columns:repeat(3,minmax(0,1fr))">
       <div><b style="font-size:12px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em">Unidades</b>${ps.length?`<table><tbody>${ps.map(p=>`<tr><td>${esc(p.nome)}<span class="unit">${esc(p.endereco||'')}</span></td></tr>`).join('')}</tbody></table>`:'<p class="muted" style="font-size:13px">Nenhuma unidade. Os lançamentos ficam na empresa toda.</p>'}</div>
@@ -3320,6 +3320,7 @@ function mostrarLink(email,link,novo){drawer(`<h3>Link de acesso · ${esc(email)
 <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-acao="copiar-link">Copiar link</button><button class="btn ghost" data-acao="fechar">Fechar</button></div>`);render(true)}
 </script>
 <script src="cadastro.js"></script>
+<script src="cartao-cnpj.js"></script>
 <script src="compras.js"></script>
 <script src="aprovacoes.js"></script>
 <script src="boletos.js"></script>

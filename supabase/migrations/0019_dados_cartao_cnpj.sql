@@ -1,0 +1,21 @@
+-- Dados do Cartão CNPJ na empresa: CNAE, endereço, natureza jurídica, porte, situação e inscrições.
+alter table public.empresas
+  add column if not exists cnae_principal      text,
+  add column if not exists cnae_descricao      text,
+  add column if not exists cnaes_secundarios   jsonb not null default '[]'::jsonb,
+  add column if not exists natureza_juridica   text,
+  add column if not exists porte               text,
+  add column if not exists data_abertura       date,
+  add column if not exists situacao_cadastral  text,
+  add column if not exists logradouro          text,
+  add column if not exists numero              text,
+  add column if not exists complemento         text,
+  add column if not exists bairro              text,
+  add column if not exists municipio           text,
+  add column if not exists uf                  text check (uf is null or uf ~ '^[A-Z]{2}$'),
+  add column if not exists cep                 text,
+  add column if not exists email               text,
+  add column if not exists telefone            text,
+  add column if not exists inscricao_estadual  text,
+  add column if not exists inscricao_municipal text,
+  add column if not exists receita_consultada_em timestamptz;
