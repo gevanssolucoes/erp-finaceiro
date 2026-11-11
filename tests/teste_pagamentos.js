@@ -65,8 +65,8 @@ parc.push({id:id(),empresa_id:E0,lancamento_id:lb.id,numero:1,vencimento:'2026-1
 const BAR=montaBarras('237','2026-11-09',1200,'1234567890123456789012345');
 const lc={id:id(),empresa_id:E0,predio_id:predios[0].id,conta_id:ct0,parceiro_id:parceiros[1].id,competencia:'2026-11-01',valor:-1200,descricao:'Material de escritório'};lanc.push(lc);
 parc.push({id:id(),empresa_id:E0,lancamento_id:lc.id,numero:1,vencimento:'2026-11-09',valor:-1200,status:'aberta'});
-// conta Nubank (sem CNAB) e um PIX para o fim do mês, pago pelo roteiro
-const NU={id:id(),empresa_id:E0,banco_nome:'Nubank',banco_codigo:'260',agencia:'0001',conta:'9988776-5',saldo_inicial:0};bancos.push(NU);
+// conta Caixa sem convênio (vira roteiro) e um PIX para o fim do mês, pago pelo roteiro
+const NU={id:id(),empresa_id:E0,banco_nome:'Caixa',banco_codigo:'104',agencia:'0001',conta:'9988776-5',saldo_inicial:0};bancos.push(NU);
 const ld={id:id(),empresa_id:E0,predio_id:predios[0].id,conta_id:ct0,parceiro_id:parceiros[2].id,competencia:'2026-11-01',valor:-420,descricao:'Cartões de visita'};lanc.push(ld);
 const PD={id:id(),empresa_id:E0,lancamento_id:ld.id,numero:1,vencimento:'2026-11-28',valor:-420,status:'aberta'};parc.push(PD);
 const LOGIN='teste@exemplo.com';
@@ -80,7 +80,7 @@ const LOGIN='teste@exemplo.com';
   const sub=async sel=>{await pg.click(sel+' button:not([type=button])');await pg.waitForTimeout(900)};
   await pg.fill('#aEmail',LOGIN);await pg.fill('#aSenha','x12345678');await pg.click('form[data-form=login] button');await pg.waitForTimeout(1200);{const en=await pg.$('[data-entra="*"]')||await pg.$('[data-entra]');if(en)await en.click()}await pg.waitForSelector('.tile',{timeout:8000});
   await pg.evaluate(()=>location.hash='pagamentos');await pg.waitForTimeout(1200);
-  await pg.selectOption('#pgEmp',E0);await pg.waitForTimeout(800);await shot('lista');
+  await pg.selectOption('#pgEmp',E0);await pg.waitForTimeout(800);await pg.selectOption('#pgConta',bancos[0].id);await pg.waitForTimeout(800);await shot('lista');
   // completar o boleto (linha digitável) e os dados da torrefação
   await pg.click(`tr:has-text("Material de escritório") [data-pg=dados]`);await pg.waitForTimeout(300);await pg.selectOption('#dMod','boleto');await pg.fill('#dBar',linhaDigitavel(BAR));await pg.dispatchEvent('#dBar','input');await pg.check('[name=conferido]');await shot('dados-boleto');await sub('form[data-form="pg-dados"]');
   await pg.click(`tr:has-text("4.01.001") [data-pg=dados] >> nth=0`).catch(()=>{});await pg.waitForTimeout(300);
@@ -102,13 +102,13 @@ const LOGIN='teste@exemplo.com';
   // Nubank: sem arquivo CNAB -> roteiro, copiar e marcar pago
   await pg.click('[data-acao=fechar]').catch(()=>{});await pg.waitForTimeout(300);
   await pg.selectOption('#pgConta',NU.id);await pg.waitForTimeout(600);await pg.fill('#pgAte','2026-11-30');await pg.dispatchEvent('#pgAte','change');await pg.waitForTimeout(800);
-  if(!(await pg.textContent('main')).includes('não recebe arquivo'))errs.push('aviso do Nubank não apareceu');
+  if(!(await pg.textContent('main')).includes('sem convênio'))errs.push('aviso da Caixa sem convênio não apareceu');
   await shot('nubank-lista');
   await pg.click(`tr:has-text("Cartões de visita") [data-pgsel]`);await pg.waitForTimeout(400);
   const nL=DB.pagamento_lotes.length;await pg.click('[data-pg=criar-lote]');await pg.waitForTimeout(1200);
   const lnu=DB.pagamento_lotes.find(l=>l.conta_bancaria_id===NU.id);if(!lnu)errs.push('lote Nubank não criado');
   await pg.click(`[data-pg=aprovar][data-id="${lnu?.id}"]`);await pg.waitForTimeout(900);
-  if(await pg.$(`[data-pg=remessa][data-id="${lnu?.id}"]`))errs.push('Nubank oferece CNAB');
+  if(await pg.$(`[data-pg=remessa][data-id="${lnu?.id}"]`))errs.push('Caixa sem convênio oferece CNAB');
   const [dr]=await Promise.all([pg.waitForEvent('download',{timeout:8000}),pg.click(`[data-pg=roteiro][data-id="${lnu?.id}"]`)]);await pg.waitForTimeout(1200);
   const csv=require('fs').readFileSync(await dr.path(),'utf8');if(!csv.includes('pix@grafica.com.br'))errs.push('roteiro sem a chave PIX');
   await shot('nubank-roteiro');
