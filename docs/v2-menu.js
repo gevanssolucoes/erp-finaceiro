@@ -5,9 +5,9 @@
 if(typeof S==='undefined'||typeof ROTAS==='undefined')return;
 
 const GRUPOS_V2=[
-  ['Dia a dia',['painel','lancamentos','contas','pagamentos','boletos','aprovacoes']],
+  ['Dia a dia',['painel','lancamentos','contas','nfs','pagamentos','boletos','aprovacoes']],
   ['Relatórios',['dre','fluxo','faturamento']],
-  ['Controle e auditoria',['auditoria','fechamento','historico','excecoes','compras','estoque','nfs']],
+  ['Controle e auditoria',['auditoria','fechamento','historico','excecoes','compras','estoque']],
   ['Planejamento',['orcamento','premissas','salario']],
   ['Cadastros',['plano','empresas','grupos','bancos','tributos','importar','usuarios']],
   ['Pessoas',['pessoas','ausencias']],

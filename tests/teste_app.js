@@ -36,7 +36,7 @@ const novaEmp=[],semPar=[];
 const grupos=[{id:id(),nome:'Café Serra',ativo:true},{id:id(),nome:'Atlântico',ativo:true}];empresas[0].grupo_id=grupos[0].id;empresas[1].grupo_id=grupos[1].id;
 perfis.push({usuario_id:'22222222-2222-4222-8222-222222222222',email:'ana@exemplo.com',nome:'Ana Souza',master:false,ativo:true});
 const auditoria=[];const fechamentos=[];
-const DB={grupos,grupos_admins:[],auditoria,fechamentos,app_config:[],app_config_hist:[],alcadas:[],aprovacoes:[],pagamento_lotes:[],compras_pedidos:[],compras_cotacoes:[],boletos_email:boletos,boletos_email_token:[],extratos:[],extrato_linhas:[],regras_classificacao:[],departamentos:deps,colaboradores:colabs,ausencias:aus,acessos:[],orcamento_versoes:[],orcamento_linhas:[],orcamento_caixa:[],premissas_conta:premissas,impostos_config:impostos,acordos_cartao:acordos,apuracoes:[],empresas,predios,plano_contas:plano,centros_custo:centros,contas_bancarias:bancos,parceiros,lancamentos:lanc,parcelas:parc,perfis,usuarios_empresas:empresas.map(e=>({usuario_id:UID,empresa_id:e.id,papel:'admin'})),produtos:[],importacoes:[]};
+const DB={nf_emitidas:[],cobrancas:[],grupos,grupos_admins:[],auditoria,fechamentos,app_config:[],app_config_hist:[],alcadas:[],aprovacoes:[],pagamento_lotes:[],compras_pedidos:[],compras_cotacoes:[],boletos_email:boletos,boletos_email_token:[],extratos:[],extrato_linhas:[],regras_classificacao:[],departamentos:deps,colaboradores:colabs,ausencias:aus,acessos:[],orcamento_versoes:[],orcamento_linhas:[],orcamento_caixa:[],premissas_conta:premissas,impostos_config:impostos,acordos_cartao:acordos,apuracoes:[],empresas,predios,plano_contas:plano,centros_custo:centros,contas_bancarias:bancos,parceiros,lancamentos:lanc,parcelas:parc,perfis,usuarios_empresas:empresas.map(e=>({usuario_id:UID,empresa_id:e.id,papel:'admin'})),produtos:[],importacoes:[]};
 const usuarios=[{...perfis[0],ultimo_acesso:'2026-11-03T10:00:00Z',convite_aceito:true,empresas:empresas.map(e=>e.id),papel:'admin',predios:[]},{usuario_id:id(),email:'ana@exemplo.com',nome:'Ana Souza',master:false,ativo:true,ultimo_acesso:null,convite_aceito:false,empresas:[empresas[0].id],papel:'financeiro',predios:[predios[0].id]},{usuario_id:id(),email:'rita@exemplo.com',nome:'Rita Lopes',master:false,ativo:true,ultimo_acesso:'2026-11-02T10:00:00Z',convite_aceito:true,outras_empresas:1,acessos:[{empresa_id:empresas[0].id,papel:'rh',departamento_id:deps[0].id,predios:[]}],empresas:[empresas[0].id],papel:'rh',predios:[]}];
 // ---------- PostgREST falso
 function filtrar(rows,q){
@@ -58,6 +58,12 @@ async function rotear(route){const req=route.request();const u=new URL(req.url()
   if(p==='/functions/v1/indicadores')return J({selic:{valor:15,data:'05/11/2026'},igpm:{mes:-0.36,acum12:-1.2,data:'01/10/2026'},dolar:{valor:5.38,var:-0.4,data:'03/11/2026'}});
   if(p==='/rest/v1/rpc/verificar_isolamento'){log.push('rpc verificar_isolamento');return J(DB._iso||[])}
   if(p==='/rest/v1/rpc/criar_empresa'){const b=req.postDataJSON();const e={grupo_id:b.p_grupo||(()=>{const g={id:id(),nome:b.p_nome_fantasia||b.p_razao_social,ativo:true};grupos.push(g);return g.id})(),id:id(),cnpj:b.p_cnpj,razao_social:b.p_razao_social,nome_fantasia:b.p_nome_fantasia,tipo_pessoa:b.p_tipo||'pj',regime_tributario:b.p_regime||null,atividade:b.p_atividade||null,cor:b.p_cor||null,ativa:true};empresas.push(e);novaEmp.push(b);log.push('rpc criar_empresa '+(b.p_tipo||'pj'));return J(e.id)}
+  if(p==='/rest/v1/rpc/integracoes_status')return J([]);
+  if(p==='/functions/v1/integracoes'){const b=req.postDataJSON();log.push('fn:integ '+b.acao);
+    if(b.acao==='nf_emitir'){const n={id:id(),empresa_id:b.empresa_id,modelo:b.dados.modelo,provedor:'simulado',ambiente:'simulado',ref:'gg'+id().slice(0,8),status:'autorizada',numero:String(DB.nf_emitidas.length+1),codigo_verificacao:'ABCD1234',data_emissao:b.dados.data_emissao,tomador_nome:b.dados.tomador.nome,tomador_documento:b.dados.tomador.documento||null,tomador_email:b.dados.tomador.email||null,discriminacao:b.dados.discriminacao,codigo_servico:b.dados.codigo_servico,valor_servicos:b.dados.valor,aliquota_iss:b.dados.aliquota_iss,iss_retido:b.dados.iss_retido,valor_iss:b.dados.aliquota_iss!=null?Math.round(b.dados.valor*b.dados.aliquota_iss)/100:null,valor_cbs:b.dados.valor_cbs,valor_ibs:b.dados.valor_ibs,lancamento_id:b.lancamento_id,mensagem:'Emitida em modo simulado',criado_em:new Date().toISOString()};DB.nf_emitidas.push(n);DB._nfReq=b;return J(n)}
+    if(b.acao==='cobranca_criar'){const out=b.parcela_ids.map(pid=>{const pa=parc.find(x=>x.id===pid);const c={id:id(),empresa_id:b.empresa_id,parcela_id:pid,nf_id:b.nf_id||null,provedor:'simulado',ambiente:'simulado',tipo:b.tipo,valor:pa.valor,vencimento:pa.vencimento,status:'pendente',linha_digitavel:'99990000000000000000000000000000100000000015000',pix_copia_cola:'000201SIMULADO',criado_em:new Date().toISOString()};DB.cobrancas.push(c);return c});return J(out)}
+    if(b.acao==='cobranca_simular'){const c=DB.cobrancas.find(x=>x.id===b.cobranca_id);Object.assign(c,{status:'paga',pago_em:'2026-11-13',valor_pago:c.valor,valor_liquido:c.valor-1.99,taxa:1.99});const pa=parc.find(x=>x.id===c.parcela_id);Object.assign(pa,{status:'paga',data_pagamento:'2026-11-13',valor_pago:pa.valor});return J({ok:true,taxa:1.99})}
+    return J({ok:true,avisos:[]})}
   if(p==='/rest/v1/rpc/transferencias_sem_par')return J(semPar);
   const t=p.replace('/rest/v1/','');const tab=DB[t];if(!tab)return J({message:'tabela '+t},404);
   if(m==='HEAD'){const rows=filtrar(tab,u.searchParams);return route.fulfill({status:200,headers:{'access-control-allow-origin':'*','access-control-expose-headers':'*','content-range':'0-0/'+rows.length}})}
@@ -401,6 +407,30 @@ const srv=http.createServer((q,r)=>{let f=path.join(APP,decodeURIComponent(q.url
   });
   await rodar({width:390,height:844},'grupos-mob',async pg=>{await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x');await pg.click('form[data-form=login] button');await pg.waitForSelector('[data-entra]',{timeout:8000});await pg.click('[data-entra="*"]');await pg.waitForTimeout(600);
     await pg.evaluate(()=>location.hash='grupos');await pg.waitForTimeout(900);await shot(pg,'grupos-mob')});
+  // notas fiscais e cobrança (modo simulado)
+  await rodar({width:1366,height:900},'nf',async pg=>{await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x');await pg.click('form[data-form=login] button');await pg.waitForTimeout(1500);const en=await pg.$('[data-entra]');if(en){await en.click();await pg.waitForTimeout(1200)}
+    await pg.evaluate(()=>location.hash='nfs');await pg.waitForTimeout(1000);await shot(pg,'nf-vazio');
+    const nav=await pg.$$eval('#nav a',as=>as.map(a=>a.getAttribute('href')));if(!nav.includes('#nfs'))errs.push('menu sem notas fiscais');
+    await pg.click('[data-acao=nf-nova]');await pg.waitForTimeout(400);
+    await pg.fill('#nfCli','Padaria Bom Dia Ltda');await pg.fill('#nfDoc','11.222.333/0001-81');await pg.fill('#nfMail','compras@bomdia.com.br');
+    await pg.fill('#nfDisc','Consultoria financeira de novembro');await pg.fill('#nfServ','17.01');await pg.fill('#nfVal','3.000,00');await pg.fill('#nfIss','2');
+    await pg.selectOption('#nfForma','boleto_pix');await pg.fill('#nfParc','2');await pg.waitForTimeout(300);await shot(pg,'nf-emitir');
+    const nl=lanc.length,np=parc.length;
+    await pg.click('form[data-form="nf-emitir"] button:not([type=button])');await pg.waitForTimeout(1500);await shot(pg,'nf-emitida');
+    const L=lanc.slice(nl);const P=parc.slice(np);
+    if(L.length!==1||L[0].valor!==3000||L[0].origem!=='faturamento')errs.push('nf: faturamento errado '+JSON.stringify(L));
+    if(P.length!==2||P[0].valor+P[1].valor!==3000)errs.push('nf: parcelas erradas '+JSON.stringify(P));
+    if(!DB._nfReq||DB._nfReq.dados.tomador.documento!=='11222333000181'||DB._nfReq.dados.valor_cbs!==27||DB._nfReq.dados.aliquota_iss!==2)errs.push('nf: pedido de emissão '+JSON.stringify(DB._nfReq));
+    if(DB.cobrancas.length!==2)errs.push('nf: cobranças '+DB.cobrancas.length);
+    await pg.click('[data-nfaba=cobrancas]');await pg.waitForTimeout(700);await shot(pg,'nf-cobrancas');
+    await pg.click('[data-acao=nf-simular]');await pg.waitForTimeout(1200);
+    if(DB.cobrancas.filter(c=>c.status==='paga').length!==1)errs.push('nf: simular pagamento não quitou');
+    await shot(pg,'nf-paga');
+    await pg.click('[data-acao=nf-config]');await pg.waitForTimeout(400);await shot(pg,'nf-config');
+    await pg.click('[data-acao=fechar]');await pg.click('[data-nfaba=notas]');await pg.waitForTimeout(500);await pg.click('[data-acao=nf-ver]');await pg.waitForTimeout(300);await shot(pg,'nf-ver');
+  });
+  await rodar({width:390,height:844},'nf-mob',async pg=>{await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x');await pg.click('form[data-form=login] button');await pg.waitForTimeout(1500);const en=await pg.$('[data-entra]');if(en){await en.click();await pg.waitForTimeout(1200)}
+    await pg.evaluate(()=>location.hash='nfs');await pg.waitForTimeout(1000);await shot(pg,'nf-mob');await pg.click('[data-acao=nf-nova]');await pg.waitForTimeout(400);await shot(pg,'nf-mob-emitir')});
   // administrador da empresa: vê Usuários e Pessoas só da própria empresa
   perfis[0].master=false;empresas.splice(1);DB.lancamentos=lanc.filter(l=>l.empresa_id===empresas[0].id);DB.usuarios_empresas.splice(0,DB.usuarios_empresas.length,{usuario_id:UID,empresa_id:empresas[0].id,papel:'admin'});
   usuarios.splice(0,usuarios.length,{...perfis[0],acessos:[{empresa_id:empresas[0].id,papel:'admin',departamento_id:deps[0].id,predios:[]}],convite_aceito:true},usuarios[1]);
