@@ -388,7 +388,7 @@ const icone=(k,s=18)=>IC[k]?`<svg class="ic" viewBox="0 0 24 24" width="${s}" he
 // ===================== configuração
 const SUPABASE_URL='https://vovomhtwqfnlidqlmycu.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvdm9taHR3cWZubGlkcWxteWN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2Nzc1MjAsImV4cCI6MjEwOTI1MzUyMH0.fy77Fjss1nGIi9vbwrmeih7wLB4T1lgTDoD9vAd3ikk';
-const MASTER_EMAIL='evaldoalves561@gmail.com';
+const MASTER_EMAIL='evaldoalves561+master@gmail.com';
 const PROTOTIPO='https://claude.ai/artifact/3rN4AHnr9Qh69dDZENEiSi';
 const BASE_URL=location.origin+location.pathname;
 // o link do e-mail (convite, recuperação) chega no hash; guardamos antes do cliente limpar
@@ -1015,7 +1015,7 @@ function formConta(id,paiNovo){
 }
 
 // ===================== Empresas e unidades
-function semEmpresa(){return S.master?vazio('Cadastre a primeira empresa','<p style="margin:0">Cada empresa nasce com um plano de contas padrão e quatro centros de custo, que você pode ajustar.</p>','<button class="btn" data-acao="nova-empresa">Nova empresa</button>'):vazio('Nenhuma empresa liberada','<p style="margin:0">Seu acesso ainda não tem empresas. Peça ao administrador para liberar.</p>')}
+function semEmpresa(){if(!S.master&&S.suspenso)return vazio(S.suspenso==='cancelado'?'Acesso encerrado':'Acesso suspenso','<p style="margin:0">O acesso às empresas está '+(S.suspenso==='cancelado'?'encerrado':'suspenso')+'. Seus dados continuam guardados. Fale com a Gevans para regularizar.</p>','');return S.master?vazio('Cadastre a primeira empresa','<p style="margin:0">Cada empresa nasce com um plano de contas padrão e quatro centros de custo, que você pode ajustar.</p>','<button class="btn" data-acao="nova-empresa">Nova empresa</button>'):vazio('Nenhuma empresa liberada','<p style="margin:0">Seu acesso ainda não tem empresas. Peça ao administrador para liberar.</p>')}
 function vEmpresas(){
   if(!S.empresas.length)return semEmpresa();
   return `${S.master?'<div style="display:flex;justify-content:flex-end"><button class="btn" data-acao="nova-empresa">Nova empresa</button></div>':''}
@@ -3089,7 +3089,7 @@ const USA_PERIODO=new Set(['painel','dre','lancamentos','faturamento']),USA_ANO=
 function rota(){const h=location.hash.slice(1);return TITULOS[h]&&podeVer(h)?h:'painel'}
 function renderNav(r){
   document.getElementById('nav').innerHTML=ROTAS.filter(x=>x[0]==='g'||podeVer(x[0])).filter((x,i,a)=>x[0]!=='g'||(a[i+1]&&a[i+1][0]!=='g')).map(([id,n,soon])=>id==='g'?`<div class="nav-group">${n}</div>`:`<a href="#${id}" class="${id===r?'on':''}" title="${esc(n)}"><span class="nl">${icone(id)}<span>${n}</span></span>${soon?'<span class="soon">em breve</span>':''}${S.navCount?.[id]?`<span class="count" title="${S.navCount[id]} pendente${S.navCount[id]>1?'s':''}">${S.navCount[id]}</span>`:''}</a>`).join('');
-  document.getElementById('sideFoot').innerHTML=`<div style="display:flex;flex-direction:column;gap:4px"><span style="overflow-wrap:anywhere">${esc(S.perfil?.nome||'')}${S.master?' · master':''}<br>${esc(S.user?.email||'')}</span>${S.empresas.length>1?'<span><button class="linkbtn small" data-acao="trocar-empresa" style="color:var(--side-ink)">Trocar empresa</button></span>':''}<span><button class="linkbtn small" data-acao="alterar-senha" style="color:var(--side-ink)">Alterar senha</button> · <button class="linkbtn small" data-acao="sair" style="color:var(--side-ink)">Sair</button></span></div>`;
+  document.getElementById('sideFoot').innerHTML=`<div style="display:flex;flex-direction:column;gap:4px"><span style="overflow-wrap:anywhere">${esc(S.perfil?.nome||'')}${S.master?' · master':''}<br>${esc(S.user?.email||'')}</span>${S.empresas.length>1?'<span><button class="linkbtn small" data-acao="trocar-empresa" style="color:var(--side-ink)">Trocar empresa</button></span>':''}${S.master?'<span><a class="linkbtn small" href="master.html" target="_blank" rel="noopener" style="color:var(--side-ink)">Portal master (clientes e mensalidades)</a></span>':''}<span><button class="linkbtn small" data-acao="alterar-senha" style="color:var(--side-ink)">Alterar senha</button> · <button class="linkbtn small" data-acao="sair" style="color:var(--side-ink)">Sair</button></span></div>`;
 }
 function txtFiltro(){const es=selEmp(),us=selUn(),all=unidades();if(!S.empresas.length)return 'Sem empresas';
   return es.length===S.empresas.length&&us.length===all.length?(S.empresas.length>1?`Todas as empresas <small>${S.empresas.length} empresas · ${S.predios.length} unidades</small>`:esc(nomeEmp(es[0]))+' <small>todas as unidades</small>'):es.length===1?`${esc(nomeEmp(es[0]))} <small>${us.length} unidade${us.length>1?'s':''}</small>`:`${es.map(e=>esc(nomeEmp(e))).join(' + ')} <small>${us.length} unidades</small>`}
@@ -3163,7 +3163,8 @@ async function entrar(user){
   const {data:perfil,error}=await sb.from('perfis').select('*').eq('usuario_id',user.id).maybeSingle();
   if(error){telaAuth('login',traduz(error));return}
   if(perfil&&!perfil.ativo){await sb.auth.signOut();telaAuth('login','Seu acesso foi desativado. Fale com o administrador.');return}
-  S.perfil=perfil;S.master=!!perfil?.master;S.pes=null;S.usuarios=null;
+  S.perfil=perfil;S.master=!!perfil?.master;S.pes=null;S.usuarios=null;S.suspenso=null;
+  if(!S.master){try{const {data:susp}=await sb.rpc('meu_acesso_suspenso');S.suspenso=susp||null}catch(e){}}
   document.getElementById('auth').hidden=true;document.getElementById('app').hidden=false;
   document.getElementById('brandLogo').innerHTML=LOGO;document.getElementById('brandSub').textContent=S.master?APP_SUB+' · master':APP_SUB;
   document.getElementById('view').innerHTML='<div class="panel empty">Carregando…</div>';

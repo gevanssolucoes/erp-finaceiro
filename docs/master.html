@@ -1,0 +1,489 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Portal master · Gevans Gestor</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" type="image/svg+xml" href="marca/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="marca/favicon-32.png">
+<meta name="theme-color" content="#0F2A33">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Portal master: só para a conta master. Clientes (grupos), mensalidades e manutenção das empresas. Mesmo visual do app. */
+:root{
+  --bg:#f3f5f6; --surface:#ffffff; --surface-2:#eef2f3; --line:#dde3e6; --ink:#16232a; --ink-2:#55656d; --ink-3:#83939a;
+  --accent:#0d5f73; --accent-soft:#dcedf1; --accent-ink:#0a4b5b;
+  --good:#1f7a4d; --good-soft:#e1f2e8; --warn:#a66300; --warn-soft:#fbefd9; --bad:#b4342b; --bad-soft:#f8e2df;
+  --side:#10262e; --side-ink:#c7d6db; --side-ink-2:#7f989f; --side-hi:#1b3a44; --gold:#F2B544;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1a1e; --surface:#16242a; --surface-2:#1c2d34; --line:#2a3d44; --ink:#e4ecee; --ink-2:#a3b4ba; --ink-3:#73878e;
+  --accent:#4fb3c9; --accent-soft:#173f49; --accent-ink:#8fd3e2;
+  --good:#5cc68f; --good-soft:#173a29; --warn:#e3a54a; --warn-soft:#3d2e14; --bad:#ec7a70; --bad-soft:#41201d;
+  --side:#0b1417; --side-hi:#18323b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1a1e; --surface:#16242a; --surface-2:#1c2d34; --line:#2a3d44; --ink:#e4ecee; --ink-2:#a3b4ba; --ink-3:#73878e;
+  --accent:#4fb3c9; --accent-soft:#173f49; --accent-ink:#8fd3e2;
+  --good:#5cc68f; --good-soft:#173a29; --warn:#e3a54a; --warn-soft:#3d2e14; --bad:#ec7a70; --bad-soft:#41201d;
+  --side:#0b1417; --side-hi:#18323b; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{min-height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:var(--ink)}
+.bar{background:var(--side);color:var(--side-ink);padding:12px max(20px,env(safe-area-inset-right,0px)) 0 max(20px,env(safe-area-inset-left,0px));position:sticky;top:0;z-index:5}
+.bar-top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;max-width:1320px;margin:0 auto}
+.brand{display:flex;gap:10px;align-items:center;min-width:0}
+.brand b{color:#fff;font-size:15px;display:block;line-height:1.1}
+.brand small{color:var(--side-ink-2);font-size:11.5px}
+.selo{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--gold);color:#2a1d00;border-radius:4px;padding:2px 6px;margin-left:6px;vertical-align:2px}
+.bar-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px}
+.bar-acts .quem{color:var(--side-ink-2);overflow-wrap:anywhere}
+.bar a.lk,.bar button.lk{color:var(--side-ink);background:transparent;border:1px solid var(--side-hi);border-radius:6px;padding:5px 10px;text-decoration:none;cursor:pointer;font-size:12.5px}
+.bar a.lk:hover,.bar button.lk:hover{background:var(--side-hi)}
+.tabs{display:flex;gap:2px;max-width:1320px;margin:10px auto 0;overflow-x:auto}
+.tabs button{background:transparent;border:0;color:var(--side-ink);padding:9px 14px;border-radius:7px 7px 0 0;cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap}
+.tabs button:hover{background:var(--side-hi)}
+.tabs button.on{background:var(--bg);color:var(--ink)}
+.content{max-width:1320px;margin:0 auto;padding:20px max(20px,env(safe-area-inset-right,0px)) 48px max(20px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:16px}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.head h1{font-size:19px;margin:0}
+.head p{margin:2px 0 0;color:var(--ink-2);font-size:12.5px}
+.ctrls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;gap:14px}
+.g-tiles{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.g-2{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+@media (max-width:900px){.g-2{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.panel h2{font-size:14px;margin:0 0 2px}
+.hint{color:var(--ink-2);font-size:12.5px;margin:0 0 12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.tile .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-2);font-weight:600}
+.tile .val{font-family:var(--f-num);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.tile .cmp{font-size:12px;color:var(--ink-2)}
+.tile.alerta{border-color:var(--bad)}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;border-radius:5px;padding:1px 7px;white-space:nowrap}
+.chip.good{background:var(--good-soft);color:var(--good)}.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}.chip.info{background:var(--accent-soft);color:var(--accent-ink)}
+.chip.mute{background:var(--surface-2);color:var(--ink-2)}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);font-weight:600}
+td.n,th.n{text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums}
+td.wrap{white-space:normal;min-width:160px}
+td .sub{display:block;color:var(--ink-2);font-size:12px}
+tr.tot td{font-weight:700;background:var(--surface-2)}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:7px 12px;font-weight:600;cursor:pointer}
+.btn:hover{filter:brightness(1.08)}.btn:disabled{opacity:.6;cursor:default}
+.btn.ghost{background:transparent;color:var(--accent-ink);border:1px solid var(--line)}
+.btn.sm{padding:4px 9px;font-size:12.5px}
+.btn.bad{background:var(--bad)}.btn.good{background:var(--good)}
+.btn:focus-visible,button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.linkbtn{background:none;border:0;color:var(--accent-ink);cursor:pointer;padding:0;text-decoration:underline}
+input,select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;max-width:100%;min-width:0}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:12px;font-weight:600;color:var(--ink-2)}
+.f2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:560px){.f2{grid-template-columns:minmax(0,1fr)}}
+.empty{color:var(--ink-2);text-align:center;padding:28px 12px}
+.alerts{display:flex;flex-direction:column}
+.alert{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line)}
+.alert:last-child{border-bottom:0}
+.alert .dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
+.alert small{display:block;color:var(--ink-2)}
+.chart{width:100%;height:auto;display:block}
+.chart .gridl{stroke:var(--line)}
+.chart .ax{fill:var(--ink-2);font-size:11px}
+.chart .bar-r{fill:var(--accent)}
+.chart .bar-hit{fill:transparent;cursor:default}
+.chart .bar-hit:hover+.bar-r,.chart g:hover .bar-r{filter:brightness(1.15)}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--surface);font-size:12px;padding:6px 9px;border-radius:6px;z-index:40;font-family:var(--f-num);display:none}
+.drawer{position:fixed;inset:0;z-index:20;display:flex;justify-content:flex-end;background:rgba(10,20,24,.38)}
+.sheet{background:var(--surface);width:min(600px,100%);height:100%;overflow:auto;padding:22px;display:flex;flex-direction:column;gap:14px}
+.sheet h2{margin:0;font-size:17px}
+.sheet .acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px}
+.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:9px 14px;border-radius:8px;z-index:50;font-size:13px;max-width:calc(100% - 32px)}
+.effect{background:var(--accent-soft);color:var(--accent-ink);border-radius:8px;padding:10px 12px;font-size:12.5px}
+.effect.warn{background:var(--warn-soft);color:var(--warn)}
+.copy{display:flex;gap:6px}.copy input{flex:1;font-family:var(--f-num);font-size:12px}
+/* login */
+#auth{min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:var(--side)}
+.auth-card{background:var(--surface);border-radius:12px;padding:26px;width:min(400px,100%);display:flex;flex-direction:column;gap:14px}
+.auth-card h1{font-size:19px;margin:0}
+.auth-card p{margin:0;color:var(--ink-2);font-size:13px}
+.marca{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.marca b{font-size:16px}.marca small{color:var(--ink-2);font-size:12px}
+.msg{border-radius:7px;padding:9px 11px;font-size:13px}.msg.err{background:var(--bad-soft);color:var(--bad)}.msg.ok{background:var(--good-soft);color:var(--good)}
+.mfa-qr{display:flex;gap:14px;align-items:center;flex-wrap:wrap}.mfa-qr img{width:160px;height:160px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px}
+.mono{font-family:var(--f-num);font-size:12.5px;overflow-wrap:anywhere}
+@media (max-width:640px){.bar-acts .quem{display:none}.tile .val{font-size:19px}}
+</style>
+</head><body>
+<div id="auth" hidden></div>
+<div id="app" hidden>
+  <header class="bar">
+    <div class="bar-top">
+      <div class="brand"><span id="logo"></span><div><b>Gevans Gestor<span class="selo">master</span></b><small>Portal de manutenção dos clientes</small></div></div>
+      <div class="bar-acts"><span class="quem" id="quem"></span><a class="lk" href="./" target="_blank" rel="noopener">Abrir o app</a><button class="lk" data-acao="seguranca">Segurança</button><button class="lk" data-acao="sair">Sair</button></div>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Seções">
+      <button data-tab="geral">Visão geral</button><button data-tab="clientes">Clientes</button><button data-tab="mensalidades">Mensalidades</button><button data-tab="empresas">Empresas</button>
+    </nav>
+  </header>
+  <main class="content" id="view"></main>
+</div>
+<div id="layer"></div><div class="tip" id="tip"></div>
+<script src="vendor/supabase.js"></script>
+<script>
+const SUPABASE_URL='https://vovomhtwqfnlidqlmycu.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvdm9taHR3cWZubGlkcWxteWN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2Nzc1MjAsImV4cCI6MjEwOTI1MzUyMH0.fy77Fjss1nGIi9vbwrmeih7wLB4T1lgTDoD9vAd3ikk';
+const BASE_URL=location.origin+location.pathname;
+const APP_URL=BASE_URL.replace(/master\.html$/,'');
+const sb=window.supabase?supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'gevans-master'}}):null;
+const LOGO=`<svg viewBox="0 0 64 64" width="34" height="34" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#0F2A33" stroke="#1b3a44"/><path d="M44.71 17.88A19 19 0 1 0 49.62 39.12" fill="none" stroke="#4FB3C9" stroke-width="6.5" stroke-linecap="round"/><rect x="23.4" y="33" width="5.2" height="9" rx="1.6" fill="#FFFFFF"/><rect x="30.4" y="28" width="5.2" height="14" rx="1.6" fill="#FFFFFF"/><rect x="37.4" y="22" width="5.2" height="20" rx="1.6" fill="#F2B544"/></svg>`;
+
+// ===================== utilidades
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const brl=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2});
+const brl0=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+const soDig=s=>String(s??'').replace(/\D/g,'');
+const fmtDoc=s=>{const d=soDig(s);return d.length===14?d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'):d.length===11?d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/,'$1.$2.$3-$4'):(s||'')};
+const hoje=()=>new Date().toLocaleDateString('sv-SE');
+const mesAtual=()=>hoje().slice(0,7);
+const MESES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const fmtMes=ym=>{const [y,m]=ym.slice(0,7).split('-');return MESES[+m-1]+'/'+y.slice(2)};
+const fmtData=d=>d?d.slice(0,10).split('-').reverse().join('/'):'—';
+const diasDesde=d=>d?Math.floor((Date.now()-new Date(d).getTime())/864e5):null;
+const addMes=(ym,n)=>{const [y,m]=ym.split('-').map(Number);const d=new Date(y,m-1+n,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')};
+const numIn=v=>{const s=String(v??'').trim();if(!s)return 0;return Number(s.includes(',')?s.replace(/\./g,'').replace(',','.'):s)||0};
+const fmtIn=v=>v?String(Math.round(+v*100)/100).replace('.',','):'';
+function toast(t){const d=document.createElement('div');d.className='toast';d.setAttribute('role','status');d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3800)}
+function traduz(e){const m=String(e?.message||e||'');
+  if(/Invalid login/i.test(m))return 'E-mail ou senha incorretos.';
+  if(/Email not confirmed/i.test(m))return 'E-mail ainda não confirmado.';
+  if(/duplicate key.*cnpj/i.test(m))return 'Já existe uma empresa com este CNPJ/CPF.';
+  if(/duplicate key/i.test(m))return 'Já existe um registro igual.';
+  if(/Invalid TOTP|invalid.*code/i.test(m))return 'Código incorreto. Confira o aplicativo e tente de novo.';
+  if(/should be different/i.test(m))return 'A nova senha precisa ser diferente da atual.';
+  if(/Password should be at least/i.test(m))return 'A senha precisa ter pelo menos 8 caracteres.';
+  return m}
+function drawer(html){document.getElementById('layer').innerHTML=`<div class="drawer" data-fundo="1"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;document.querySelector('.sheet input:not([readonly]),.sheet select')?.focus()}
+const fechar=()=>document.getElementById('layer').innerHTML='';
+const SIT={teste:['Em teste','info'],ativo:['Ativo','good'],suspenso:['Suspenso','bad'],cancelado:['Cancelado','mute'],interno:['Interno (sem cobrança)','mute']};
+const chipSit=s=>{const [t,c]=SIT[s]||[s||'—','mute'];return `<span class="chip ${c}">${t}</span>`};
+const sitMens=m=>m.situacao==='paga'?'paga':m.situacao==='cancelada'?'cancelada':(m.vencimento<hoje()?'atrasada':'aberta');
+const MS={paga:['Paga','good'],aberta:['Em aberto','warn'],atrasada:['Atrasada','bad'],cancelada:['Cancelada','mute']};
+const chipMens=m=>{const s=sitMens(m);const [t,c]=MS[s];return `<span class="chip ${c}">${t}${s==='atrasada'?' · '+diasDesde(m.vencimento)+'d':''}</span>`};
+
+// ===================== estado
+const S={user:null,tab:'geral',mes:mesAtual(),grupos:[],ass:{},resumo:{},mens:[],empresas:[]};
+const nomeGrupo=id=>S.grupos.find(g=>g.id===id)?.nome||'—';
+async function carregar(){
+  const [g,a,r,m,e]=await Promise.all([
+    sb.from('grupos').select('*').order('nome'),
+    sb.from('assinaturas').select('*'),
+    sb.rpc('painel_master'),
+    sb.from('mensalidades').select('*').gte('competencia',addMes(mesAtual(),-12)+'-01').order('competencia',{ascending:false}),
+    sb.from('empresas').select('id,cnpj,razao_social,nome_fantasia,tipo_pessoa,grupo_id,ativa,criado_em').order('razao_social'),
+  ]);
+  for(const x of [g,a,r,m,e])if(x.error)throw x.error;
+  S.grupos=g.data;S.ass=Object.fromEntries(a.data.map(x=>[x.grupo_id,x]));S.resumo=Object.fromEntries(r.data.map(x=>[x.grupo_id,x]));
+  S.mens=m.data;S.empresas=e.data;
+}
+async function recarregar(){try{await carregar();render()}catch(err){toast(traduz(err))}}
+
+// ===================== telas
+function render(){
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===S.tab));
+  const v=document.getElementById('view');
+  v.innerHTML=({geral:telaGeral,clientes:telaClientes,mensalidades:telaMens,empresas:telaEmpresas}[S.tab])();
+}
+const clientesCobrados=()=>S.grupos.filter(g=>S.ass[g.id]?.situacao!=='interno');
+
+function telaGeral(){
+  const ass=Object.values(S.ass),ativos=ass.filter(a=>a.situacao==='ativo'),teste=ass.filter(a=>a.situacao==='teste'),susp=ass.filter(a=>a.situacao==='suspenso');
+  const mrr=ativos.reduce((s,a)=>s+(+a.valor||0),0);
+  const doMes=S.mens.filter(m=>m.competencia.slice(0,7)===mesAtual()&&m.situacao!=='cancelada');
+  const recebido=doMes.filter(m=>m.situacao==='paga').reduce((s,m)=>s+(+m.valor_pago||+m.valor),0);
+  const aberto=doMes.filter(m=>m.situacao==='aberta').reduce((s,m)=>s+(+m.valor),0);
+  const atras=S.mens.filter(m=>sitMens(m)==='atrasada');const vAtras=atras.reduce((s,m)=>s+(+m.valor),0);
+  const semGerar=ativos.filter(a=>+a.valor>0&&!doMes.some(m=>m.grupo_id===a.grupo_id));
+  // gráfico: recebido por mês (12 meses)
+  const meses=[...Array(12)].map((_,i)=>addMes(mesAtual(),i-11));
+  const serie=meses.map(ym=>({ym,v:S.mens.filter(m=>m.situacao==='paga'&&(m.pago_em||m.competencia).slice(0,7)===ym).reduce((s,m)=>s+(+m.valor_pago||+m.valor),0)}));
+  const alertas=[];
+  for(const m of atras.sort((a,b)=>a.vencimento.localeCompare(b.vencimento)))alertas.push(['bad',`${esc(nomeGrupo(m.grupo_id))}: mensalidade de ${fmtMes(m.competencia)} atrasada`,`${brl.format(m.valor)} · venceu em ${fmtData(m.vencimento)} (${diasDesde(m.vencimento)} dias)`]);
+  if(semGerar.length)alertas.push(['warn',`${semGerar.length} cliente${semGerar.length>1?'s':''} ativo${semGerar.length>1?'s':''} sem mensalidade de ${fmtMes(mesAtual())}`,'Use Mensalidades › Gerar mensalidades do mês.']);
+  for(const a of teste){const g=S.grupos.find(x=>x.id===a.grupo_id);const d=diasDesde(g?.criado_em);if(d>=30)alertas.push(['warn',`${esc(g.nome)} está em teste há ${d} dias`,'Defina o plano e o valor em Clientes › Editar.'])}
+  for(const g of clientesCobrados()){const r=S.resumo[g.id];const a=S.ass[g.id];if(a?.situacao==='ativo'&&r&&r.usuarios>0){const d=diasDesde(r.ultimo_acesso);if(d===null||d>=30)alertas.push(['mute',`${esc(g.nome)} não entra no app há ${d===null?'muito tempo':d+' dias'}`,'Vale um contato para não perder o cliente.'])}}
+  return `<div class="head"><div><h1>Visão geral</h1><p>Clientes da Gevans, mensalidades e saúde de uso · ${fmtMes(mesAtual())}</p></div><div class="ctrls"><button class="btn" data-acao="novo-cliente">Novo cliente</button></div></div>
+  <div class="grid g-tiles">
+    <div class="tile"><span class="lbl">Clientes ativos</span><span class="val">${ativos.length}</span><span class="cmp">${teste.length} em teste · ${susp.length} suspenso${susp.length===1?'':'s'}</span></div>
+    <div class="tile"><span class="lbl">Receita mensal</span><span class="val">${brl0.format(mrr)}</span><span class="cmp">soma das mensalidades ativas</span></div>
+    <div class="tile"><span class="lbl">Recebido em ${fmtMes(mesAtual())}</span><span class="val">${brl0.format(recebido)}</span><span class="cmp">${doMes.filter(m=>m.situacao==='paga').length} de ${doMes.length} pagas</span></div>
+    <div class="tile"><span class="lbl">A receber no mês</span><span class="val">${brl0.format(aberto)}</span><span class="cmp">${doMes.filter(m=>m.situacao==='aberta').length} em aberto</span></div>
+    <div class="tile ${atras.length?'alerta':''}"><span class="lbl">Atrasadas</span><span class="val" style="${atras.length?'color:var(--bad)':''}">${brl0.format(vAtras)}</span><span class="cmp">${atras.length} mensalidade${atras.length===1?'':'s'}</span></div>
+  </div>
+  <div class="grid g-2">
+    <div class="panel"><h2>Recebido por mês</h2><p class="hint">Mensalidades pagas, pela data do pagamento · últimos 12 meses</p>${grafico(serie)}</div>
+    <div class="panel"><h2>O que precisa de atenção</h2><p class="hint">Atrasos, clientes sem mensalidade e clientes parados</p>
+      ${alertas.length?`<div class="alerts">${alertas.slice(0,12).map(([c,t,s])=>`<div class="alert"><span class="dot" style="background:var(--${c==='mute'?'ink-3':c})"></span><div><b>${t}</b><small>${s}</small></div></div>`).join('')}</div>`:'<div class="empty">Tudo em dia. ✓</div>'}</div>
+  </div>`;
+}
+function grafico(serie){
+  const W=640,H=220,pl=56,pr=8,pt=12,pb=26,max=Math.max(...serie.map(s=>s.v),1);
+  const passo=Math.pow(10,Math.floor(Math.log10(max)));const topo=Math.ceil(max/passo)*passo;
+  const bw=(W-pl-pr)/serie.length,y=v=>pt+(H-pt-pb)*(1-v/topo);
+  const ticks=[0,.5,1].map(f=>topo*f);
+  if(!serie.some(s=>s.v))return '<div class="empty">Nenhum pagamento registrado ainda.</div>';
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Recebido por mês">
+    ${ticks.map(t=>`<line class="gridl" x1="${pl}" x2="${W-pr}" y1="${y(t)}" y2="${y(t)}"/><text class="ax" x="${pl-6}" y="${y(t)+4}" text-anchor="end">${brl0.format(t)}</text>`).join('')}
+    ${serie.map((s,i)=>{const x=pl+i*bw+bw*.22,w=bw*.56,h=Math.max(0,y(0)-y(s.v));const r=Math.min(4,w/2,h);
+      return `<g data-tip="${fmtMes(s.ym)}: ${brl.format(s.v)}"><rect class="bar-hit" x="${pl+i*bw}" y="${pt}" width="${bw}" height="${H-pt-pb}"/>${h?`<path class="bar-r" d="M${x},${y(0)} V${y(s.v)+r} Q${x},${y(s.v)} ${x+r},${y(s.v)} H${x+w-r} Q${x+w},${y(s.v)} ${x+w},${y(s.v)+r} V${y(0)} Z"/>`:''}<text class="ax" x="${x+w/2}" y="${H-8}" text-anchor="middle">${fmtMes(s.ym)}</text></g>`}).join('')}
+  </svg>`;
+}
+
+function telaClientes(){
+  const lin=S.grupos.map(g=>{const a=S.ass[g.id]||{},r=S.resumo[g.id]||{};
+    const m=S.mens.find(x=>x.grupo_id===g.id&&x.competencia.slice(0,7)===mesAtual());
+    const ult=r.ultimo_acesso?`${fmtData(r.ultimo_acesso)}<span class="sub">há ${diasDesde(r.ultimo_acesso)} dias</span>`:'<span class="sub">nunca</span>';
+    return `<tr><td class="wrap"><b>${esc(g.nome)}</b><span class="sub">${esc(a.responsavel||r.admins||'sem administrador')}${a.telefone?' · '+esc(a.telefone):''}</span></td>
+      <td>${chipSit(a.situacao)}</td><td>${esc(a.plano||'—')}</td><td class="n">${a.situacao==='interno'?'—':brl.format(+a.valor||0)}</td><td class="n">${a.situacao==='interno'?'—':'dia '+(a.dia_vencimento||10)}</td>
+      <td>${m?chipMens(m):a.situacao==='ativo'&&+a.valor>0?'<span class="chip mute">não gerada</span>':'—'}</td>
+      <td class="n">${r.empresas??0}</td><td class="n">${r.usuarios??0}</td><td>${ult}</td>
+      <td><div class="ctrls"><button class="btn ghost sm" data-acao="editar-cliente" data-id="${g.id}">Editar</button>${a.situacao==='suspenso'||a.situacao==='cancelado'?`<button class="btn good sm" data-acao="reativar" data-id="${g.id}">Reativar</button>`:a.situacao!=='interno'?`<button class="btn ghost sm" data-acao="suspender" data-id="${g.id}" style="color:var(--bad)">Suspender</button>`:''}<button class="btn ghost sm" data-acao="nova-empresa" data-id="${g.id}">+ Empresa</button><button class="btn ghost sm" data-acao="convidar" data-id="${g.id}">Convidar admin</button></div></td></tr>`}).join('');
+  return `<div class="head"><div><h1>Clientes</h1><p>Cada cliente é um grupo de empresas. Suspenso ou cancelado: os usuários dele param de ver as empresas (os dados ficam guardados).</p></div><div class="ctrls"><button class="btn" data-acao="novo-cliente">Novo cliente</button></div></div>
+  <div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Cliente</th><th>Situação</th><th>Plano</th><th class="n">Mensalidade</th><th class="n">Vencimento</th><th>${fmtMes(mesAtual())}</th><th class="n">Empresas</th><th class="n">Usuários</th><th>Último acesso</th><th></th></tr></thead><tbody>${lin||'<tr><td colspan="10" class="empty">Nenhum cliente ainda.</td></tr>'}</tbody></table></div></div>`;
+}
+
+function telaMens(){
+  const lista=S.mens.filter(m=>m.competencia.slice(0,7)===S.mes);
+  const ativos=Object.values(S.ass).filter(a=>a.situacao==='ativo'&&+a.valor>0);
+  const falta=ativos.filter(a=>!lista.some(m=>m.grupo_id===a.grupo_id)).length;
+  const tot=k=>lista.filter(m=>k(m)).reduce((s,m)=>s+(+m.valor),0);
+  const lin=lista.sort((a,b)=>nomeGrupo(a.grupo_id).localeCompare(nomeGrupo(b.grupo_id))).map(m=>`<tr>
+    <td class="wrap"><b>${esc(nomeGrupo(m.grupo_id))}</b>${m.obs?`<span class="sub">${esc(m.obs)}</span>`:''}</td><td>${fmtData(m.vencimento)}</td><td class="n">${brl.format(m.valor)}</td><td>${chipMens(m)}</td>
+    <td>${m.situacao==='paga'?fmtData(m.pago_em):'—'}</td><td class="n">${m.situacao==='paga'?brl.format(+m.valor_pago||+m.valor):'—'}</td><td>${esc(m.forma||'—')}</td>
+    <td><div class="ctrls">${m.situacao==='aberta'?`<button class="btn good sm" data-acao="pagar" data-id="${m.id}">Registrar pagamento</button><button class="btn ghost sm" data-acao="cancelar-mens" data-id="${m.id}">Cancelar</button>`:`<button class="btn ghost sm" data-acao="reabrir-mens" data-id="${m.id}">Reabrir</button>`}</div></td></tr>`).join('');
+  return `<div class="head"><div><h1>Mensalidades</h1><p>Gere as mensalidades do mês e registre cada pagamento recebido</p></div>
+    <div class="ctrls"><button class="btn ghost sm" data-acao="mes" data-n="-1" aria-label="Mês anterior">‹</button><b style="min-width:64px;text-align:center">${fmtMes(S.mes)}</b><button class="btn ghost sm" data-acao="mes" data-n="1" aria-label="Próximo mês">›</button>
+    <button class="btn" data-acao="gerar">Gerar mensalidades do mês${falta?` (${falta})`:''}</button></div></div>
+  <div class="grid g-tiles">
+    <div class="tile"><span class="lbl">Previsto</span><span class="val">${brl0.format(tot(m=>m.situacao!=='cancelada'))}</span></div>
+    <div class="tile"><span class="lbl">Recebido</span><span class="val" style="color:var(--good)">${brl0.format(lista.filter(m=>m.situacao==='paga').reduce((s,m)=>s+(+m.valor_pago||+m.valor),0))}</span></div>
+    <div class="tile"><span class="lbl">Em aberto</span><span class="val">${brl0.format(tot(m=>sitMens(m)==='aberta'))}</span></div>
+    <div class="tile"><span class="lbl">Atrasado</span><span class="val" style="color:var(--bad)">${brl0.format(tot(m=>sitMens(m)==='atrasada'))}</span></div>
+  </div>
+  <div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Cliente</th><th>Vencimento</th><th class="n">Valor</th><th>Situação</th><th>Pago em</th><th class="n">Valor pago</th><th>Forma</th><th></th></tr></thead>
+  <tbody>${lin||`<tr><td colspan="8" class="empty">Nenhuma mensalidade em ${fmtMes(S.mes)}. ${falta?'Clique em “Gerar mensalidades do mês”.':'Defina valor e situação “Ativo” nos clientes para gerar.'}</td></tr>`}</tbody></table></div></div>`;
+}
+
+function telaEmpresas(){
+  const lin=S.empresas.map(e=>`<tr><td class="wrap"><b>${esc(e.nome_fantasia||e.razao_social)}</b>${e.nome_fantasia?`<span class="sub">${esc(e.razao_social)}</span>`:''}</td>
+    <td class="mono">${esc(fmtDoc(e.cnpj))}</td><td>${e.tipo_pessoa==='pf'?'Pessoa física':'Empresa'}</td><td>${esc(nomeGrupo(e.grupo_id))}</td><td>${chipSit(S.ass[e.grupo_id]?.situacao)}</td><td>${fmtData(e.criado_em)}</td></tr>`).join('');
+  return `<div class="head"><div><h1>Empresas</h1><p>Todas as empresas cadastradas no Gevans Gestor, de todos os clientes</p></div><div class="ctrls"><button class="btn ghost" data-acao="isolamento">Verificar isolamento entre clientes</button><a class="btn ghost" href="${APP_URL}" target="_blank" rel="noopener" style="text-decoration:none">Abrir o app</a></div></div>
+  <div id="isol"></div>
+  <div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Empresa</th><th>CNPJ/CPF</th><th>Tipo</th><th>Cliente</th><th>Situação</th><th>Criada em</th></tr></thead><tbody>${lin||'<tr><td colspan="6" class="empty">Nenhuma empresa.</td></tr>'}</tbody></table></div></div>`;
+}
+
+// ===================== formulários
+const camposAss=(a={})=>`<div class="f2">
+  <div class="field"><label for="fSit">Situação</label><select id="fSit" name="situacao">${Object.entries(SIT).map(([k,[t]])=>`<option value="${k}" ${a.situacao===k?'selected':''}>${t}</option>`).join('')}</select></div>
+  <div class="field"><label for="fPlano">Plano</label><input id="fPlano" name="plano" list="planos" value="${esc(a.plano||'')}" placeholder="Ex.: Essencial"><datalist id="planos"><option>Essencial</option><option>Profissional</option><option>Grupo</option><option>Consultoria + app</option></datalist></div>
+  <div class="field"><label for="fValor">Mensalidade (R$)</label><input id="fValor" name="valor" inputmode="decimal" value="${esc(fmtIn(a.valor))}" placeholder="0,00"></div>
+  <div class="field"><label for="fDia">Dia do vencimento</label><input id="fDia" name="dia" type="number" min="1" max="28" value="${a.dia_vencimento||10}"></div>
+  <div class="field"><label for="fIni">Cobrar a partir de</label><input id="fIni" name="inicio" type="month" value="${esc((a.inicio_cobranca||'').slice(0,7))}"></div>
+  <div class="field"><label for="fDoc">CPF/CNPJ de quem paga</label><input id="fDoc" name="documento" value="${esc(a.documento||'')}"></div>
+  <div class="field"><label for="fResp">Responsável</label><input id="fResp" name="responsavel" value="${esc(a.responsavel||'')}"></div>
+  <div class="field"><label for="fTel">WhatsApp</label><input id="fTel" name="telefone" inputmode="tel" value="${esc(a.telefone||'')}"></div>
+  <div class="field" style="grid-column:1/-1"><label for="fMail">E-mail de cobrança</label><input id="fMail" name="email" type="email" value="${esc(a.email||'')}"></div>
+  <div class="field" style="grid-column:1/-1"><label for="fObs">Observações (só você vê)</label><textarea id="fObs" name="obs" rows="2">${esc(a.obs||'')}</textarea></div></div>`;
+const lerAss=f=>({situacao:f.situacao.value,plano:f.plano.value.trim()||null,valor:numIn(f.valor.value),dia_vencimento:Math.min(28,Math.max(1,+f.dia.value||10)),
+  inicio_cobranca:f.inicio.value?f.inicio.value+'-01':null,documento:soDig(f.documento.value)||null,responsavel:f.responsavel.value.trim()||null,
+  telefone:f.telefone.value.trim()||null,email:f.email.value.trim()||null,obs:f.obs.value.trim()||null});
+const camposEmpresa=()=>`<div class="f2">
+  <div class="field"><label for="eTipo">Tipo</label><select id="eTipo" name="tipo"><option value="pj">Empresa (CNPJ)</option><option value="pf">Pessoa física (CPF)</option></select></div>
+  <div class="field"><label for="eDoc">CNPJ ou CPF</label><input id="eDoc" name="doc" inputmode="numeric" required></div>
+  <div class="field" style="grid-column:1/-1"><label for="eRazao">Razão social ou nome</label><input id="eRazao" name="razao" required></div>
+  <div class="field" style="grid-column:1/-1"><label for="eFant">Nome fantasia (opcional)</label><input id="eFant" name="fantasia"></div></div>`;
+async function criarEmpresa(f,grupo){
+  const tipo=f.tipo.value,doc=soDig(f.doc.value);
+  if(tipo==='pj'&&doc.length!==14)throw new Error('O CNPJ precisa ter 14 dígitos.');
+  if(tipo==='pf'&&doc.length!==11)throw new Error('O CPF precisa ter 11 dígitos.');
+  const {data,error}=await sb.rpc('criar_empresa',{p_cnpj:doc,p_razao_social:f.razao.value.trim(),p_nome_fantasia:f.fantasia.value.trim()||null,p_tipo:tipo,p_grupo:grupo});
+  if(error)throw error;return data;
+}
+async function chamarAdmin(body){
+  const {data:{session}}=await sb.auth.getSession();
+  const r=await fetch(SUPABASE_URL+'/functions/v1/usuarios-admin',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token,apikey:SUPABASE_KEY},body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));if(!r.ok||j.erro)throw new Error(j.erro||('Erro '+r.status));return j;
+}
+const camposConvite=()=>`<div class="f2"><div class="field"><label for="cNome">Nome do administrador</label><input id="cNome" name="cnome"></div><div class="field"><label for="cMail">E-mail</label><input id="cMail" name="cmail" type="email"></div></div>`;
+async function convidarAdmin(grupo,email,nome){
+  const emps=S.empresas.filter(e=>e.grupo_id===grupo).map(e=>e.id);
+  if(!emps.length)throw new Error('Cadastre uma empresa para este cliente antes de convidar.');
+  const r=await chamarAdmin({acao:'convidar',email,nome,redirectTo:APP_URL,acessos:emps.map(id=>({empresa_id:id,papel:'admin'}))});
+  const {data:p}=await sb.from('perfis').select('usuario_id').eq('email',email.toLowerCase()).maybeSingle();
+  if(p)await sb.from('grupos_admins').upsert({grupo_id:grupo,usuario_id:p.usuario_id});
+  return r;
+}
+function mostrarLink(email,r){
+  if(!r.link){toast('Convite enviado por e-mail para '+email+'.');fechar();return}
+  drawer(`<h2>Convite pronto</h2><p class="hint">O e-mail não pôde ser enviado automaticamente. Mande este link para ${esc(email)} pelo WhatsApp. Ele cria a senha e já entra nas empresas do cliente.</p>
+  <div class="copy"><input readonly value="${esc(r.link)}" id="lk"><button class="btn" data-acao="copiar">Copiar</button></div>
+  <a class="btn ghost" style="text-decoration:none;text-align:center" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('Seu acesso ao Gevans Gestor: '+r.link)}">Abrir no WhatsApp</a>
+  <div class="acts"><button class="btn" data-acao="fechar">Pronto</button></div>`);
+}
+
+const ACOES={
+  'novo-cliente'(){drawer(`<h2>Novo cliente</h2><p class="hint">Cria o grupo do cliente, a primeira empresa (com plano de contas padrão) e, se quiser, já convida o administrador dele.</p>
+    <form data-form="novo-cliente" style="display:flex;flex-direction:column;gap:12px">
+    <div class="field"><label for="gNome">Nome do cliente</label><input id="gNome" name="nome" required placeholder="Ex.: Grupo Silva"></div>
+    <hr class="sep"><b>Primeira empresa</b>${camposEmpresa()}
+    <hr class="sep"><b>Mensalidade</b>${camposAss({situacao:'teste',dia_vencimento:10})}
+    <hr class="sep"><b>Administrador do cliente (opcional)</b>${camposConvite()}
+    <div class="acts"><button type="button" class="btn ghost" data-acao="fechar">Cancelar</button><button class="btn">Criar cliente</button></div></form>`)},
+  'editar-cliente'(b){const g=S.grupos.find(x=>x.id===b.dataset.id),a=S.ass[g.id]||{};
+    drawer(`<h2>${esc(g.nome)}</h2><form data-form="editar-cliente" data-id="${g.id}" style="display:flex;flex-direction:column;gap:12px">
+    <div class="field"><label for="gNome">Nome do cliente</label><input id="gNome" name="nome" required value="${esc(g.nome)}"></div>${camposAss(a)}
+    <div class="effect">Empresas: ${S.empresas.filter(e=>e.grupo_id===g.id).map(e=>esc(e.nome_fantasia||e.razao_social)).join(', ')||'nenhuma'}</div>
+    <div class="acts"><button type="button" class="btn ghost" data-acao="fechar">Cancelar</button><button class="btn">Salvar</button></div></form>`)},
+  'nova-empresa'(b){const g=S.grupos.find(x=>x.id===b.dataset.id);drawer(`<h2>Nova empresa · ${esc(g.nome)}</h2><p class="hint">Nasce com o plano de contas padrão. Quem já administra o cliente passa a ver a empresa nova.</p>
+    <form data-form="nova-empresa" data-id="${g.id}" style="display:flex;flex-direction:column;gap:12px">${camposEmpresa()}<div class="acts"><button type="button" class="btn ghost" data-acao="fechar">Cancelar</button><button class="btn">Criar empresa</button></div></form>`)},
+  convidar(b){const g=S.grupos.find(x=>x.id===b.dataset.id);drawer(`<h2>Convidar administrador · ${esc(g.nome)}</h2><p class="hint">Ele vira administrador de todas as empresas deste cliente e cuida dos próprios usuários.</p>
+    <form data-form="convidar" data-id="${g.id}" style="display:flex;flex-direction:column;gap:12px">${camposConvite()}<div class="acts"><button type="button" class="btn ghost" data-acao="fechar">Cancelar</button><button class="btn">Convidar</button></div></form>`)},
+  async suspender(b){const g=S.grupos.find(x=>x.id===b.dataset.id);if(!confirm(`Suspender ${g.nome}? Os usuários deste cliente deixam de ver as empresas até você reativar. Nenhum dado é apagado.`))return;
+    const {error}=await sb.from('assinaturas').upsert({grupo_id:g.id,situacao:'suspenso'});if(error)return toast(traduz(error));toast('Cliente suspenso.');recarregar()},
+  async reativar(b){const {error}=await sb.from('assinaturas').upsert({grupo_id:b.dataset.id,situacao:'ativo'});if(error)return toast(traduz(error));toast('Acesso reativado.');recarregar()},
+  mes(b){S.mes=addMes(S.mes,+b.dataset.n);render()},
+  async gerar(b){b.disabled=true;const {data,error}=await sb.rpc('gerar_mensalidades',{p_competencia:S.mes+'-01'});b.disabled=false;if(error)return toast(traduz(error));
+    toast(data?`${data} mensalidade${data>1?'s':''} gerada${data>1?'s':''} para ${fmtMes(S.mes)}.`:'Nada novo a gerar: todos os clientes ativos já têm a mensalidade do mês.');recarregar()},
+  pagar(b){const m=S.mens.find(x=>x.id===b.dataset.id);drawer(`<h2>Registrar pagamento</h2><p class="hint">${esc(nomeGrupo(m.grupo_id))} · ${fmtMes(m.competencia)} · ${brl.format(m.valor)}</p>
+    <form data-form="pagar" data-id="${m.id}" style="display:flex;flex-direction:column;gap:12px"><div class="f2">
+    <div class="field"><label for="pData">Pago em</label><input id="pData" name="data" type="date" required value="${hoje()}"></div>
+    <div class="field"><label for="pValor">Valor recebido (R$)</label><input id="pValor" name="valor" inputmode="decimal" value="${esc(fmtIn(m.valor))}"></div>
+    <div class="field"><label for="pForma">Forma</label><select id="pForma" name="forma"><option>PIX</option><option>Boleto</option><option>Transferência</option><option>Cartão</option><option>Dinheiro</option></select></div>
+    <div class="field"><label for="pObs">Observação</label><input id="pObs" name="obs" value="${esc(m.obs||'')}"></div></div>
+    <div class="acts"><button type="button" class="btn ghost" data-acao="fechar">Cancelar</button><button class="btn good">Confirmar pagamento</button></div></form>`)},
+  async 'cancelar-mens'(b){if(!confirm('Cancelar esta mensalidade? (ex.: cortesia ou cobrança indevida)'))return;const {error}=await sb.from('mensalidades').update({situacao:'cancelada'}).eq('id',b.dataset.id);if(error)return toast(traduz(error));recarregar()},
+  async 'reabrir-mens'(b){const {error}=await sb.from('mensalidades').update({situacao:'aberta',pago_em:null,valor_pago:null,forma:null}).eq('id',b.dataset.id);if(error)return toast(traduz(error));recarregar()},
+  async isolamento(b){b.disabled=true;const {data,error}=await sb.rpc('verificar_isolamento');b.disabled=false;const box=document.getElementById('isol');
+    if(error){box.innerHTML=`<div class="effect warn">${esc(traduz(error))}</div>`;return}
+    const prob=(data||[]).filter(r=>r.nivel!=='ok'&&+r.quantidade>0);
+    box.innerHTML=prob.length?`<div class="panel"><h2 style="color:var(--bad)">Encontrei ${prob.length} ponto${prob.length>1?'s':''} para revisar</h2><div class="tbl-wrap"><table><tbody>${prob.map(r=>`<tr><td>${esc(r.tipo)}</td><td>${esc(r.tabela||'')}</td><td class="n">${r.quantidade}</td><td class="wrap">${esc(r.detalhe||'')}</td></tr>`).join('')}</tbody></table></div></div>`:'<div class="effect">✓ Nenhum cruzamento entre clientes. Cada cliente só enxerga as próprias empresas.</div>'},
+  copiar(){const i=document.getElementById('lk');i.select();navigator.clipboard?.writeText(i.value);toast('Link copiado.')},
+  fechar(){fechar()},
+  async sair(){await sb.auth.signOut();location.reload()},
+  seguranca(){abrirSeguranca()},
+};
+const FORMS={
+  async 'novo-cliente'(f){
+    const {data:g,error}=await sb.from('grupos').insert({nome:f.nome.value.trim()}).select().single();if(error)throw error;
+    const {error:e2}=await sb.from('assinaturas').upsert({grupo_id:g.id,...lerAss(f)});if(e2)throw e2;
+    try{await criarEmpresa(f,g.id)}catch(err){await recarregar();throw new Error('Cliente criado, mas a empresa não: '+traduz(err)+' Use “+ Empresa” na lista.')}
+    await carregar();
+    const email=f.cmail.value.trim();
+    if(email){try{const r=await convidarAdmin(g.id,email,f.cnome.value.trim());render();return mostrarLink(email,r)}catch(err){render();fechar();return toast('Cliente criado. O convite falhou: '+traduz(err))}}
+    S.tab='clientes';render();fechar();toast('Cliente criado.')},
+  async 'editar-cliente'(f){const id=f.dataset.id;
+    const {error}=await sb.from('grupos').update({nome:f.nome.value.trim()}).eq('id',id);if(error)throw error;
+    const {error:e2}=await sb.from('assinaturas').upsert({grupo_id:id,...lerAss(f)});if(e2)throw e2;
+    fechar();toast('Cliente salvo.');recarregar()},
+  async 'nova-empresa'(f){await criarEmpresa(f,f.dataset.id);fechar();toast('Empresa criada.');recarregar()},
+  async convidar(f){const email=f.cmail.value.trim();if(!email)throw new Error('Informe o e-mail.');const r=await convidarAdmin(f.dataset.id,email,f.cnome.value.trim());await carregar();render();mostrarLink(email,r)},
+  async pagar(f){const {error}=await sb.from('mensalidades').update({situacao:'paga',pago_em:f.data.value,valor_pago:numIn(f.valor.value),forma:f.forma.value,obs:f.obs.value.trim()||null}).eq('id',f.dataset.id);
+    if(error)throw error;fechar();toast('Pagamento registrado.');recarregar()},
+  // login
+  async login(f){const {data,error}=await sb.auth.signInWithPassword({email:f.email.value.trim(),password:f.senha.value});if(error)return telaAuth('login',traduz(error));entrar(data.user)},
+  async esqueci(f){const {error}=await sb.auth.resetPasswordForEmail(f.email.value.trim(),{redirectTo:BASE_URL});telaAuth('login',error?traduz(error):'✓ Se o e-mail for da conta master, você vai receber o link em instantes.')},
+  async senha(f){if(f.senha.value!==f.senha2.value)return telaAuth('senha','As senhas não são iguais.');
+    const {data,error}=await sb.auth.updateUser({password:f.senha.value,data:{trocar_senha:false}});if(error)return telaAuth('senha',traduz(error));toast('Senha salva.');entrar(data.user)},
+  async mfa(f){const {error}=await sb.auth.mfa.challengeAndVerify({factorId:f.dataset.id,code:f.codigo.value.trim()});if(error)return telaAuth('mfa',traduz(error),f.dataset.id);
+    const {data:{user}}=await sb.auth.getUser();entrar(user,true)},
+  async 'mfa-ligar'(f){const {error}=await sb.auth.mfa.challengeAndVerify({factorId:f.dataset.id,code:f.codigo.value.trim()});if(error)throw error;toast('Login em duas etapas ligado.');abrirSeguranca()},
+};
+
+// ===================== login, duas etapas e senha
+function telaAuth(modo,aviso='',fator=''){
+  document.getElementById('app').hidden=true;const a=document.getElementById('auth');a.hidden=false;
+  const msg=aviso?`<div class="msg ${aviso.startsWith('✓')?'ok':'err'}" role="status">${esc(aviso.replace(/^✓ ?/,''))}</div>`:'';
+  const T={
+    login:`<h1>Portal master</h1><p>Acesso restrito à conta master da Gevans: clientes, mensalidades e manutenção das empresas.</p>${msg}
+      <form data-form="login" style="display:flex;flex-direction:column;gap:12px"><div class="field"><label for="aEmail">E-mail</label><input id="aEmail" name="email" type="email" autocomplete="username" required></div>
+      <div class="field"><label for="aSenha">Senha</label><input id="aSenha" name="senha" type="password" autocomplete="current-password" required></div><button class="btn">Entrar</button></form>
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12.5px"><button class="linkbtn" data-auth="esqueci">Esqueci minha senha</button><a href="./" style="color:var(--accent-ink)">Ir para o app das empresas</a></div>`,
+    esqueci:`<h1>Recuperar senha</h1>${msg}<form data-form="esqueci" style="display:flex;flex-direction:column;gap:12px"><div class="field"><label for="aEmail">E-mail da conta master</label><input id="aEmail" name="email" type="email" required></div><button class="btn">Enviar link</button></form><button class="linkbtn" data-auth="login">Voltar</button>`,
+    senha:`<h1>Crie a sua senha</h1><p>Primeiro acesso: troque a senha provisória por uma só sua.</p>${msg}<form data-form="senha" style="display:flex;flex-direction:column;gap:12px">
+      <div class="field"><label for="aSenha">Nova senha (mínimo 8 caracteres)</label><input id="aSenha" name="senha" type="password" minlength="8" autocomplete="new-password" required></div>
+      <div class="field"><label for="aSenha2">Repita a senha</label><input id="aSenha2" name="senha2" type="password" minlength="8" autocomplete="new-password" required></div><button class="btn">Salvar senha e entrar</button></form>`,
+    mfa:`<h1>Código de verificação</h1><p>Digite o código de 6 dígitos do aplicativo autenticador.</p>${msg}<form data-form="mfa" data-id="${esc(fator)}" style="display:flex;flex-direction:column;gap:12px">
+      <div class="field"><label for="mCod">Código</label><input id="mCod" name="codigo" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></div><button class="btn">Confirmar e entrar</button></form><button class="linkbtn" data-acao="sair">Entrar com outra conta</button>`,
+    negado:`<h1>Esta página é só da conta master</h1>${msg}<p>Você entrou com um login que não é master. Para ver as suas empresas, use o app.</p><a class="btn" href="./" style="text-align:center;text-decoration:none">Abrir o app</a><button class="linkbtn" data-acao="sair">Entrar com a conta master</button>`,
+  };
+  a.innerHTML=`<div class="auth-card"><div class="marca">${LOGO.replace(/34/g,'48')}<b>Gevans Gestor</b><small>Portal master</small></div>${T[modo]}</div>`;
+  a.querySelector('input')?.focus();
+}
+async function fatorPendente(){try{const {data}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();if(data?.nextLevel==='aal2'&&data.currentLevel!=='aal2'){const f=await sb.auth.mfa.listFactors();return (f.data?.totp||[]).find(x=>x.status==='verified')||null}}catch(e){}return null}
+async function entrar(user,mfaOk=false){
+  S.user=user;
+  if(!mfaOk){const f=await fatorPendente();if(f)return telaAuth('mfa','',f.id)}
+  const {data:perfil,error}=await sb.from('perfis').select('*').eq('usuario_id',user.id).maybeSingle();
+  if(error)return telaAuth('login',traduz(error));
+  if(!perfil?.master||!perfil.ativo){await sb.auth.signOut();return telaAuth('negado',`Login usado: ${user.email}`)}
+  if(user.user_metadata?.trocar_senha)return telaAuth('senha');
+  document.getElementById('auth').hidden=true;document.getElementById('app').hidden=false;
+  document.getElementById('logo').innerHTML=LOGO;document.getElementById('quem').textContent=user.email;
+  document.getElementById('view').innerHTML='<div class="panel empty">Carregando…</div>';
+  try{await carregar()}catch(err){document.getElementById('view').innerHTML=`<div class="panel empty">Não consegui carregar: ${esc(traduz(err))}<br><br><button class="btn" data-acao="recarregar">Tentar de novo</button></div>`;return}
+  render();
+  const f=await sb.auth.mfa.listFactors().catch(()=>null);
+  if(!(f?.data?.totp||[]).some(x=>x.status==='verified'))toast('Dica: ligue o login em duas etapas em “Segurança”.');
+}
+ACOES.recarregar=()=>recarregar();
+async function abrirSeguranca(){
+  const {data}=await sb.auth.mfa.listFactors();const ativo=(data?.totp||[]).find(x=>x.status==='verified');
+  drawer(`<h2>Segurança da conta master</h2><p class="hint">${esc(S.user.email)}</p>
+    <div class="effect ${ativo?'':'warn'}"><b>Login em duas etapas: ${ativo?'ligado':'desligado'}</b><br>${ativo?'Além da senha, pede o código do autenticador do celular.':'Recomendado: esta conta vê e altera todos os clientes.'}</div>
+    ${ativo?`<button class="btn ghost" data-acao="mfa-desligar" data-id="${ativo.id}" style="color:var(--bad);align-self:flex-start">Desligar duas etapas</button>`:'<button class="btn" data-acao="mfa-ligar" style="align-self:flex-start">Ligar login em duas etapas</button>'}
+    <div id="mfaPasso"></div><hr class="sep"><button class="btn ghost" data-acao="trocar-senha" style="align-self:flex-start">Trocar a senha</button>
+    <div class="acts"><button class="btn" data-acao="fechar">Fechar</button></div>`);
+}
+ACOES['mfa-ligar']=async()=>{const box=document.getElementById('mfaPasso');box.textContent='Gerando o código…';
+  try{const f=await sb.auth.mfa.listFactors();for(const x of f.data?.totp||[])if(x.status!=='verified')await sb.auth.mfa.unenroll({factorId:x.id})}catch(e){}
+  const {data,error}=await sb.auth.mfa.enroll({factorType:'totp',friendlyName:'Gevans master · '+new Date().toISOString().slice(0,16)});
+  if(error){box.textContent=traduz(error);return}
+  box.innerHTML=`<form data-form="mfa-ligar" data-id="${data.id}" style="display:flex;flex-direction:column;gap:12px"><p class="hint" style="margin:0">Leia o QR code no Google Authenticator (ou outro autenticador) e digite o código.</p>
+    <div class="mfa-qr"><img src="${esc(data.totp.qr_code)}" alt="QR code"><div style="flex:1;min-width:0"><span class="hint">Sem câmera? Digite a chave:</span><div class="mono">${esc(data.totp.secret)}</div></div></div>
+    <div class="field" style="max-width:200px"><label for="mNovo">Código</label><input id="mNovo" name="codigo" inputmode="numeric" maxlength="6" required></div><button class="btn" style="align-self:flex-start">Confirmar</button></form>`;
+  document.getElementById('mNovo').focus()};
+ACOES['mfa-desligar']=async b=>{if(!confirm('Desligar o login em duas etapas da conta master?'))return;const {error}=await sb.auth.mfa.unenroll({factorId:b.dataset.id});if(error)return toast(traduz(error));toast('Desligado.');abrirSeguranca()};
+ACOES['trocar-senha']=()=>{fechar();telaAuth('senha')};
+
+// ===================== eventos
+document.addEventListener('click',async ev=>{
+  if(ev.target.dataset?.fundo){fechar();return}
+  const t=ev.target.closest('[data-tab]');if(t){S.tab=t.dataset.tab;render();return}
+  const au=ev.target.closest('[data-auth]');if(au){telaAuth(au.dataset.auth);return}
+  const b=ev.target.closest('[data-acao]');if(!b)return;
+  const fn=ACOES[b.dataset.acao];if(fn){try{await fn(b)}catch(err){toast(traduz(err))}}
+});
+document.addEventListener('submit',async ev=>{const f=ev.target;const fn=FORMS[f.dataset?.form];if(!fn)return;ev.preventDefault();
+  const bt=f.querySelector('button:not([type=button])');if(bt){bt.disabled=true;bt.dataset.t=bt.textContent;bt.textContent='Aguarde…'}
+  try{await fn(f)}catch(err){toast(traduz(err))}finally{if(bt&&document.body.contains(bt)){bt.disabled=false;bt.textContent=bt.dataset.t}}});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape')fechar()});
+const tip=document.getElementById('tip');
+document.addEventListener('mousemove',ev=>{const g=ev.target.closest?.('[data-tip]');if(!g){tip.style.display='none';return}
+  tip.textContent=g.dataset.tip;tip.style.display='block';tip.style.left=Math.min(ev.clientX+12,innerWidth-tip.offsetWidth-8)+'px';tip.style.top=(ev.clientY-34)+'px'});
+
+(async function iniciar(){
+  if(!sb){telaAuth('login','A biblioteca de acesso ao banco não carregou. Recarregue a página.');return}
+  const tipo=new URLSearchParams(location.hash.slice(1)).get('type');
+  const {data:{session}}=await sb.auth.getSession();
+  if(/access_token|error_description/.test(location.hash))history.replaceState(null,'',BASE_URL);
+  if(session&&tipo==='recovery')return telaAuth('senha');
+  if(session)entrar(session.user);else telaAuth('login');
+  sb.auth.onAuthStateChange(ev=>{if(ev==='PASSWORD_RECOVERY')telaAuth('senha')});
+})();
+</script>
+</body></html>
