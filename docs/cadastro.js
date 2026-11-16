@@ -93,7 +93,7 @@ window.criarEmpresaPadrao=async function(f){
 window.formDadosEmp=function(empId){const e=empresa(empId);if(!e)return;const pf=e.tipo_pessoa==='pf';
   drawer(`<h3>Dados · ${esc(nomeEmp(e))}</h3>
   <form data-form="dados-emp" data-emp="${e.id}" data-tipo="${pf?'pf':'pj'}" class="form-grid">
-    <div class="field"><label for="dDoc">${pf?'CPF':'CNPJ'}</label><input id="dDoc" name="doc" inputmode="numeric" value="${esc(fmtCnpj(e.cnpj))}" ${S.master?'':'readonly'}></div>
+    <div class="field"><label for="dDoc">${pf?'CPF':'CNPJ'}</label><input id="dDoc" name="doc" inputmode="numeric" value="${esc(fmtCnpj(e.cnpj))}" ${S.master||S.papeis[e.id]==='admin'?'':'readonly'}></div>
     <div class="field" style="grid-column:span 2"><label for="dRazao">${pf?'Nome completo':'Razão social'}</label><input id="dRazao" name="razao" required value="${esc(e.razao_social)}"></div>
     <div class="field wide"><label for="dFant">Nome fantasia (é o nome que aparece no app e nos relatórios)</label><input id="dFant" name="fantasia" value="${esc(e.nome_fantasia||'')}" placeholder="${esc(e.razao_social)}"></div>
     ${pf?'':`<div class="field"><label for="dReg">Regime tributário</label><select id="dReg" name="regime"><option value="">Não definido</option>${opts(REGIMES,e.regime_tributario)}</select></div>
