@@ -2641,7 +2641,7 @@ function telaConciliacao(A,ed){const E=stExt();const {x,ls}=A;E._ls=ls;
   const faltaAlgo=pend.length+cont('valor_diferente')+semPar.length;
   const barraSit=`<div class="sit-conc ${sit}"><div><b>${sit==='concluido'?'Conciliação concluída':sit==='aguardando_aprovacao'?'Aguardando aprovação':'Conciliação em andamento'}</b>
     <span>${sit==='concluido'?`Aprovada por ${esc(x.concluido_por_nome||'')} em ${dataBR(String(x.concluido_em||'').slice(0,10))}. O extrato fica travado.`:sit==='aguardando_aprovacao'?`Enviada em ${dataBR(String(x.enviado_aprovacao_em||'').slice(0,10))}. Quem aprova: ${esc(typeof quemAprova==='function'?quemAprova(x.empresa_id,'conciliacao',sum(ls.map(l=>Math.abs(+l.valor)))):'administrador')}.`:faltaAlgo?`Faltam ${faltaAlgo} linha${faltaAlgo>1?'s':''}${semPar.length?` (${semPar.length} transferência${semPar.length>1?'s':''} sem a outra ponta)`:''} para poder concluir.`:'Tudo conferido. Envie para aprovação para concluir.'}</span></div>
-    <div class="ctrls">${sit==='aberto'&&ed&&!faltaAlgo?'<button class="btn" data-acao="ext-enviar">Enviar para aprovação</button>':''}${sit==='aguardando_aprovacao'&&podeAprov?'<button class="btn good" data-acao="ext-concluir">Aprovar e concluir</button><button class="btn ghost" data-acao="ext-devolver">Devolver</button>':''}${sit==='concluido'&&S.master?'<button class="btn ghost" data-acao="ext-reabrir-conc">Reabrir</button>':''}</div></div>`;
+    <div class="ctrls">${sit==='aberto'&&ed&&!faltaAlgo?'<button class="btn" data-acao="ext-enviar">Enviar para aprovação</button>':''}${sit==='aguardando_aprovacao'&&podeAprov?'<button class="btn good" data-acao="ext-concluir">Aprovar e concluir</button><button class="btn ghost" data-acao="ext-devolver">Devolver</button>':''}${sit==='concluido'&&(S.master||S.papeis[x.empresa_id]==='admin')?'<button class="btn ghost" data-acao="ext-reabrir-conc">Reabrir</button>':''}</div></div>`;
   const linha=l=>{const [t,c]=l.semPar?['Falta a outra ponta','warn']:ST_EXT[l.status]||['?','mute'];const m=l.match;const pe=l.status==='nao_lancado';
     let acao='';
     if(pe&&ed){acao=m?.tipo==='aberta'?`<div class="ext-acao"><span class="why">Bate com <b>${esc(m.p.lancamentos?.descricao||'conta em aberto')}</b>, vencimento ${dataBR(m.p.vencimento)}</span><button class="btn ghost" data-acao="ext-baixar" data-id="${l.id}" data-parc="${m.p.id}">Dar baixa</button></div>`:
@@ -2853,7 +2853,7 @@ async function vUsuarios(){
     </tbody></table></div></div>`:''}
   ${emps.length>1?`<div class="ctrls"><label class="muted" for="usrEmp" style="font-size:12.5px">Empresa</label><select id="usrEmp"><option value="">Todas (${emps.length})</option>${emps.map(e=>`<option value="${e.id}" ${S.usrEmp===e.id?'selected':''}>${esc(nomeEmp(e))}</option>`).join('')}</select></div>`:''}
   ${vis.map(painelEmp).join('')||semEmpresa()}
-  ${S.master?await painelAcessos():''}
+  ${S.master||adminEmps().length?await painelAcessos():''}
   <div class="panel"><h2>Como funcionam os acessos</h2><div class="tbl-wrap"><table><tbody>
     <tr><td><span class="chip info">Master</span></td><td class="wrap">Equipe ${esc(APP_SUB)} (${esc(MASTER_EMAIL)}). Vê todas as empresas, cria empresas e administra todos os usuários.</td></tr>
     ${Object.values(PAPEIS).map(p=>`<tr><td><b>${p[0]}</b></td><td class="wrap">${p[1]}</td></tr>`).join('')}
@@ -3163,7 +3163,9 @@ async function entrar(user){
   const {data:perfil,error}=await sb.from('perfis').select('*').eq('usuario_id',user.id).maybeSingle();
   if(error){telaAuth('login',traduz(error));return}
   if(perfil&&!perfil.ativo){await sb.auth.signOut();telaAuth('login','Seu acesso foi desativado. Fale com o administrador.');return}
-  S.perfil=perfil;S.master=!!perfil?.master;S.pes=null;S.usuarios=null;S.suspenso=null;
+  S.perfil=perfil;S.master=!!perfil?.master;
+  // conta master não entra nas empresas: o lugar dela é o portal master
+  if(S.master&&!window.DEMO){location.replace('master.html');return}S.pes=null;S.usuarios=null;S.suspenso=null;
   if(!S.master){try{const {data:susp}=await sb.rpc('meu_acesso_suspenso');S.suspenso=susp||null}catch(e){}}
   document.getElementById('auth').hidden=true;document.getElementById('app').hidden=false;
   document.getElementById('brandLogo').innerHTML=LOGO;document.getElementById('brandSub').textContent=S.master?APP_SUB+' · master':APP_SUB;
@@ -3230,7 +3232,7 @@ const FORMS={
   async 'dados-emp'(f){const id=f.dataset.emp,pf=f.dataset.tipo==='pf';
     const row={razao_social:f.razao.value.trim(),nome_fantasia:f.fantasia.value.trim()||null};
     if(!pf){row.regime_tributario=f.regime.value||null;row.atividade=f.atividade.value||null}
-    if(S.master&&f.doc){const d=soDig(f.doc.value);if(d.length!==(pf?11:14)&&!(pf&&d.length===14))return toast(pf?'O CPF precisa ter 11 dígitos.':'O CNPJ precisa ter 14 dígitos.');row.cnpj=d}
+    if(f.doc&&!f.doc.readOnly){const d=soDig(f.doc.value);if(d.length!==(pf?11:14)&&!(pf&&d.length===14))return toast(pf?'O CPF precisa ter 11 dígitos.':'O CNPJ precisa ter 14 dígitos.');row.cnpj=d}
     const {error}=await sb.from('empresas').update(row).eq('id',id);if(error)throw error;
     fecharDrawer();toast('Dados da empresa salvos.');await recarregarCad();S._marca=null;marcaPelaSelecao()},
   async predio(f){const {error}=await sb.from('predios').insert({empresa_id:f.dataset.emp,nome:f.nome.value.trim(),endereco:f.endereco.value.trim()||null});if(error)throw error;fecharDrawer();toast('Unidade cadastrada.');await recarregarCad()},

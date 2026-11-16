@@ -126,7 +126,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--line);bor
   <header class="bar">
     <div class="bar-top">
       <div class="brand"><span id="logo"></span><div><b>Gevans Gestor<span class="selo">master</span></b><small>Portal de manutenção dos clientes</small></div></div>
-      <div class="bar-acts"><span class="quem" id="quem"></span><a class="lk" href="./" target="_blank" rel="noopener">Abrir o app</a><button class="lk" data-acao="seguranca">Segurança</button><button class="lk" data-acao="sair">Sair</button></div>
+      <div class="bar-acts"><span class="quem" id="quem"></span><button class="lk" data-acao="seguranca">Segurança</button><button class="lk" data-acao="sair">Sair</button></div>
     </div>
     <nav class="tabs" id="tabs" aria-label="Seções">
       <button data-tab="geral">Visão geral</button><button data-tab="clientes">Clientes</button><button data-tab="mensalidades">Mensalidades</button><button data-tab="empresas">Empresas</button>
@@ -186,7 +186,7 @@ async function carregar(){
     sb.from('assinaturas').select('*'),
     sb.rpc('painel_master'),
     sb.from('mensalidades').select('*').gte('competencia',addMes(mesAtual(),-12)+'-01').order('competencia',{ascending:false}),
-    sb.from('empresas').select('id,cnpj,razao_social,nome_fantasia,tipo_pessoa,grupo_id,ativa,criado_em').order('razao_social'),
+    sb.rpc('master_empresas'),
   ]);
   for(const x of [g,a,r,m,e])if(x.error)throw x.error;
   S.grupos=g.data;S.ass=Object.fromEntries(a.data.map(x=>[x.grupo_id,x]));S.resumo=Object.fromEntries(r.data.map(x=>[x.grupo_id,x]));
@@ -282,11 +282,11 @@ function telaMens(){
 
 function telaEmpresas(){
   const lin=S.empresas.map(e=>`<tr><td class="wrap"><b>${esc(e.nome_fantasia||e.razao_social)}</b>${e.nome_fantasia?`<span class="sub">${esc(e.razao_social)}</span>`:''}</td>
-    <td class="mono">${esc(fmtDoc(e.cnpj))}</td><td>${e.tipo_pessoa==='pf'?'Pessoa física':'Empresa'}</td><td>${esc(nomeGrupo(e.grupo_id))}</td><td>${e.ativa===false?'<span class="chip mute">Desativada</span>':chipSit(S.ass[e.grupo_id]?.situacao)}</td><td>${fmtData(e.criado_em)}</td>
-    <td><div class="ctrls">${e.ativa===false?`<button class="btn good sm" data-acao="emp-ativa" data-id="${e.id}" data-v="1">Reativar</button>`:`<button class="btn ghost sm" data-acao="emp-ativa" data-id="${e.id}" data-v="0">Desativar</button>`}<button class="btn ghost sm" data-acao="emp-excluir" data-id="${e.id}" style="color:var(--bad)">Excluir</button></div></td></tr>`).join('');
-  return `<div class="head"><div><h1>Empresas</h1><p>Todas as empresas de todos os clientes. Desativar esconde a empresa dos usuários do cliente sem apagar nada; excluir apaga a empresa e todos os dados dela.</p></div><div class="ctrls"><button class="btn ghost" data-acao="isolamento">Verificar isolamento entre clientes</button><a class="btn ghost" href="${APP_URL}" target="_blank" rel="noopener" style="text-decoration:none">Abrir o app</a></div></div>
+    <td class="mono">${esc(fmtDoc(e.cnpj))}</td><td>${e.tipo_pessoa==='pf'?'Pessoa física':'Empresa'}</td><td>${esc(nomeGrupo(e.grupo_id))}</td><td>${e.ativa===false?'<span class="chip warn">Pausada</span>':chipSit(S.ass[e.grupo_id]?.situacao)}</td><td>${fmtData(e.criado_em)}</td>
+    <td class="n">${e.usuarios??0}</td><td><div class="ctrls"><button class="btn ghost sm" data-acao="emp-usuarios" data-id="${e.id}">Usuários</button>${e.ativa===false?`<button class="btn good sm" data-acao="emp-ativa" data-id="${e.id}" data-v="1">Retomar</button>`:`<button class="btn ghost sm" data-acao="emp-ativa" data-id="${e.id}" data-v="0">Pausar</button>`}<button class="btn ghost sm" data-acao="emp-excluir" data-id="${e.id}" style="color:var(--bad)">Excluir</button></div></td></tr>`).join('');
+  return `<div class="head"><div><h1>Empresas</h1><p>A conta master só cadastra: cria empresas, cria os usuários delas, pausa e exclui. Os dados de dentro de cada empresa ficam com o administrador dela, no app.</p></div><div class="ctrls"><button class="btn ghost" data-acao="isolamento">Verificar isolamento entre clientes</button></div></div>
   <div id="isol"></div>
-  <div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Empresa</th><th>CNPJ/CPF</th><th>Tipo</th><th>Cliente</th><th>Situação</th><th>Criada em</th><th></th></tr></thead><tbody>${lin||'<tr><td colspan="7" class="empty">Nenhuma empresa.</td></tr>'}</tbody></table></div></div>`;
+  <div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Empresa</th><th>CNPJ/CPF</th><th>Tipo</th><th>Cliente</th><th>Situação</th><th>Criada em</th><th class="n">Usuários</th><th></th></tr></thead><tbody>${lin||'<tr><td colspan="8" class="empty">Nenhuma empresa.</td></tr>'}</tbody></table></div></div>`;
 }
 
 // ===================== formulários
@@ -375,13 +375,19 @@ const ACOES={
     const prob=(data||[]).filter(r=>r.nivel!=='ok'&&+r.quantidade>0);
     box.innerHTML=prob.length?`<div class="panel"><h2 style="color:var(--bad)">Encontrei ${prob.length} ponto${prob.length>1?'s':''} para revisar</h2><div class="tbl-wrap"><table><tbody>${prob.map(r=>`<tr><td>${esc(r.tipo)}</td><td>${esc(r.tabela||'')}</td><td class="n">${r.quantidade}</td><td class="wrap">${esc(r.detalhe||'')}</td></tr>`).join('')}</tbody></table></div></div>`:'<div class="effect">✓ Nenhum cruzamento entre clientes. Cada cliente só enxerga as próprias empresas.</div>'},
   async 'emp-ativa'(b){const on=b.dataset.v==='1',e=S.empresas.find(x=>x.id===b.dataset.id);
-    if(!on&&!confirm(`Desativar ${e.nome_fantasia||e.razao_social}? Os usuários do cliente deixam de ver esta empresa. Nada é apagado e você pode reativar quando quiser.`))return;
-    const {error}=await sb.rpc('ativar_empresa',{p_empresa:e.id,p_ativa:on});if(error)return toast(traduz(error));toast(on?'Empresa reativada.':'Empresa desativada.');recarregar()},
+    if(!on&&!confirm(`Pausar ${e.nome_fantasia||e.razao_social}? Os usuários deixam de ver esta empresa. Nada é apagado e você pode retomar quando quiser.`))return;
+    const {error}=await sb.rpc('ativar_empresa',{p_empresa:e.id,p_ativa:on});if(error)return toast(traduz(error));toast(on?'Empresa retomada.':'Empresa pausada.');recarregar()},
   'emp-excluir'(b){const e=S.empresas.find(x=>x.id===b.dataset.id),nome=e.nome_fantasia||e.razao_social;
-    drawer(`<h2>Excluir ${esc(nome)}</h2><div class="effect warn"><b>Isto não tem volta.</b> Apaga a empresa e tudo dela: lançamentos, parcelas, orçamentos, plano de contas, contas bancárias, extratos, notas, compras e os acessos dos usuários a ela. Se só quer tirar do ar, use <b>Desativar</b>.</div>
+    drawer(`<h2>Excluir ${esc(nome)}</h2><div class="effect warn"><b>Isto não tem volta.</b> Apaga a empresa e tudo dela: lançamentos, parcelas, orçamentos, plano de contas, contas bancárias, extratos, notas, compras e os acessos dos usuários a ela. Se só quer tirar do ar, use <b>Pausar</b>.</div>
     <p class="hint" style="margin:0">${esc(e.razao_social)} · ${esc(fmtDoc(e.cnpj))} · cliente ${esc(nomeGrupo(e.grupo_id))}</p>
     <form data-form="emp-excluir" data-id="${e.id}" style="display:flex;flex-direction:column;gap:12px"><div class="field"><label for="xNome">Para confirmar, digite o nome: <b>${esc(nome)}</b></label><input id="xNome" name="nome" autocomplete="off" required></div>
     <div class="acts"><button type="button" class="btn ghost" data-acao="fechar">Cancelar</button><button class="btn bad">Excluir de vez</button></div></form>`)},
+  async 'emp-usuarios'(b){await abrirUsuarios(b.dataset.id)},
+  async 'usr-link'(b){b.disabled=true;try{const r=await chamarAdmin({acao:'link',email:b.dataset.email,redirectTo:APP_URL});mostrarLink(b.dataset.email,r)}catch(err){toast(traduz(err));b.disabled=false}},
+  async 'usr-tirar'(b){const u=S.usrs.find(x=>x.usuario_id===b.dataset.uid),emp=b.dataset.emp;
+    if(!confirm(`Tirar ${u.nome||u.email} desta empresa? A pessoa deixa de ver a empresa.`))return;
+    await chamarAdmin({acao:'atualizar',usuario_id:u.usuario_id,acessos:u.acessos.filter(a=>a.empresa_id!==emp)});toast('Acesso retirado.');await carregar();abrirUsuarios(emp)},
+  async 'usr-ativo'(b){const on=b.dataset.v==='1';await chamarAdmin({acao:'atualizar',usuario_id:b.dataset.uid,ativo:on,acessos:S.usrs.find(x=>x.usuario_id===b.dataset.uid).acessos});toast(on?'Usuário reativado.':'Usuário bloqueado.');abrirUsuarios(b.dataset.emp)},
   copiar(){const i=document.getElementById('lk');i.select();navigator.clipboard?.writeText(i.value);toast('Link copiado.')},
   fechar(){fechar()},
   async sair(){await sb.auth.signOut();location.reload()},
@@ -395,14 +401,21 @@ const FORMS={
     await carregar();
     const email=f.cmail.value.trim();
     if(email){try{const r=await convidarAdmin(g.id,email,f.cnome.value.trim());render();return mostrarLink(email,r)}catch(err){render();fechar();return toast('Cliente criado. O convite falhou: '+traduz(err))}}
-    S.tab='clientes';render();fechar();toast('Cliente criado.')},
+    S.tab='clientes';render();const nova=S.empresas.find(e=>e.grupo_id===g.id);toast('Cliente criado. Agora cadastre o administrador dele.');if(nova)abrirUsuarios(nova.id);else fechar()},
   async 'editar-cliente'(f){const id=f.dataset.id;
     const {error}=await sb.from('grupos').update({nome:f.nome.value.trim()}).eq('id',id);if(error)throw error;
     const {error:e2}=await sb.from('assinaturas').upsert({grupo_id:id,...lerAss(f)});if(e2)throw e2;
     fechar();toast('Cliente salvo.');recarregar()},
-  async 'nova-empresa'(f){await criarEmpresa(f,f.dataset.id);fechar();toast('Empresa criada.');recarregar()},
+  async 'nova-empresa'(f){const id=await criarEmpresa(f,f.dataset.id);await carregar();render();toast('Empresa criada. Agora cadastre quem vai usar.');abrirUsuarios(id)},
   async convidar(f){const email=f.cmail.value.trim();if(!email)throw new Error('Informe o e-mail.');const r=await convidarAdmin(f.dataset.id,email,f.cnome.value.trim());await carregar();render();mostrarLink(email,r)},
   async 'emp-excluir'(f){const nome=f.nome.value.trim();const {data,error}=await sb.rpc('excluir_empresa',{p_empresa:f.dataset.id,p_confirmacao:nome});if(error)throw error;fechar();toast('Empresa “'+data+'” excluída.');recarregar()},
+  async 'usr-novo'(f){const emp=f.dataset.emp,email=f.email.value.trim().toLowerCase(),papel=f.papel.value;
+    const ex=S.usrs.find(u=>u.email.toLowerCase()===email);let r;
+    if(ex){if(ex.acessos.some(a=>a.empresa_id===emp))throw new Error('Esta pessoa já está nesta empresa.');
+      await chamarAdmin({acao:'atualizar',usuario_id:ex.usuario_id,acessos:[...ex.acessos,{empresa_id:emp,papel}]});toast('Acesso liberado para '+email+'.');await carregar();return abrirUsuarios(emp)}
+    r=await chamarAdmin({acao:'convidar',email,nome:f.nome.value.trim(),redirectTo:APP_URL,acessos:[{empresa_id:emp,papel}]});
+    if(papel==='admin'){const e=S.empresas.find(x=>x.id===emp);if(e?.grupo_id&&r.usuario_id)await sb.from('grupos_admins').upsert({grupo_id:e.grupo_id,usuario_id:r.usuario_id})}
+    await carregar();render();mostrarLink(email,r)},
   async pagar(f){const {error}=await sb.from('mensalidades').update({situacao:'paga',pago_em:f.data.value,valor_pago:numIn(f.valor.value),forma:f.forma.value,obs:f.obs.value.trim()||null}).eq('id',f.dataset.id);
     if(error)throw error;fechar();toast('Pagamento registrado.');recarregar()},
   // login
@@ -452,6 +465,24 @@ async function entrar(user,mfaOk=false){
   if(!(f?.data?.totp||[]).some(x=>x.status==='verified'))toast('Dica: ligue o login em duas etapas em “Segurança”.');
 }
 ACOES.recarregar=()=>recarregar();
+const PAPEIS={admin:'Administrador',financeiro:'Financeiro',rh:'RH',leitura:'Só leitura'};
+async function abrirUsuarios(emp){
+  const e=S.empresas.find(x=>x.id===emp);drawer(`<h2>Usuários · ${esc(e.nome_fantasia||e.razao_social)}</h2><div class="empty">Carregando…</div>`);
+  let lista;try{lista=await chamarAdmin({acao:'listar'})}catch(err){drawer(`<h2>Usuários</h2><div class="effect warn">${esc(traduz(err))}</div><div class="acts"><button class="btn" data-acao="fechar">Fechar</button></div>`);return}
+  S.usrs=(lista.usuarios||[]).filter(u=>!u.master);
+  const daqui=S.usrs.filter(u=>u.acessos.some(a=>a.empresa_id===emp));
+  const lin=daqui.map(u=>{const a=u.acessos.find(x=>x.empresa_id===emp);return `<tr><td class="wrap"><b>${esc(u.nome||'')}</b><span class="sub">${esc(u.email)}</span></td><td>${esc(PAPEIS[a.papel]||a.papel)}</td>
+    <td>${!u.ativo?'<span class="chip bad">Bloqueado</span>':u.convite_aceito?'<span class="chip good">Ativo</span>':'<span class="chip warn">Convite pendente</span>'}</td>
+    <td><div class="ctrls"><button class="btn ghost sm" data-acao="usr-link" data-email="${esc(u.email)}">Link de acesso</button><button class="btn ghost sm" data-acao="usr-ativo" data-uid="${u.usuario_id}" data-emp="${emp}" data-v="${u.ativo?0:1}">${u.ativo?'Bloquear':'Desbloquear'}</button><button class="btn ghost sm" data-acao="usr-tirar" data-uid="${u.usuario_id}" data-emp="${emp}" style="color:var(--bad)">Tirar da empresa</button></div></td></tr>`}).join('');
+  drawer(`<h2>Usuários · ${esc(e.nome_fantasia||e.razao_social)}</h2><p class="hint" style="margin:0">Quem é <b>Administrador</b> cuida de tudo dentro da empresa pelo app: cadastros, plano de contas, outros usuários e departamentos.</p>
+    <div class="tbl-wrap"><table><thead><tr><th>Pessoa</th><th>Papel</th><th>Situação</th><th></th></tr></thead><tbody>${lin||'<tr><td colspan="4" class="empty">Ninguém nesta empresa ainda. Cadastre pelo menos um administrador.</td></tr>'}</tbody></table></div>
+    <hr class="sep"><b>Novo usuário</b>
+    <form data-form="usr-novo" data-emp="${emp}" style="display:flex;flex-direction:column;gap:12px"><div class="f2">
+      <div class="field"><label for="uNome">Nome</label><input id="uNome" name="nome"></div>
+      <div class="field"><label for="uMail">E-mail</label><input id="uMail" name="email" type="email" required></div>
+      <div class="field"><label for="uPapel">Papel</label><select id="uPapel" name="papel">${Object.entries(PAPEIS).map(([k,t])=>`<option value="${k}" ${!daqui.length&&k==='admin'?'selected':''}>${t}</option>`).join('')}</select></div></div>
+      <div class="acts"><button type="button" class="btn ghost" data-acao="fechar">Fechar</button><button class="btn">Criar usuário</button></div></form>`);
+}
 async function abrirSeguranca(){
   const {data}=await sb.auth.mfa.listFactors();const ativo=(data?.totp||[]).find(x=>x.status==='verified');
   drawer(`<h2>Segurança da conta master</h2><p class="hint">${esc(S.user.email)}</p>

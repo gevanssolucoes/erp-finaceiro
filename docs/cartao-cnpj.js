@@ -114,7 +114,7 @@ window.formDadosEmp=function(empId){const e=empresa(empId);if(!e)return;if(e.tip
   const consult=e.receita_consultada_em?`Última consulta à Receita: ${dataBR(e.receita_consultada_em.slice(0,10))}.`:'Busque na Receita ou leia o PDF do Cartão CNPJ para preencher tudo de uma vez.';
   drawer(`<h3>Dados da empresa · ${esc(nomeEmp(e))}</h3><p class="muted" style="margin:0">Cadastro conforme o Cartão CNPJ. ${consult}</p>
   <form data-form="dados-emp" data-emp="${e.id}" data-tipo="pj" data-completo="1" class="form-grid">
-    <div class="field"><label for="dDoc">CNPJ</label><input id="dDoc" name="doc" inputmode="numeric" value="${esc(fmtCnpj(e.cnpj))}" ${S.master?'':'readonly'}></div>
+    <div class="field"><label for="dDoc">CNPJ</label><input id="dDoc" name="doc" inputmode="numeric" value="${esc(fmtCnpj(e.cnpj))}" ${S.master||S.papeis[e.id]==='admin'?'':'readonly'}></div>
     <div class="wide cnpj-acoes"><button type="button" class="btn ghost" data-cnpj-buscar>${typeof icone==='function'?icone('busca',15):''}Buscar dados na Receita</button>
       <label class="btn ghost">Ler PDF do Cartão CNPJ<input type="file" accept="application/pdf,.pdf" data-cnpj-pdf hidden></label></div>
     <div class="wide cnpj-aviso" data-cnpj-aviso hidden></div>
@@ -152,7 +152,7 @@ FORMS['dados-emp']=async function(f){
   if(f.dataset.completo!=='1')return salvarOriginal(f);
   const id=f.dataset.emp;const row={razao_social:f.razao.value.trim(),nome_fantasia:f.fantasia.value.trim()||null,regime_tributario:f.regime.value||null,atividade:f.atividade.value||null};
   if(!row.razao_social)return toast('Informe a razão social.');
-  if(S.master&&f.doc&&!f.doc.readOnly){const d=soDig(f.doc.value);if(d.length!==14)return toast('O CNPJ precisa ter 14 dígitos.');row.cnpj=d}
+  if(f.doc&&!f.doc.readOnly){const d=soDig(f.doc.value);if(d.length!==14)return toast('O CNPJ precisa ter 14 dígitos.');row.cnpj=d}
   const ext={};CAMPOS.forEach(k=>{const el=f[k];if(el)ext[k]=el.value.trim()||null});
   if(ext.uf)ext.uf=ext.uf.toUpperCase();if(ext.uf&&!/^[A-Z]{2}$/.test(ext.uf))return toast('UF com 2 letras, por exemplo SP.');
   if(ext.cep)ext.cep=fmtCep(ext.cep);ext.cnaes_secundarios=secLer(f.cnaes_sec?.value);
