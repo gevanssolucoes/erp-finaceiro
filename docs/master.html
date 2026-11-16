@@ -282,10 +282,11 @@ function telaMens(){
 
 function telaEmpresas(){
   const lin=S.empresas.map(e=>`<tr><td class="wrap"><b>${esc(e.nome_fantasia||e.razao_social)}</b>${e.nome_fantasia?`<span class="sub">${esc(e.razao_social)}</span>`:''}</td>
-    <td class="mono">${esc(fmtDoc(e.cnpj))}</td><td>${e.tipo_pessoa==='pf'?'Pessoa física':'Empresa'}</td><td>${esc(nomeGrupo(e.grupo_id))}</td><td>${chipSit(S.ass[e.grupo_id]?.situacao)}</td><td>${fmtData(e.criado_em)}</td></tr>`).join('');
-  return `<div class="head"><div><h1>Empresas</h1><p>Todas as empresas cadastradas no Gevans Gestor, de todos os clientes</p></div><div class="ctrls"><button class="btn ghost" data-acao="isolamento">Verificar isolamento entre clientes</button><a class="btn ghost" href="${APP_URL}" target="_blank" rel="noopener" style="text-decoration:none">Abrir o app</a></div></div>
+    <td class="mono">${esc(fmtDoc(e.cnpj))}</td><td>${e.tipo_pessoa==='pf'?'Pessoa física':'Empresa'}</td><td>${esc(nomeGrupo(e.grupo_id))}</td><td>${e.ativa===false?'<span class="chip mute">Desativada</span>':chipSit(S.ass[e.grupo_id]?.situacao)}</td><td>${fmtData(e.criado_em)}</td>
+    <td><div class="ctrls">${e.ativa===false?`<button class="btn good sm" data-acao="emp-ativa" data-id="${e.id}" data-v="1">Reativar</button>`:`<button class="btn ghost sm" data-acao="emp-ativa" data-id="${e.id}" data-v="0">Desativar</button>`}<button class="btn ghost sm" data-acao="emp-excluir" data-id="${e.id}" style="color:var(--bad)">Excluir</button></div></td></tr>`).join('');
+  return `<div class="head"><div><h1>Empresas</h1><p>Todas as empresas de todos os clientes. Desativar esconde a empresa dos usuários do cliente sem apagar nada; excluir apaga a empresa e todos os dados dela.</p></div><div class="ctrls"><button class="btn ghost" data-acao="isolamento">Verificar isolamento entre clientes</button><a class="btn ghost" href="${APP_URL}" target="_blank" rel="noopener" style="text-decoration:none">Abrir o app</a></div></div>
   <div id="isol"></div>
-  <div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Empresa</th><th>CNPJ/CPF</th><th>Tipo</th><th>Cliente</th><th>Situação</th><th>Criada em</th></tr></thead><tbody>${lin||'<tr><td colspan="6" class="empty">Nenhuma empresa.</td></tr>'}</tbody></table></div></div>`;
+  <div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Empresa</th><th>CNPJ/CPF</th><th>Tipo</th><th>Cliente</th><th>Situação</th><th>Criada em</th><th></th></tr></thead><tbody>${lin||'<tr><td colspan="7" class="empty">Nenhuma empresa.</td></tr>'}</tbody></table></div></div>`;
 }
 
 // ===================== formulários
@@ -373,6 +374,14 @@ const ACOES={
     if(error){box.innerHTML=`<div class="effect warn">${esc(traduz(error))}</div>`;return}
     const prob=(data||[]).filter(r=>r.nivel!=='ok'&&+r.quantidade>0);
     box.innerHTML=prob.length?`<div class="panel"><h2 style="color:var(--bad)">Encontrei ${prob.length} ponto${prob.length>1?'s':''} para revisar</h2><div class="tbl-wrap"><table><tbody>${prob.map(r=>`<tr><td>${esc(r.tipo)}</td><td>${esc(r.tabela||'')}</td><td class="n">${r.quantidade}</td><td class="wrap">${esc(r.detalhe||'')}</td></tr>`).join('')}</tbody></table></div></div>`:'<div class="effect">✓ Nenhum cruzamento entre clientes. Cada cliente só enxerga as próprias empresas.</div>'},
+  async 'emp-ativa'(b){const on=b.dataset.v==='1',e=S.empresas.find(x=>x.id===b.dataset.id);
+    if(!on&&!confirm(`Desativar ${e.nome_fantasia||e.razao_social}? Os usuários do cliente deixam de ver esta empresa. Nada é apagado e você pode reativar quando quiser.`))return;
+    const {error}=await sb.rpc('ativar_empresa',{p_empresa:e.id,p_ativa:on});if(error)return toast(traduz(error));toast(on?'Empresa reativada.':'Empresa desativada.');recarregar()},
+  'emp-excluir'(b){const e=S.empresas.find(x=>x.id===b.dataset.id),nome=e.nome_fantasia||e.razao_social;
+    drawer(`<h2>Excluir ${esc(nome)}</h2><div class="effect warn"><b>Isto não tem volta.</b> Apaga a empresa e tudo dela: lançamentos, parcelas, orçamentos, plano de contas, contas bancárias, extratos, notas, compras e os acessos dos usuários a ela. Se só quer tirar do ar, use <b>Desativar</b>.</div>
+    <p class="hint" style="margin:0">${esc(e.razao_social)} · ${esc(fmtDoc(e.cnpj))} · cliente ${esc(nomeGrupo(e.grupo_id))}</p>
+    <form data-form="emp-excluir" data-id="${e.id}" style="display:flex;flex-direction:column;gap:12px"><div class="field"><label for="xNome">Para confirmar, digite o nome: <b>${esc(nome)}</b></label><input id="xNome" name="nome" autocomplete="off" required></div>
+    <div class="acts"><button type="button" class="btn ghost" data-acao="fechar">Cancelar</button><button class="btn bad">Excluir de vez</button></div></form>`)},
   copiar(){const i=document.getElementById('lk');i.select();navigator.clipboard?.writeText(i.value);toast('Link copiado.')},
   fechar(){fechar()},
   async sair(){await sb.auth.signOut();location.reload()},
@@ -393,6 +402,7 @@ const FORMS={
     fechar();toast('Cliente salvo.');recarregar()},
   async 'nova-empresa'(f){await criarEmpresa(f,f.dataset.id);fechar();toast('Empresa criada.');recarregar()},
   async convidar(f){const email=f.cmail.value.trim();if(!email)throw new Error('Informe o e-mail.');const r=await convidarAdmin(f.dataset.id,email,f.cnome.value.trim());await carregar();render();mostrarLink(email,r)},
+  async 'emp-excluir'(f){const nome=f.nome.value.trim();const {data,error}=await sb.rpc('excluir_empresa',{p_empresa:f.dataset.id,p_confirmacao:nome});if(error)throw error;fechar();toast('Empresa “'+data+'” excluída.');recarregar()},
   async pagar(f){const {error}=await sb.from('mensalidades').update({situacao:'paga',pago_em:f.data.value,valor_pago:numIn(f.valor.value),forma:f.forma.value,obs:f.obs.value.trim()||null}).eq('id',f.dataset.id);
     if(error)throw error;fechar();toast('Pagamento registrado.');recarregar()},
   // login
