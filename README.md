@@ -26,6 +26,9 @@ controle de usuários pela conta master.
   pelo histórico (`regras_classificacao`). Leitor de PDF em `docs/vendor/pdf.min.js` (pdf.js 3.11.174), carregado só quando precisa.
 - `docs/cartao-cnpj.js` – cadastro da empresa conforme o Cartão CNPJ (Empresas › Editar dados e Nova empresa): busca na Receita pela função `supabase/functions/cnpj` (BrasilAPI, minhareceita.org e publica.cnpj.ws) e leitura do PDF do comprovante; sugere atividade pelo CNAE e Simples pela opção na Receita.
 - `docs/grupos.js` – tela Grupos de empresas (Cadastros): grupos, administradores de grupo, mudar empresa de grupo, consolidado do grupo e verificação de isolamento.
+- `docs/orcamento.js` – grade do orçamento: Preencher automático no começo de cada linha, 12 meses na tela, despesas em % da receita (impostos pela configuração), salário líquido ou bruto na pessoa física, totais ao vivo, competência ou caixa, Excel (exportar e importar) e gerar contas a pagar e a receber. Migração `0026` guarda as escolhas em `orcamento_versoes.parametros` e libera adicionar boletos pelo app.
+- Boletos por foto ou arquivo (`docs/boletos.js`): vários de uma vez, lendo o texto do PDF, o código de barras (ZXing em `docs/vendor/zxing/`) ou, por último, os números com OCR.
+- `tests/teste_orcamento.js` – teste do orçamento e dos boletos em lote: `node tests/teste_orcamento.js pasta-das-imagens`.
 - `docs/compras.js` – módulo da esteira de compras e da tela de estoque (carregado pelo `index.html`).
 - `docs/pagamentos.js` – pagamentos a fornecedores por arquivo CNAB 240 (layout FEBRABAN): lote, aprovação, remessa e leitura do retorno (carregado pelo `compras.js`).
 - `tests/teste_cnab.js` – testes do gerador e do leitor CNAB 240: `node tests/teste_cnab.js`.
