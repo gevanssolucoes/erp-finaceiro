@@ -2,7 +2,7 @@
 -- 1) Pagamento com entrada: parte do valor sai na data da compra e o resto segue os prazos da conta.
 -- 2) Premissas de recebimento: como a receita de uma conta se divide entre formas (cartão, PIX, boleto...)
 --    e em quantos dias cada parte entra no caixa.
--- Só acrescenta estruturas; não apaga nem altera dados. Rodar depois da 0025.
+-- Só acrescenta estruturas; não apaga nem altera dados. Rodar depois da 0026.
 
 alter table public.premissas_conta
   add column if not exists entrada_pct numeric(5,2) not null default 0 check (entrada_pct between 0 and 100);
