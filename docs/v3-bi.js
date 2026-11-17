@@ -296,6 +296,7 @@ async function operacional(){
   const t=(xs)=>sum(xs.map(p=>Math.abs(+p.valor)));
   const vencP=pag.filter(p=>p.vencimento<HOJE),hojeP=pag.filter(p=>p.vencimento===HOJE),semP=pag.filter(p=>p.vencimento>HOJE&&p.vencimento<=d7),atrR=rec.filter(p=>p.vencimento<HOJE),semR=rec.filter(p=>p.vencimento>=HOJE&&p.vencimento<=d7);
   const nc=S.navCount||{};
+  const est=window.v3EsteiraResumo?await window.v3EsteiraResumo():null;
   const card=(cls,tt,v,d,href)=>`<a class="v3-k ${cls}" href="${href}" style="text-decoration:none;color:inherit"><span class="t">${tt}</span><span class="v">${v}</span><span class="d">${d}</span></a>`;
   const desc=p=>esc((p.lancamentos?.descricao||conta(p.lancamentos?.conta_id)?.nome||'Lançamento')+(p.numero>1?' · parcela '+p.numero:''));
   const quando=p=>p.vencimento<HOJE?`<span class="chip bad">venceu ${p.vencimento.slice(8,10)}/${p.vencimento.slice(5,7)}</span>`:p.vencimento===HOJE?'<span class="chip warn">hoje</span>':`<span class="chip mute">${p.vencimento.slice(8,10)}/${p.vencimento.slice(5,7)}</span>`;
@@ -310,6 +311,7 @@ async function operacional(){
     ${card('in','A receber em 7 dias',brl.format(t(semR)),semR.length+' recebimento'+(semR.length===1?'':'s'),'#contas')}
     ${card('plan','Boletos do e-mail',String(nc.boletos||0),'novos para conferir','#boletos')}
     ${card('plan','Aprovações',String(nc.aprovacoes||0),'esperando você','#aprovacoes')}
+    ${est?card(est.atrasadas?'neg':'plan','Esteira de produção',String(est.atrasadas),'atrasada'+(est.atrasadas===1?'':'s')+(est.revisao?' · '+est.revisao+' para você avaliar':''),'#producao'):''}
    </div>
    <div class="v3-g2">
     <div class="panel"><div class="v3-ph"><div><h2>Pagar: vencidos, hoje e próximos 7 dias</h2></div><a class="v3-drill" href="#contas">Abrir contas a pagar →</a></div>${lista(proxP,'Nada a pagar até '+d7.slice(8,10)+'/'+d7.slice(5,7)+'.')}</div>

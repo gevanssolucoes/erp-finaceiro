@@ -8,7 +8,7 @@ eval(base+`
 ;(async()=>{
   // login de administrador da empresa (o master não entra no app das empresas)
   perfis[0].master=false;
-  DB.premissas_recebimento=[];
+  DB.premissas_recebimento=[];DB.atividades=[];DB.atividades_registros=[];
   // orçamento 2026 (rascunho) e forecast com corte em setembro, da primeira empresa
   const e0=empresas[0].id,vO={id:id(),empresa_id:e0,nome:'Orçamento 2026',ano:2026,tipo:'orcamento',congelada:false,criado_em:'2026-01-05T10:00:00Z'};
   const vF={id:id(),empresa_id:e0,nome:'Forecast 2026 · Set',ano:2026,tipo:'forecast',mes_corte:9,congelada:false,criado_em:'2026-10-02T10:00:00Z',origem_id:vO.id};
@@ -21,6 +21,7 @@ eval(base+`
     const ctx=await b.newContext({viewport:vp,deviceScaleFactor:1,acceptDownloads:true});const pg=await ctx.newPage();
     pg.on('pageerror',e=>errs.push(nome+': '+e.message));pg.on('response',r=>{if(r.status()===404)console.log('404',r.url().slice(0,140))});pg.on('console',m=>{if(m.type()==='error'&&!/fonts.googleapis|ERR_/.test(m.text()))errs.push(nome+' console: '+m.text())});
     await pg.route('https://vovomhtwqfnlidqlmycu.supabase.co/**',rotear);await pg.route('https://fonts.googleapis.com/**',r=>r.abort());
+    await pg.route('**/rest/v1/rpc/pessoas_da_empresa',r=>r.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:JSON.stringify([{usuario_id:UID,nome:'Evaldo'},{usuario_id:'22222222-2222-4222-8222-222222222222',nome:'Ana Souza'}])}));
     await pg.route('**/rest/v1/rpc/meu_acesso_suspenso',r=>r.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:'null'}));
     await pg.goto('http://localhost:8765/');await pg.waitForTimeout(400);
     const shot=async n=>{await pg.waitForTimeout(400);const ov=await pg.evaluate(()=>document.documentElement.scrollWidth-innerWidth);if(ov>0)errs.push(nome+' '+n+': overflow horizontal '+ov+'px');await pg.screenshot({path:OUTD+'/v3-'+nome+'-'+n+'.png',fullPage:true})};
@@ -59,6 +60,23 @@ eval(base+`
     if(cx[0][0].valor!==-2000)errs.push('entrada de 20% não saiu primeiro');
     await pg.click('[data-v3psim="'+vend+'"]');await pg.waitForTimeout(400);await shot('premissas-sim-venda');
     const menu2=await pg.$$eval('#nav a',a=>a.map(x=>x.getAttribute('href')));if(menu2.includes('#premissas'))errs.push('premissa antiga ainda no menu');if(!menu2.includes('#premissas-v3'))errs.push('premissa nova fora do menu');
+    // etapa 3: esteira de produção
+    await pg.evaluate(()=>location.hash='producao');await pg.waitForTimeout(900);await pg.selectOption('#estEmp',e0);await pg.waitForTimeout(600);await shot('esteira-vazia');
+    for(const [t,sup] of [['Conciliar extrato Nubank de outubro',''],['Fechamento de outubro','22222222-2222-4222-8222-222222222222']]){
+      await pg.click('[data-est-nova]');await pg.waitForTimeout(300);await pg.fill('#eTit',t);await pg.selectOption('#eSup',sup);await pg.fill('#eEsp','Tudo conferido até sexta.');if(!sup)await pg.fill('#ePrazo','2026-11-01');
+      await pg.click('form[data-est-form=nova] button:not([type=button])');await pg.waitForTimeout(900);console.log('TOAST',await pg.evaluate(()=>document.querySelector('.toast')?.textContent))}
+    if(DB.atividades.length!==2)errs.push('atividades não criadas: '+DB.atividades.length);
+    await shot('esteira-duas');await pg.click('[data-est="'+DB.atividades[1].id+'"]');await pg.waitForTimeout(300);await shot('esteira-atividade');
+    await pg.fill('#eAnd','100');await pg.dispatchEvent('#eAnd','input');await pg.fill('#eNota','Pronto.');await pg.click('form[data-est-form=andamento] button');await pg.waitForTimeout(900);
+    const a1=DB.atividades[0];console.log('ATIV',JSON.stringify(DB.atividades.map(a=>[a.titulo,a.status,a.andamento,a.avaliacao||''])));
+    // como admin, avalia a que está em revisão
+    const rv=DB.atividades.find(a=>a.status==='revisao');if(!rv)errs.push('nenhuma atividade foi para revisão');else{
+      await pg.click('[data-est="'+rv.id+'"]');await pg.waitForTimeout(300);await pg.click('form[data-est-form=avaliar] button[value=nao_atende]');await pg.waitForTimeout(400);
+      if(rv.avaliacao)errs.push('devolveu sem retorno');await pg.fill('#eRet','Faltou explicar a diferença de R$ 300.');await pg.click('form[data-est-form=avaliar] button[value=nao_atende]');await pg.waitForTimeout(900);
+      if(rv.avaliacao!=='nao_atende'||rv.status!=='andamento')errs.push('devolução não gravou: '+rv.status)}
+    await shot('esteira-quadro');console.log('REGISTROS',DB.atividades_registros.length);
+    await pg.evaluate(()=>{location.hash='gestao'});await pg.waitForTimeout(600);await pg.click('[data-v3set=modo][data-val=operacional]');await pg.waitForTimeout(1000);if(!/Esteira de produção/.test(await pg.textContent('#view')))errs.push('card da esteira fora do operacional');
+    await pg.click('[data-v3set=modo][data-val=gerencial]');await pg.waitForTimeout(300);
     await ctx.close()}
   await b.close();srv.close();
   console.log('ERROS',errs.length?errs.join(' || '):'nenhum')})();
