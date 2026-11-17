@@ -8,6 +8,7 @@ eval(base+`
 ;(async()=>{
   // login de administrador da empresa (o master não entra no app das empresas)
   perfis[0].master=false;
+  DB.premissas_recebimento=[];
   // orçamento 2026 (rascunho) e forecast com corte em setembro, da primeira empresa
   const e0=empresas[0].id,vO={id:id(),empresa_id:e0,nome:'Orçamento 2026',ano:2026,tipo:'orcamento',congelada:false,criado_em:'2026-01-05T10:00:00Z'};
   const vF={id:id(),empresa_id:e0,nome:'Forecast 2026 · Set',ano:2026,tipo:'forecast',mes_corte:9,congelada:false,criado_em:'2026-10-02T10:00:00Z',origem_id:vO.id};
@@ -43,6 +44,21 @@ eval(base+`
     // números conferidos: realizado competência de jan/26 da seleção = soma dos lançamentos
     const conf=await pg.evaluate(async()=>{const D=await window.v3Dados(2026);let a=0;Object.values(D.RC).forEach(r=>a+=r[0]);const ls=(await lancAno(2026)).filter(l=>l.competencia.startsWith('2026-01')&&!ehTransf(conta(l.conta_id)));return [Math.round(a),Math.round(ls.reduce((x,l)=>x+ +l.valor,0)),D.temOrc,D.temFc,D.corte]});
     console.log('CONFERE',JSON.stringify(conf));if(conf[0]!==conf[1])errs.push('realizado de jan diferente dos lançamentos');if(!conf[2]||!conf[3])errs.push('orçamento/forecast não encontrados');
+    // etapa 2: premissas de compra e pagamento
+    await pg.evaluate(()=>location.hash='premissas-v3');await pg.waitForTimeout(900);await pg.selectOption('#premV3Emp',e0);await pg.waitForTimeout(600);await shot('premissas');
+    const cmv=plano.find(c=>c.empresa_id===e0&&c.codigo==='4.01.001').id,vend=plano.find(c=>c.empresa_id===e0&&c.codigo==='3.01.001').id;
+    await pg.fill('[data-v3p="'+cmv+'"][data-k=entrada]','20');await pg.dispatchEvent('[data-v3p="'+cmv+'"][data-k=entrada]','input');
+    await pg.click('[data-v3pradd="'+vend+'"]');await pg.waitForTimeout(300);await pg.click('[data-v3pradd="'+vend+'"]');await pg.waitForTimeout(300);
+    await pg.fill('[data-v3pr="'+vend+'"][data-i="0"][data-k=percentual]','60');await pg.dispatchEvent('[data-v3pr="'+vend+'"][data-i="0"][data-k=percentual]','input');
+    await pg.click('[data-v3p-salvar]');await pg.waitForTimeout(1500);
+    const pr=DB.premissas_conta.find(x=>x.conta_id===cmv);if(+pr.entrada_pct!==20)errs.push('entrada não salva: '+JSON.stringify(pr));
+    const rr=DB.premissas_recebimento.filter(x=>x.conta_id===vend);console.log('RECEB',JSON.stringify(rr.map(r=>[r.forma,r.percentual,r.prazos_dias])));if(rr.length!==2)errs.push('formas de recebimento não salvas');
+    await pg.click('[data-v3psim="'+cmv+'"]');await pg.waitForTimeout(400);await shot('premissas-sim-cmv');
+    const cx=await pg.evaluate(([c,v])=>[caixaDaLinha(c,'2026-12-01',-10000),caixaDaLinha(v,'2026-12-01',10000)],[cmv,vend]);console.log('CAIXA',JSON.stringify(cx));
+    if(Math.round(cx[0].reduce((a,x)=>a+x.valor,0))!==-10000||Math.round(cx[1].reduce((a,x)=>a+x.valor,0))!==10000)errs.push('caixa não soma o valor');
+    if(cx[0][0].valor!==-2000)errs.push('entrada de 20% não saiu primeiro');
+    await pg.click('[data-v3psim="'+vend+'"]');await pg.waitForTimeout(400);await shot('premissas-sim-venda');
+    const menu2=await pg.$$eval('#nav a',a=>a.map(x=>x.getAttribute('href')));if(menu2.includes('#premissas'))errs.push('premissa antiga ainda no menu');if(!menu2.includes('#premissas-v3'))errs.push('premissa nova fora do menu');
     await ctx.close()}
   await b.close();srv.close();
   console.log('ERROS',errs.length?errs.join(' || '):'nenhum')})();

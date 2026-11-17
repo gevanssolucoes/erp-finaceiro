@@ -9,7 +9,7 @@ const GRUPOS_V2=[
   ['Dia a dia',['painel','lancamentos','contas','nfs','pagamentos','boletos','aprovacoes']],
   ['Relatórios',['dre','fluxo','faturamento']],
   ['Controle e auditoria',['auditoria','fechamento','historico','excecoes','compras','estoque']],
-  ['Planejamento',['orcamento','premissas','salario']],
+  ['Planejamento',['orcamento','premissas-v3','salario']],
   ['Cadastros',['plano','empresas','grupos','bancos','tributos','importar','usuarios']],
   ['Pessoas',['pessoas','ausencias']],
   ['Sistema',['admin']],
