@@ -235,13 +235,13 @@ function excelBI(D){
 
 const btnsExp=(excel)=>`<div class="v3-acts" data-nao-imprime><button class="btn ghost" type="button" data-v3="pdf">${icone('relatorio',15)||''} Exportar PDF</button><button class="btn ghost" type="button" data-v3="${excel}">Exportar Excel</button></div>`;
 const NOME_V={orcado:'Orçado',forecast:'Forecast',realizado:'Realizado',comparativo:'Orçado × Realizado'};
-const semOrcAviso=D=>D.temOrc?(D.parcial?`<div class="effect" style="margin:0">Só ${esc(D.parcial.join(', '))} ${D.parcial.length>1?'têm':'tem'} orçamento de ${D.a}. Nas comparações com o orçado, o realizado considera só ${D.parcial.length>1?'essas empresas':'essa empresa'}.</div>`:''):`<div class="effect" style="margin:0">Ainda não há orçamento de ${D.a} para ${esc(escopo())}. As visões Orçado e Orçado × Realizado ficam vazias e o Forecast usa só o realizado e o que já está lançado. <a href="#orcamento">Criar orçamento</a></div>`;
+const semOrcAviso=D=>!D.temOrc&&D.textoSemOrc?`<div class="effect" style="margin:0">${esc(D.textoSemOrc)}</div>`:D.temOrc?(D.parcial?`<div class="effect" style="margin:0">Só ${esc(D.parcial.join(', '))} ${D.parcial.length>1?'têm':'tem'} orçamento de ${D.a}. Nas comparações com o orçado, o realizado considera só ${D.parcial.length>1?'essas empresas':'essa empresa'}.</div>`:''):`<div class="effect" style="margin:0">Ainda não há orçamento de ${D.a} para ${esc(escopo())}. As visões Orçado e Orçado × Realizado ficam vazias e o Forecast usa só o realizado e o que já está lançado. <a href="#orcamento">Criar orçamento</a></div>`;
 
 // ---------- tela: Fluxo de caixa BI
 let ultimoD=null;
-async function vFluxoBI(){
-  if(!S.empresas.length)return semEmpresa();
-  const D=await dados(S.ano);ultimoD=D;const v=S.v3.visao,rg=S.v3.regime;
+async function vFluxoBI(Dpre){
+  if(!Dpre&&!S.empresas.length)return semEmpresa();
+  const D=Dpre||await dados(S.ano);ultimoD=D;const v=S.v3.visao,rg=S.v3.regime;
   const vers=D.vers.filter(x=>x.orcs.length);
   const selVer=vers.length===1&&vers[0].orcs.length>1?`<div><div class="v3-lbl">Orçamento</div><select class="v3-sel" id="v3Ver" data-emp="${vers[0].e.id}" aria-label="Versão do orçamento">${vers[0].orcs.map(o=>`<option value="${o.id}" ${o.id===vers[0].orc.id?'selected':''}>${esc(o.nome)}${o.congelada?' · travado':' · rascunho'}</option>`).join('')}</select></div>`:'';
   const titulo={orcado:'Orçado'+(D.nomes.length?' · '+D.nomes.join(', '):''),forecast:'Forecast: realizado'+(D.corte?' até '+MESES[D.corte-1]+'/'+String(D.a).slice(2):'')+' + projeção'+(D.temFc?' do forecast':D.temOrc?' do orçamento':''),realizado:'Realizado'+(D.corte&&D.corte<12?' até '+MESES[D.corte-1]+'/'+String(D.a).slice(2):''),comparativo:'Realizado × Orçado, com desvio %'}[v];
@@ -260,12 +260,12 @@ async function vFluxoBI(){
   </div>`}
 
 // ---------- tela: Painel geral (gerencial e operacional)
-async function vGestao(){
-  if(!S.empresas.length)return semEmpresa();
-  const ger=S.v3.modo!=='operacional';
-  const topo=`<div class="v3-bar" data-nao-imprime><div><div class="v3-lbl">Visão</div><div class="v3-seg" role="group" aria-label="Tipo de visão"><button type="button" aria-pressed="${ger}" data-v3set="modo" data-val="gerencial">Gerencial</button><button type="button" aria-pressed="${!ger}" data-v3set="modo" data-val="operacional">Operacional</button></div></div>${btnsExp('excel-tela')}</div>`;
+async function vGestao(Dpre){
+  if(!Dpre&&!S.empresas.length)return semEmpresa();
+  const ger=!!Dpre||S.v3.modo!=='operacional';
+  const topo=`<div class="v3-bar" data-nao-imprime><div ${Dpre?'hidden':''}><div class="v3-lbl">Visão</div><div class="v3-seg" role="group" aria-label="Tipo de visão"><button type="button" aria-pressed="${ger}" data-v3set="modo" data-val="gerencial">Gerencial</button><button type="button" aria-pressed="${!ger}" data-v3set="modo" data-val="operacional">Operacional</button></div></div>${btnsExp('excel-tela')}</div>`;
   if(!ger)return `<div class="v3">${topo}<p class="v3-imp">Visão operacional · ${esc(escopo())}</p>${await operacional()}</div>`;
-  const D=await dados(S.ano);ultimoD=D;const ate=Math.max(D.corte,0);
+  const D=Dpre||await dados(S.ano);ultimoD=D;const ate=Math.max(D.corte,0);
   const lsR=[],lsO=[];const dreG=ls=>{const G={};ls.forEach(x=>{const g=INFO[x.c]?.grupo;if(!g||g==='_')return;G[g]=(G[g]||0)+x.v});const v=x=>G[x]||0;const d={rb:v('receita_bruta')};d.rl=d.rb+v('deducoes');d.eb=d.rl+v('custos')+v('despesas_operacionais');d.ll=d.eb+v('resultado_financeiro')+v('outras')+v('nao_operacional')+v('ir_csll');d.ml=d.rl?d.ll/d.rl:NaN;return d};
   Object.entries(D.RCo).forEach(([c,r])=>r.slice(0,ate).forEach(v=>v&&lsR.push({c,v})));
   Object.entries(D.OC).forEach(([c,r])=>r.slice(0,ate).forEach(v=>v&&lsO.push({c,v})));
@@ -282,10 +282,10 @@ async function vGestao(){
      <div class="v3-li"><span class="n">EBITDA</span><span><b>${k(dR.eb)}</b> <span class="hint">orç. ${k(dO.eb)}</span> ${chip(dR.eb,dO.eb)}</span></div>
      <div class="v3-li"><span class="n">Lucro líquido</span><span><b>${k(dR.ll)}</b> <span class="hint">orç. ${k(dO.ll)}</span> ${chip(dR.ll,dO.ll)}</span></div>
      <div class="v3-li"><span class="n">Margem líquida</span><span><b>${pct(dR.ml)}</b> <span class="hint">orç. ${dO.rl?pct(dO.ml):'–'}</span></span></div>`:'<p class="muted" style="margin:0">Nenhum mês fechado neste ano ainda.</p>'}
-     <div style="margin-top:6px"><a class="v3-drill" href="#dre">Abrir DRE →</a></div></div>
+     ${Dpre?'':'<div style="margin-top:6px"><a class="v3-drill" href="#dre">Abrir DRE →</a></div>'}</div>
     <div class="panel"><div class="v3-ph"><div><h2>Maiores desvios</h2><p class="hint" style="margin:2px 0 0">contas que mais tiraram do resultado frente ao orçado · ${per}</p></div><button type="button" class="v3-drill" data-v3go="fluxo-bi" data-visao="comparativo" data-regime="competencia">Ver por mês →</button></div>
      ${piores.length?piores.map(x=>{const r=(Math.abs(x.r)-Math.abs(x.o))/Math.abs(x.o);return `<div class="v3-li"><span class="n">${esc(x.c)}</span><span style="white-space:nowrap"><b style="color:${x.d<0?'var(--bad)':'var(--v3-in)'}">${x.d<0?'−':'+'}${k(Math.abs(x.d)).replace('-','')}</b> <span class="chip ${Math.abs(r)>.05?'bad':'warn'}">${r>=0?'+':''}${pct(r)}</span></span></div>`}).join(''):`<p class="muted" style="margin:0">${D.temOrc?'Sem desvios no período.':'Crie o orçamento para ver os desvios.'}</p>`}
-     <div style="margin-top:6px"><a class="v3-drill" href="#orcamento">Abrir orçamento e forecast →</a></div></div>
+     ${Dpre?'':'<div style="margin-top:6px"><a class="v3-drill" href="#orcamento">Abrir orçamento e forecast →</a></div>'}</div>
    </div>
    <div class="panel"><div class="v3-ph"><div><h2>Fluxo mês a mês · forecast no caixa</h2><p class="hint" style="margin:2px 0 0">realizado${D.corte?' até '+MESES[D.corte-1]+'/'+String(D.a).slice(2):''}, projeção hachurada · linha roxa = saldo acumulado</p></div><button type="button" class="v3-drill" data-v3go="fluxo-bi" data-visao="forecast" data-regime="caixa">Abrir fluxo de caixa BI →</button></div>${grafico(D,'forecast','caixa')}</div>
   </div>`}
@@ -345,4 +345,6 @@ TITULOS.gestao='Painel geral';TITULOS['fluxo-bi']='Fluxo de caixa BI';
 VIEWS.gestao=vGestao;VIEWS['fluxo-bi']=vFluxoBI;
 ['gestao','fluxo-bi'].forEach(r=>{USA_EMP.add(r);USA_ANO.add(r)});
 window.v3Dados=dados;
+// motor exposto para o Gevans Dados (dados.html), que monta as mesmas telas a partir de uma planilha
+window.V3BI={telaFluxo:vFluxoBI,telaGestao:vGestao,cards,grafico,matriz,linhasMatriz,excelBI,resto,zeros,add,INFO,NOME_V,usar:D=>{ultimoD=D}};
 })();

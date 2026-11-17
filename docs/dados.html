@@ -1,0 +1,79 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Gevans Dados</title>
+<link rel="icon" type="image/svg+xml" href="marca/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="marca/favicon-32.png">
+<meta name="theme-color" content="#0F2A33">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: produto à parte. Faixa de marca no topo, três passos (modelo, envio, conferência) e as telas de BI do Gestor */
+:root{
+  --bg:#f3f5f6; --surface:#ffffff; --surface-2:#eef2f3; --line:#dde3e6; --ink:#16232a; --ink-2:#55656d; --ink-3:#7a8a91;
+  --accent:#0d5f73; --accent-soft:#dcedf1; --accent-ink:#0a4b5b;
+  --good:#1f7a4d; --good-soft:#e1f2e8; --warn:#a66300; --warn-soft:#fbefd9; --bad:#b4342b; --bad-soft:#f8e2df;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1a1e; --surface:#16242a; --surface-2:#1c2d34; --line:#2a3d44; --ink:#e4ecee; --ink-2:#a3b4ba; --ink-3:#8196a0;
+  --accent:#4fb3c9; --accent-soft:#173f49; --accent-ink:#8fd3e2;
+  --good:#5cc68f; --good-soft:#173a29; --warn:#e3a54a; --warn-soft:#3d2e14; --bad:#ec7a70; --bad-soft:#41201d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1a1e; --surface:#16242a; --surface-2:#1c2d34; --line:#2a3d44; --ink:#e4ecee; --ink-2:#a3b4ba; --ink-3:#8196a0;
+  --accent:#4fb3c9; --accent-soft:#173f49; --accent-ink:#8fd3e2;
+  --good:#5cc68f; --good-soft:#173a29; --warn:#e3a54a; --warn-soft:#3d2e14; --bad:#ec7a70; --bad-soft:#41201d; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.faixa{background:#0F2A33;color:#e8f1f3;padding-block:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.faixa .in{max-width:1320px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.faixa .marca{display:flex;align-items:center;gap:12px}.faixa img{width:34px;height:34px}
+.faixa b{font-size:17px;display:block}.faixa small{color:#9fb8bf;font-size:12px}
+.faixa a{color:#bfe3ec;font-size:13px}
+.wrap{max-width:1320px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+h1{font-size:22px;margin:0;letter-spacing:-.3px;text-wrap:balance}
+.lead{color:var(--ink-2);margin:4px 0 0;max-width:760px}
+.btn{font:inherit;background:var(--accent);color:#fff;border:0;border-radius:7px;padding:8px 13px;font-weight:600;cursor:pointer;min-height:38px}
+.btn:hover{filter:brightness(1.08)}.btn:disabled{opacity:.5;cursor:default}
+.btn.ghost{background:transparent;color:var(--accent-ink);border:1px solid var(--line)}
+.btn:focus-visible,select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.panel h2{font-size:15px;margin:0 0 2px;font-weight:700}
+.hint{color:var(--ink-2);font-size:12.5px}.muted{color:var(--ink-2)}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;border-radius:5px;padding:1px 7px;white-space:nowrap}
+.chip.good{background:var(--good-soft);color:var(--good)}.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}.chip.info{background:var(--accent-soft);color:var(--accent-ink)}.chip.mute{background:var(--surface-2);color:var(--ink-2)}
+.effect{border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;padding:10px 12px;font-size:13px}
+.effect.bad{border-color:var(--bad);background:var(--bad-soft)}
+.linkbtn{font:inherit;background:none;border:0;color:var(--accent-ink);font-weight:600;cursor:pointer;padding:4px 0}
+.passos{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.passo{display:flex;flex-direction:column;gap:10px}
+.passo .n{font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--accent-ink)}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;background:var(--surface-2)}
+.drop.on{border-color:var(--accent);background:var(--accent-soft)}
+table.map{border-collapse:collapse;width:100%;font-size:13px}
+table.map th,table.map td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+table.map th{font-size:11.5px;color:var(--ink-2)}
+table.map select{font:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%;min-height:34px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:5px;align-self:flex-start;max-width:100%}
+.tabs button{font:inherit;font-size:13px;font-weight:600;color:var(--ink-2);background:none;border:0;border-radius:7px;padding:8px 14px;cursor:pointer;min-height:38px}
+.tabs button[aria-selected="true"]{background:var(--accent);color:#fff}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:9px;font-size:13px;font-weight:600;z-index:30;max-width:calc(100% - 32px)}
+[hidden]{display:none!important}
+@media print{.faixa,.passos,.tabs,[data-nao-imprime]{display:none!important}body{background:#fff}.panel{break-inside:avoid}@page{size:A4 landscape;margin:12mm}}
+</style></head><body>
+<header class="faixa"><div class="in"><div class="marca"><img src="marca/gevans-icone.svg" alt=""><div><b>Gevans Dados</b><small>Sua planilha de orçamento e realizado vira painel de BI</small></div></div><a href="./">Conhecer o Gevans Gestor</a></div></header>
+<main class="wrap">
+  <div><h1>Envie a planilha, receba as telas prontas</h1><p class="lead">Para quem já tem orçamento e realizado em Excel e quer os relatórios do Gevans Gestor sem lançar nada no sistema. A planilha é lida aqui no seu navegador e não é enviada para nenhum servidor.</p></div>
+  <section class="passos" aria-label="Passos">
+    <div class="panel passo"><span class="n">Passo 1</span><h2>Baixe o modelo</h2><p class="hint" style="margin:0">Uma aba com os lançamentos (orçado e realizado) e outra, opcional, com as premissas de pagamento de cada conta. Pode usar a sua planilha também: no passo 3 você diz qual coluna é qual.</p><div><button class="btn ghost" type="button" id="btModelo">Baixar modelo de planilha</button> <button class="linkbtn" type="button" id="btExemplo">Ver com dados de exemplo</button></div></div>
+    <div class="panel passo"><span class="n">Passo 2</span><h2>Envie a base</h2><label class="drop" id="drop" for="arq"><b id="dropTxt">Arraste o arquivo aqui ou clique para escolher</b><span class="hint">Excel (.xlsx, .xls) ou CSV</span><input id="arq" type="file" accept=".xlsx,.xls,.csv" hidden></label></div>
+    <div class="panel passo"><span class="n">Passo 3</span><h2>Confira as colunas</h2><div id="mapa"><p class="hint" style="margin:0">Aparece aqui depois do envio.</p></div></div>
+  </section>
+  <div id="avisos"></div>
+  <nav class="tabs" role="tablist" aria-label="Telas" id="tabs" hidden><button role="tab" data-tab="gestao" aria-selected="true">Painel gerencial</button><button role="tab" data-tab="fluxo-bi" aria-selected="false">Fluxo de caixa BI</button></nav>
+  <div id="view"></div>
+</main>
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="dados.js"></script>
+<script src="v3-bi.js"></script>
+<script>iniciarDados()</script>
+</body></html>
