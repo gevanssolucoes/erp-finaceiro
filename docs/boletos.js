@@ -118,7 +118,7 @@ async function vBoletos2(){
     <div class="tile"><div class="lbl">Última leitura do e-mail</div><div class="val" style="font-size:16px">${ult?quandoT(ult):'Ainda não ligado'}</div><div class="cmp">${S.bolTokens.length?S.bolTokens.map(t=>{const e=estado(t);return `<span class="chip ${e[1]}">${e[0]}</span>`}).join(' '):'<span class="chip mute">Gmail desligado</span>'}</div></div></section>
   ${painelGmail()}
   <div class="panel"><div class="ph"><div><h2>Boletos</h2><p class="hint">${f==='novo'?'Chegaram por e-mail. Marque vários para lançar de uma vez, ou use Lançar em cada um.':'Histórico dos boletos que chegaram por e-mail.'}</p></div>
-    <div class="ctrls">${podeEditarAlguma()?`<button class="btn ghost" data-acao="bx-colar">${icone('colar',15)} Colar linha digitável</button>`:''}${!S.bolTokens.length&&podeEditarAlguma()?`<button class="btn" data-acao="bol-config">${icone('boletos',15)} Ligar o Gmail</button>`:''}</div></div>
+    <div class="ctrls">${podeEditarAlguma()?`<button class="btn" data-acao="bx-arquivos">${icone('importa',15)} Adicionar boletos (foto ou arquivo)</button><button class="btn ghost" data-acao="bx-colar">${icone('colar',15)} Colar linha digitável</button>`:''}${!S.bolTokens.length&&podeEditarAlguma()?`<button class="btn" data-acao="bol-config">${icone('boletos',15)} Ligar o Gmail</button>`:''}</div></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:8px">
       <div class="tabs" role="tablist" style="margin:0;border:0">${FILTROS.map(([k,t])=>`<button role="tab" data-bolf="${k}" class="${f===k?'on':''}" aria-selected="${f===k}">${t} <span class="chip mute">${n(k)}</span></button>`).join('')}</div>
       <input type="search" id="bolBusca" placeholder="Buscar beneficiário, assunto, valor…" value="${esc(S.bolBusca||'')}" aria-label="Buscar boletos" style="border:1px solid var(--line);border-radius:6px;padding:6px 10px;background:var(--surface);width:260px;max-width:100%"></div>
@@ -236,6 +236,9 @@ document.addEventListener('click',async ev=>{
     if(a==='bx-lote')formLote();
     else if(a==='bx-limpar'){S.bolSel=new Set();S._bolRapido=true;render(true)}
     else if(a==='bx-colar')formColar();
+    else if(a==='bx-arquivos')formArquivos();
+    else if(a==='bx-arq-gravar')await gravarArquivos(b);
+    else if(a==='bx-arq-tirar'){const i=S.bxArq?.itens?.[+b.dataset.i];if(i&&!i.lendo){S.bxArq.itens.splice(+b.dataset.i,1);desenhaArq()}}
     else if(a==='bx-lote-ignorar'){if(!confirm(`Ignorar ${S.bolSel.size} boleto(s)?`))return;const {error}=await sb.from('boletos_email').update({status:'ignorado'}).in('id',[...S.bolSel]);if(error)throw error;S.bolSel=new Set();toast('Boletos ignorados.');render(true);window.atualizaContadores?.()}
     else if(a==='bx-ignorar'){const x=S.boletos.find(y=>y.id===b.dataset.id);const em=remEmail(x.remetente);const tk=S.bolTokens.find(t=>t.empresa_id===x.empresa_id);
       drawer(`<h3>Ignorar boleto</h3><p class="muted" style="margin:0">${esc(x.beneficiario||remNome(x.remetente))}${x.valor?' · '+brl2.format(x.valor):''}</p>
@@ -258,6 +261,107 @@ document.addEventListener('click',async ev=>{
       fecharDrawer();render(true)}
   }catch(e){console.error(e);toast(traduz(e));b.disabled=false}
 });
+
+
+// ---------- boletos por foto ou arquivo: vários de uma vez, lendo o código de barras de cada um
+IC.importa=IC.importa||'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>';
+IC.camera='<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>';
+let zxPronto=null;
+function carregarZX(){if(window.ZXing)return Promise.resolve();if(zxPronto)return zxPronto;
+  zxPronto=new Promise((ok,erro)=>{const sc=document.createElement('script');sc.src='vendor/zxing/zxing.min.js';sc.onload=ok;sc.onerror=()=>{zxPronto=null;erro(new Error('O leitor de código de barras não carregou.'))};document.head.appendChild(sc)});return zxPronto}
+// procura no texto uma linha digitável ou código de barras que confira (dígitos verificadores)
+function linhaNoTexto(txt){
+  const blocos=String(txt||'').match(/\d[\d.\s\-]{38,90}\d/g)||[];const achados=new Map();
+  const busca=Ls=>{for(const bl of blocos){const d=soDig(bl);for(const L of Ls)for(let i=0;i+L<=d.length;i++){const r=lerLinha(d.substr(i,L));if(!r.erro&&!achados.has(r.linha)){achados.set(r.linha,r);i+=L-1}}}};
+  busca([47,48]);
+  // código de barras de 44 números só tem um dígito verificador: aceita se o valor e o vencimento fizerem sentido
+  if(!achados.size){busca([44]);for(const [k_,r] of achados){const ok=r.consumo?!!r.valor:(r.valor>0&&r.vencimento&&Math.abs(new Date(r.vencimento)-new Date())<5*365*864e5);if(!ok)achados.delete(k_)}}
+  return [...achados.values()];
+}
+function dadosNoTexto(txt){
+  const t=String(txt||'');const o={};
+  const cn=t.match(/BENEFICI[AÁ]RIO[\s\S]{0,160}?(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/i)||t.match(/(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/);if(cn)o.documento=soDig(cn[1]);
+  const ln=t.split(/\n/).map(x=>x.trim());const i=ln.findIndex(x=>/BENEFICI[AÁ]RIO|CEDENTE/i.test(x));
+  if(i>=0){let n=ln[i].replace(/.*?(BENEFICI[AÁ]RIO|CEDENTE)( FINAL)?\s*:?/i,'').replace(/(CPF|CNPJ)?[\s:]*[\d.\/-]{11,}.*$/i,'').trim();if(n.length<3)n=(ln[i+1]||'').replace(/(CPF|CNPJ)?[\s:]*[\d.\/-]{11,}.*$/i,'').trim();if(n.length>=3&&!/^\d/.test(n))o.beneficiario=n.slice(0,120)}
+  const vc=t.match(/VENCIMENTO[\s:]*?(\d{2}\/\d{2}\/\d{4})/i);if(vc)o.vencimento=isoDe(vc[1]);
+  return o;
+}
+async function codigoNaImagem(canvas){
+  // 1) leitor do próprio navegador (Chrome no Mac e no Android)
+  if('BarcodeDetector' in window){try{const fm=await BarcodeDetector.getSupportedFormats();if(fm.includes('itf')){const bd=new BarcodeDetector({formats:['itf']});for(const r of await bd.detect(canvas)){const d=soDig(r.rawValue);if(d.length===44&&!lerLinha(d).erro)return d}}}catch(e){}}
+  // 2) ZXing (Windows e os demais)
+  await carregarZX();const H=new Map();H.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.ITF]);H.set(ZXing.DecodeHintType.TRY_HARDER,true);H.set(ZXing.DecodeHintType.ALLOWED_LENGTHS,Int32Array.from([44]));
+  const rd=new ZXing.MultiFormatReader();rd.setHints(H);
+  const tenta=c=>{try{const r=rd.decode(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.HTMLCanvasElementLuminanceSource(c))));const d=soDig(r.getText());return d.length===44&&!lerLinha(d).erro?d:null}catch(e){return null}};
+  let d=tenta(canvas);if(d)return d;
+  // foto: tenta faixas da imagem e menor resolução (o código costuma ficar no rodapé)
+  const W=canvas.width,Hh=canvas.height;const corte=(y0,y1,esc)=>{const c=document.createElement('canvas');c.width=Math.round(W*esc);c.height=Math.round((y1-y0)*Hh*esc);c.getContext('2d').drawImage(canvas,0,y0*Hh,W,(y1-y0)*Hh,0,0,c.width,c.height);return c};
+  for(const [a,b] of [[.55,1],[.7,1],[0,.5],[.3,.8]])for(const e of [1,.6]){d=tenta(corte(a,b,e));if(d)return d}
+  return null;
+}
+function canvasDaImagem(file){return new Promise((ok,erro)=>{const u=URL.createObjectURL(file);const im=new Image();im.onload=()=>{const max=2400,e=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*e);c.height=Math.round(im.height*e);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c)};im.onerror=()=>{URL.revokeObjectURL(u);erro(new Error('Não consegui abrir a imagem. Envie JPG, PNG ou PDF.'))};im.src=u})}
+async function ocrCanvas(c){await carregarOCR();const base=new URL('vendor/ocr/',location.href).href;
+  const w=await Tesseract.createWorker('por',1,{workerPath:base+'worker.min.js',corePath:base,langPath:base,workerBlobURL:false});try{const {data}=await w.recognize(c);return data.text}finally{w.terminate()}}
+async function lerBoletoArquivo(file,avisa){
+  const pdf=/\.pdf$/i.test(file.name)||file.type==='application/pdf';let texto='',canvases=[];
+  if(pdf){const buf=await file.arrayBuffer();try{texto=(await textoPDF(new Uint8Array(buf.slice(0)))).flat().join('\n')}catch(e){throw new Error('Não consegui abrir o PDF (pode ter senha).')}
+    let ach=linhaNoTexto(texto);if(ach.length)return ach.map(r=>({...r,...dadosNoTexto(texto),fonte:'texto do PDF'}));
+    avisa('procurando o código de barras');await carregarPdfJs();const doc=await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise;
+    for(let p=1;p<=Math.min(doc.numPages,6);p++){const pg=await doc.getPage(p);const vp=pg.getViewport({scale:2.5});const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;canvases.push(c)}}
+  else if(/^image\//.test(file.type)||/\.(jpe?g|png|webp|heic|gif|bmp)$/i.test(file.name)){avisa('procurando o código de barras');canvases=[await canvasDaImagem(file)]}
+  else throw new Error('Formato não aceito. Envie foto (JPG, PNG) ou PDF.');
+  const out=[];for(const c of canvases){const d=await codigoNaImagem(c);if(d)out.push({...lerLinha(d),fonte:'código de barras'})}
+  if(out.length){return out.map(r=>({...r,...dadosNoTexto(texto)}))}
+  avisa('lendo os números da imagem');let ocr='';for(const c of canvases)ocr+='\n'+await ocrCanvas(c);
+  const ach=linhaNoTexto(ocr);if(ach.length)return ach.map(r=>({...r,...dadosNoTexto(texto+'\n'+ocr),fonte:'leitura da imagem'}));
+  throw new Error('Não achei o código de barras. Tire a foto mais de perto, com boa luz e o código inteiro na imagem, ou cole a linha digitável.');
+}
+function formArquivos(){
+  const emp=selEmp().find(e=>podeEditar(e.id))?.id||S.empresas.find(e=>podeEditar(e.id))?.id;if(!emp)return toast('Seu acesso é só de consulta.');
+  S.bxArq={emp,itens:[]};
+  drawer(`<h3>${icone('importa')} Adicionar boletos por foto ou arquivo</h3>
+  <p class="muted" style="margin:0">Escolha vários de uma vez: fotos do boleto ou PDFs. O app lê o código de barras de cada um e traz valor, vencimento e banco. Depois é só lançar em contas a pagar.</p>
+  <div class="field"><label for="bxArqEmp">Empresa</label><select id="bxArqEmp">${opcoesEmp(emp)}</select></div>
+  <label class="bx-drop" for="bxArqIn" style="display:grid;place-items:center;gap:6px;border:2px dashed var(--line);border-radius:10px;padding:22px;text-align:center;cursor:pointer;background:var(--surface-2)">
+    ${icone('importa',26)}<b>Clique para escolher ou arraste os arquivos aqui</b><span class="muted small">PDF, JPG ou PNG · vários de uma vez</span></label>
+  <input id="bxArqIn" type="file" multiple accept="application/pdf,image/*" hidden>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn ghost" for="bxArqCam" style="display:inline-flex;gap:6px;align-items:center;cursor:pointer">${icone('camera',15)} Tirar foto</label><input id="bxArqCam" type="file" accept="image/*" capture="environment" multiple hidden></div>
+  <div id="bxArqLista" aria-live="polite"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-acao="bx-arq-gravar" disabled>Adicionar à lista de boletos</button><button class="btn ghost" data-acao="fechar">Cancelar</button></div>`);
+  const dz=document.querySelector('.bx-drop');dz.addEventListener('dragover',ev=>{ev.preventDefault();dz.style.borderColor='var(--accent)'});dz.addEventListener('dragleave',()=>dz.style.borderColor='');
+  dz.addEventListener('drop',ev=>{ev.preventDefault();dz.style.borderColor='';receberArquivos([...ev.dataTransfer.files])});
+  document.getElementById('bxArqEmp').addEventListener('change',ev=>{S.bxArq.emp=ev.target.value});
+}
+async function receberArquivos(files){
+  const A=S.bxArq;if(!A)return;const novos=files.map(f=>({f,nome:f.name,lendo:true,etapa:'na fila'}));A.itens.push(...novos);desenhaArq();
+  for(const it of novos){it.etapa='lendo';desenhaArq();
+    try{const rs=await lerBoletoArquivo(it.f,t=>{it.etapa=t;desenhaArq()});const [r,...outros]=rs;Object.assign(it,{r,lendo:false});
+      outros.forEach(o=>A.itens.push({f:it.f,nome:it.nome+' (outro boleto)',r:o,lendo:false}))}
+    catch(e){console.warn(e);Object.assign(it,{erro:e.message||String(e),lendo:false})}desenhaArq()}
+}
+function desenhaArq(){
+  const A=S.bxArq,el=document.getElementById('bxArqLista');if(!A||!el)return;
+  const ja=new Set((S.boletos||[]).filter(b=>b.empresa_id===A.emp).map(b=>b.chave));
+  const vistos=new Set();A.itens.forEach(it=>{if(it.r){it.dup=ja.has(it.r.linha)||vistos.has(it.r.linha);vistos.add(it.r.linha)}});
+  const ok=A.itens.filter(it=>it.r&&!it.dup);
+  el.innerHTML=A.itens.length?`<div class="tbl-wrap"><table><thead><tr><th>Arquivo</th><th>Vencimento</th><th class="n">Valor</th><th>Leitura</th><th></th></tr></thead><tbody>${A.itens.map((it,i)=>`<tr>
+    <td class="wrap" style="max-width:200px">${esc(it.nome)}${it.r?.beneficiario?`<span class="unit">${esc(it.r.beneficiario)}</span>`:''}</td>
+    <td class="mono">${it.r?(it.r.vencimento?dataBR(it.r.vencimento):'ver no boleto'):''}</td><td class="n">${it.r?.valor?brl2.format(it.r.valor):''}</td>
+    <td class="wrap" style="max-width:250px;white-space:normal">${it.lendo?`<span class="chip mute">${esc(it.etapa)}…</span>`:it.erro?`<span class="chip bad" title="${esc(it.erro)}">não li</span><span class="unit" style="color:var(--bad)">${esc(it.erro)}</span>`:it.dup?'<span class="chip warn">já está na lista</span>':`<span class="chip good">ok</span><span class="unit mono" style="font-size:11px;word-break:break-word">${esc(linhaFmt(it.r.linha))}</span>`}</td>
+    <td>${it.lendo?'':`<button class="linkbtn small" data-acao="bx-arq-tirar" data-i="${i}" aria-label="Tirar da lista">✕</button>`}</td></tr>`).join('')}</tbody></table></div>`:'';
+  const b=document.querySelector('[data-acao=bx-arq-gravar]');if(b){b.disabled=!ok.length||A.itens.some(it=>it.lendo);b.textContent=ok.length?`Adicionar ${ok.length} boleto${ok.length>1?'s':''} à lista`:'Adicionar à lista de boletos'}
+}
+document.addEventListener('change',ev=>{if((ev.target.id==='bxArqIn'||ev.target.id==='bxArqCam')&&ev.target.files.length){receberArquivos([...ev.target.files]);ev.target.value=''}});
+async function gravarArquivos(b){
+  const A=S.bxArq;const its=A.itens.filter(it=>it.r&&!it.dup);if(!its.length)return;b.disabled=true;b.textContent='Gravando…';
+  const agora=new Date().toISOString();
+  const rows=its.map(it=>({empresa_id:A.emp,chave:it.r.linha,remetente:'Enviado pelo app',assunto:it.nome.slice(0,500),anexo:it.nome.slice(0,300),recebido_em:agora,linha_digitavel:it.r.linha,valor:it.r.valor||null,vencimento:it.r.vencimento||null,
+    beneficiario:it.r.beneficiario||(it.r.banco&&BANCOS[it.r.banco]?'Boleto '+BANCOS[it.r.banco]:null),documento_beneficiario:it.r.documento||null,observacao:it.r.vencimento?null:'Confira o vencimento no boleto.'}));
+  const {data,error}=await sb.from('boletos_email').insert(rows).select('id');
+  if(error){b.disabled=false;b.textContent='Adicionar à lista de boletos';if(/row-level|policy|permission/i.test(error.message||''))return toast('Falta a atualização 0026 do banco para adicionar boletos pelo app.');if(/duplicate|unique/i.test(error.message||''))return toast('Algum destes boletos já estava na lista. Tire-o e tente de novo.');throw error}
+  S.bolSel=new Set((data||[]).map(x=>x.id));S.bolFiltro='novo';S.bxArq=null;fecharDrawer();
+  toast(`${its.length} boleto${its.length>1?'s':''} na lista e já marcado${its.length>1?'s':''}. Clique em Lançar para virar contas a pagar.`);await render(true);window.atualizaContadores?.();
+}
 
 // ---------- troca a tela antiga pela nova
 VIEWS.boletos=vBoletos2;
