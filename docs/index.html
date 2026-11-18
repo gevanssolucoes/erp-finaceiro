@@ -407,6 +407,17 @@ th .unit{display:block;font-size:9.5px;letter-spacing:.03em;text-transform:none;
 .passo-agora{margin-top:10px;font-size:13px;background:var(--accent-soft);color:var(--accent-ink);border-radius:8px;padding:8px 12px}
 .pn-mini{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;margin:0 4px 0 0;vertical-align:1px}
 @media (max-width:820px){.passos{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sk{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;flex:none}
+.sk-real{background:var(--accent)}.sk-prev{background:repeating-linear-gradient(45deg,var(--accent) 0 2px,transparent 2px 4px);border:1px solid var(--accent)}.sk-orc{background:#6250D6}
+.sl-legenda{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);padding:0 4px}
+.sl-legenda b{color:var(--ink)}
+.tile-saldos{grid-column:span 2}.tile-saldos .sl b{white-space:nowrap}
+.tile-saldos .sl{display:flex;align-items:center;gap:4px;font-size:12.5px;color:var(--ink-2)}
+.tile-saldos .sl b{margin-left:auto;font-family:var(--f-num);font-weight:500;font-size:14.5px;color:var(--ink)}.tile-saldos .sl b.neg{color:var(--bad)}
+.tbl-fluxo tr.sl-orc td{background:color-mix(in srgb,#6250D6 10%,var(--surface));color:#4b3fb0}
+.tbl-fluxo tr.sl-prev td{font-style:italic}
+.tbl-rom td.sub{padding-left:26px;color:var(--ink-2)}.tbl-rom tr.tot td.sub{color:var(--ink)}
+.tbl-rom tr.sec td{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:700;padding-top:12px}
 </style>
 </head><body>
 
@@ -825,8 +836,10 @@ async function vFluxo(){
   else if(cur<n)abertas.forEach(p=>{const i=p.vencimento<iniP?-1:mi(p.vencimento);const ii=p.vencimento.slice(0,7)<meses[cur]?cur:i;if(ii>=cur)add(p,ii,+p.valor,true)});
   // saldo inicial: contas bancárias no primeiro dia do período
   const SI0=bs.length?sum(bs.map(b=>saldoContaEm(b,iniP,movs))):0;
-  const SI=Z(),SF=Z(),ger=Z();let s=SI0;
-  for(let i=0;i<n;i++){SI[i]=s;ger[i]=real[i]+tr[i]+fora[i]+rec[i]+pag[i];s+=ger[i];SF[i]=s}
+  const SI=Z(),SF=Z(),ger=Z(),SR=Z(),SO=Z(),orcM=Z();let s=SI0,sr=SI0;
+  // orçamento de caixa do período (para o saldo orçado)
+  const orcCx=await orcCaixaPer(iniP,fimEx);orcCx.forEach(x=>{const i=mi(x.data);if(i>=0)orcM[i]+=x.valor});let so=SI0;
+  for(let i=0;i<n;i++){SI[i]=s;ger[i]=real[i]+tr[i]+fora[i]+rec[i]+pag[i];s+=ger[i];SF[i]=s;sr+=venc?0:real[i]+tr[i]+fora[i];SR[i]=sr;so+=orcM[i];SO[i]=so}
   const prevCol=i=>!venc&&i>=cur;
   // cards
   const pagasPer=pagas.filter(p=>{const d=venc?p.vencimento:p.data_pagamento;return d>=iniP&&d<fimEx&&cls(p)==='ok'});
@@ -838,15 +851,19 @@ async function vFluxo(){
   const aRec=sum(abPer.filter(p=>p.valor>0).map(p=>+p.valor)),aPag=sum(abPer.filter(p=>p.valor<0).map(p=>+p.valor));
   const vR=abSel.filter(p=>p.vencimento<HOJE&&p.valor>0),vP=abSel.filter(p=>p.vencimento<HOJE&&p.valor<0);
   const recebido=sum(pagasPer.filter(p=>valP(p)>0).map(valP));const inad=sum(vR.map(p=>+p.valor));
-  const temPrev=SF.some((_,i)=>prevCol(i));const fimTxt=temPrev?'Saldo final previsto':'Saldo final';
+  const temPrev=SF.some((_,i)=>prevCol(i));const fimTxt=venc?'Saldo previsto pelo vencimento':'Saldo previsto (realizado + em aberto)';
+  const temOrc=orcCx.length>0,fimP=dataBR(addDias(fimEx,-1)),iR=Math.min(cur,n)-1;
   if(!pagas.length&&!abertas.length&&!bs.length)return vazio('Nenhum pagamento ou recebimento','<p style="margin:0">O fluxo de caixa usa as contas bancárias (saldo inicial) e as parcelas pagas e em aberto. Cadastre as contas bancárias e importe ou lance os pagamentos.</p>',podeEditarAlguma()?'<a class="btn" href="#bancos">Contas bancárias</a>':'');
   const T=(lbl,val,cmp)=>`<div class="tile"><div class="lbl">${lbl}</div><div class="val ${val<0?'neg':''}">${k(val)}</div><div class="cmp">${cmp}</div></div>`;
   const tiles=`<section class="grid g-tiles g-auto">
-    ${T('Saldo inicial',SI0,`<span>em ${dataBR(iniP)} · ${bs.length} conta${bs.length===1?'':'s'}</span>`)}
+    ${T('Saldo inicial (banco)',SI0,`<span>real, em ${dataBR(iniP)} · ${bs.length} conta${bs.length===1?'':'s'}</span>`)}
     ${T('Entradas operacionais',eOp,`<span>${venc?'lançado para vencer':'recebido'} em ${labelPer()}</span>`)}
     ${T('Saídas operacionais',sOp,`<span>${venc?'lançado para vencer':'pago'} · ${eOp?pct(-sOp/eOp)+' das entradas':''}</span>`)}
     ${T('Geração de caixa total',eOp+sOp+gNop,`${eOp+sOp+gNop>=0?'<span class="chip good">positiva</span>':'<span class="chip bad">negativa</span>'}<span>operacional ${k(eOp+sOp)} · não operacional ${k(gNop)}</span>`)}
-    ${T(fimTxt,SF[n-1],`<span>${temPrev?'realizado + em aberto até ':'em '}${dataBR(addDias(fimEx,-1))}</span>`)}
+    <div class="tile tile-saldos"><div class="lbl">Saldos em ${fimP}</div>
+      ${venc?'':`<div class="sl"><span class="sk sk-real"></span><span>Realizado</span><b class="${SR[n-1]<0?'neg':''}">${k(cur<n?SR[n-1]:SF[n-1])}</b></div>`}
+      <div class="sl"><span class="sk sk-prev"></span><span>${venc?'Previsto (vencimento)':'Previsto'}</span><b class="${SF[n-1]<0?'neg':''}">${k(SF[n-1])}</b></div>
+      <div class="sl"><span class="sk sk-orc"></span><span>Orçado</span><b class="${SO[n-1]<0?'neg':''}">${temOrc?k(SO[n-1]):'–'}</b></div></div>
     <div class="tile"><div class="lbl">Em aberto</div><div class="val">${k(aRec+aPag)}</div><div class="cmp"><span class="chip good">${k(aRec)} a receber</span><span class="chip bad">${k(-aPag)} a pagar</span><span>vencendo até ${dataBR(addDias(fimEx,-1))}</span></div></div>
     <div class="tile"><div class="lbl">Vencidas e inadimplência</div><div class="val">${k(inad)}</div><div class="cmp">${vR.length?`<span class="chip bad">${vR.length} a receber vencida${vR.length>1?'s':''}</span>${recebido?`<span>${pct(inad/(recebido+inad))} de inadimplência (vencido ÷ recebido + vencido no período)</span>`:''}`:'<span class="chip good">nenhum recebimento atrasado</span>'}${vP.length?`<span class="chip warn">${vP.length} a pagar vencida${vP.length>1?'s':''} · ${k(-sum(vP.map(p=>+p.valor)))}</span>`:''}</div></div>
   </section>`;
@@ -863,7 +880,7 @@ async function vFluxo(){
   const sal=(nome,vals,tot)=>`<tr class="tot saldo"><td>${nome}</td>${vals.map((v,i)=>td(v,i)).join('')}<td class="n ${tot<0?'neg':''}">${num.format(Math.round(tot))}</td></tr>`;
   const cab=meses.map((m,i)=>`<th class="n">${MESES[+m.slice(5)-1]}/${m.slice(2,4)}${prevCol(i)?`<span class="unit">${i===cur&&hojeM===m?'real + previsto':'previsto'}</span>`:''}</th>`).join('');
   const tabela=`<div class="tbl-wrap"><table class="tbl-fluxo"><thead><tr><th>Fluxo de caixa</th>${cab}<th class="n">Total</th></tr></thead><tbody>
-    ${sal('Saldo inicial',SI,SI0)}
+    ${sal('Saldo inicial do mês',SI,SI0)}
     <tr class="sec"><td colspan="${n+2}">Movimentações do mês ${venc?'(pelo vencimento)':'(pagas e recebidas)'}</td></tr>
     ${corpo||`<tr><td colspan="${n+2}" class="muted">Nada pago ou recebido no período.</td></tr>`}
     ${lin('Transferências entre contas',tr,'l2','Saída de uma conta e entrada em outra. Somando todas as contas, dá zero.')}
@@ -871,24 +888,62 @@ async function vFluxo(){
     ${lin('(+) A receber em aberto',rec,'l2 prevrow','Contas a receber que vencem no mês (as atrasadas entram no mês atual).')}
     ${lin('(−) A pagar em aberto',pag,'l2 prevrow','Contas a pagar que vencem no mês (as atrasadas entram no mês atual).')}
     <tr class="tot"><td>Geração de caixa do mês</td>${tdM(ger)}</tr>
-    ${sal(fimTxt,SF,SF[n-1])}
+    <tr class="sec"><td colspan="${n+2}">Saldo no fim do mês</td></tr>
+    ${venc?'':`<tr class="tot saldo sl-real"><td><span class="sk sk-real"></span>Saldo realizado (banco)</td>${SR.map((v,i)=>i<=Math.max(cur,0)&&!(i===cur&&cur>=n)?td(v,i,'real'):'<td class="n muted">–</td>').join('')}<td class="n ${SR[Math.min(cur,n-1)]<0?'neg':''}">${num.format(Math.round(SR[Math.min(cur,n-1)]))}</td></tr>`}
+    ${temPrev||venc?`<tr class="tot saldo sl-prev"><td><span class="sk sk-prev"></span>${fimTxt}</td>${SF.map((v,i)=>venc||i>=cur?td(v,i):'<td class="n muted" title="Mês já fechado: igual ao saldo realizado">·</td>').join('')}<td class="n ${SF[n-1]<0?'neg':''}">${num.format(Math.round(SF[n-1]))}</td></tr>`:''}
+    ${temOrc?`<tr class="saldo sl-orc"><td><span class="sk sk-orc"></span>Saldo orçado (saldo inicial + orçamento de caixa)</td>${SO.map(v=>`<td class="n ${v<0?'neg':''}">${num.format(Math.round(v))}</td>`).join('')}<td class="n">${num.format(Math.round(SO[n-1]))}</td></tr>
+    <tr class="pct"><td>Previsto − orçado</td>${SF.map((v,i)=>`<td class="n ${v-SO[i]<0?'neg':''}">${num.format(Math.round(v-SO[i]))}</td>`).join('')}<td class="n">${num.format(Math.round(SF[n-1]-SO[n-1]))}</td></tr>`:''}
   </tbody></table></div>`;
-  const [lor,porConta]=await Promise.all([lancadoOrcadoRealizado({pagas,abertas,venc,iniP,fimEx,cls,grupoDe}),saldoPorConta({bs,movs,abertas,meses,cur,fimEx,ehTr:p=>cls(p)==='tr'})]);
-  return filtrosFluxo(bancosEmp)+tiles+porConta+`
+  const roMes=realOrcMes({pagas,orcCx,meses,mi,cls,grupoDe,cur,hojeM});
+  const legenda=`<div class="sl-legenda"><span><span class="sk sk-real"></span><b>Realizado</b> = o que já entrou e saiu do banco</span><span><span class="sk sk-prev"></span><b>Previsto</b> = realizado + contas a pagar e receber em aberto</span><span><span class="sk sk-orc"></span><b>Orçado</b> = saldo inicial + orçamento de caixa${temOrc?'':' (sem orçamento cadastrado)'}</span></div>`;
+  const [lor,porConta]=await Promise.all([lancadoOrcadoRealizado({pagas,abertas,venc,iniP,fimEx,cls,grupoDe,orcCx}),saldoPorConta({bs,movs,abertas,meses,cur,fimEx,ehTr:p=>cls(p)==='tr'})]);
+  return filtrosFluxo(bancosEmp)+legenda+tiles+porConta+`
   <div class="panel"><div class="ph"><div><h2>Fluxo de caixa · ${labelPer()}</h2><p class="hint">${esc(escopo())}${F.banco!=='*'?' · '+esc(bancoTxt(banco(F.banco))):''} · Saldo inicial + movimentações na estrutura da DRE (clique em ▸ para abrir conta › subconta › centro de custo › fornecedor) = saldo final. ${venc?'Meses pela data de vencimento: pago e em aberto juntos.':'Meses pela data de pagamento; do mês atual em diante entram as contas em aberto (colunas em itálico).'}</p></div></div>
     ${tabela}
     ${pagas.some(p=>!p.conta_bancaria_id)&&F.banco==='*'?`<p class="chip warn" style="margin-top:10px;white-space:normal">${pagas.filter(p=>!p.conta_bancaria_id).length} pagamento(s) sem conta bancária: entram no fluxo, mas não no saldo de nenhuma conta.</p>`:''}</div>
+  ${roMes}
   ${lor}
   <div class="panel"><h2>Entradas e saídas por mês · ${S.ano}</h2><p class="hint">Regime de caixa, pela data de pagamento · ${esc(escopo())}</p>${chartFluxo({labels:MESES,ent,sai,acum})}
     <div class="legend"><span><i style="background:var(--good)"></i>Entradas</span><span><i style="background:var(--bad)"></i>Saídas</span><span><i style="background:var(--accent)"></i>Geração de caixa acumulada</span></div></div>
   ${tabelaSaldosMes({bs,movs,abertas,ehTr:p=>cls(p)==='tr'})}`;
 }
 // Lançado (tudo que vence no período, pago ou não) x Orçado (caixa do orçamento) x Realizado (pago no período)
-async function lancadoOrcadoRealizado({pagas,abertas,iniP,fimEx,cls,grupoDe}){
+// Realizado x Orçado mês a mês: por grupo da DRE (abre orçado, diferença e %) e totais de entradas, saídas e geração
+function realOrcMes({pagas,orcCx,meses,mi,cls,grupoDe,cur,hojeM}){
+  if(!orcCx.length)return `<div class="panel"><h2>Realizado x Orçado mês a mês</h2><p class="muted" style="margin:0">Não há orçamento de ${S.ano} para ${esc(escopo())}. Cadastre em <a href="#orcamento">Orçamento e forecast</a> para comparar mês a mês.</p></div>`;
+  const n=meses.length,Z=()=>Array(n).fill(0),R={},O={};const fechado=i=>meses[i]<=hojeM;
+  pagas.forEach(p=>{if(cls(p)!=='ok')return;const i=mi(p.data_pagamento);if(i<0)return;const g=grupoDe(p);(R[g]=R[g]||Z())[i]+=valP(p)});
+  orcCx.forEach(x=>{const i=mi(x.data);if(i<0)return;const g=conta(x.conta_id)?.grupo_dre||'_';(O[g]=O[g]||Z())[i]+=x.valor});
+  const gs=[...new Set([...Object.keys(R),...Object.keys(O)])].sort((a,b)=>ORDEM_FX.indexOf(a)-ORDEM_FX.indexOf(b));
+  const nf=v=>`<td class="n ${v<0?'neg':''}">${Math.abs(v)>=.5?num.format(Math.round(v)):'0'}</td>`;
+  const ate=a=>sum(a.filter((_,i)=>fechado(i)));
+  const chipP=(r,o)=>{if(!o)return '<span class="muted">–</span>';const at=r/o;const bom=o>0?at>=.95:at<=1.05;return `<span class="chip ${bom?'good':'bad'}">${pct(at)}</span>`};
+  const bloco=(r,o,cls='')=>{const dif=r.map((v,i)=>v-o[i]);
+    return `<tr class="${cls}"><td class="sub">Orçado</td>${o.map(v=>`<td class="n col-base ${v<0?'neg':''}">${num.format(Math.round(v))}</td>`).join('')}<td class="n col-base">${num.format(Math.round(sum(o)))}</td></tr>
+     <tr class="${cls}"><td class="sub">Realizado</td>${r.map((v,i)=>fechado(i)?nf(v):'<td class="n muted">–</td>').join('')}<td class="n">${num.format(Math.round(ate(r)))}</td></tr>
+     <tr class="${cls}"><td class="sub">Diferença (realizado − orçado)</td>${dif.map((v,i)=>fechado(i)?nf(v):'<td class="n muted">–</td>').join('')}<td class="n ${ate(r)-ate(o)<0?'neg':''}">${num.format(Math.round(ate(r)-ate(o)))}</td></tr>
+     <tr class="${cls} pctl"><td class="sub">Realizado ÷ orçado</td>${r.map((v,i)=>`<td class="n">${fechado(i)?chipP(v,o[i]):''}</td>`).join('')}<td class="n">${chipP(ate(r),ate(o))}</td></tr>`};
+  let rows='';
+  gs.forEach(g=>{const r=R[g]||Z(),o=O[g]||Z(),key='rom|'+g,ab=S.abertos.has(key);
+    rows+=`<tr class="l2 click" data-abre="${key}"><td>${ab?'▾ ':'▸ '}${esc(GRUPOS[g]||'Sem grupo da DRE')}</td>${r.map((v,i)=>`<td class="n">${fechado(i)?chipP(v,o[i]):'<span class="muted">–</span>'}</td>`).join('')}<td class="n">${chipP(ate(r),ate(o))}</td></tr>`+(ab?bloco(r,o,'arv n2'):'')});
+  const tot=f=>{const r=Z(),o=Z();Object.values(R).forEach(a=>a.forEach((v,i)=>{if(f(v))r[i]+=v}));orcCx.forEach(x=>{const i=mi(x.data);if(i>=0&&f(x.valor))o[i]+=x.valor});return [r,o]};
+  const [eR,eO]=tot(v=>v>0),[sR,sO]=tot(v=>v<0),gR=eR.map((v,i)=>v+sR[i]),gO=eO.map((v,i)=>v+sO[i]);
+  const cab=meses.map(m=>`<th class="n">${MESES[+m.slice(5)-1]}/${m.slice(2,4)}${m===hojeM?'<span class="unit">até hoje</span>':''}</th>`).join('');
+  return `<div class="panel"><div class="ph"><div><h2>Realizado x Orçado mês a mês · ${labelPer()}</h2><p class="hint">Regime de caixa (data de pagamento) contra o orçamento de caixa (${esc([...new Set(orcCx.vers)].join(', '))}). % = realizado ÷ orçado: verde quando a receita chega a 95% do orçado ou a despesa fica até 5% acima. Clique em ▸ para abrir o orçado, o realizado e a diferença de cada grupo. Meses futuros mostram só o orçado.</p></div></div>
+   <div class="tbl-wrap"><table class="tbl-rom"><thead><tr><th>Grupo</th>${cab}<th class="n">Acumulado até hoje</th></tr></thead><tbody>
+   <tr class="sec"><td colspan="${n+2}">Realizado ÷ orçado por grupo da DRE</td></tr>${rows}
+   <tr class="sec"><td colspan="${n+2}">Entradas</td></tr>${bloco(eR,eO)}
+   <tr class="sec"><td colspan="${n+2}">Saídas</td></tr>${bloco(sR,sO)}
+   <tr class="sec"><td colspan="${n+2}">Geração de caixa</td></tr>${bloco(gR,gO,'tot')}
+   </tbody></table></div></div>`}
+// orçamento de caixa (versão oficial do ano de cada empresa escolhida) com data dentro do período
+async function orcCaixaPer(iniP,fimEx){const out=[];out.vers=[];
+  for(const e of selEmp()){const v=await versaoOrc(e.id,S.ano).catch(()=>null);if(!v)continue;out.vers.push(v.nome);
+    (await caixaDaVersao(v)).forEach(x=>{if(!(x.data>=iniP&&x.data<fimEx)||ehTransf(conta(x.conta_id)))return;if(S.fx.ct.size&&!passaFx({conta_id:x.conta_id}))return;out.push(x)})}
+  return out}
+async function lancadoOrcadoRealizado({pagas,abertas,iniP,fimEx,cls,grupoDe,orcCx}){
   const noP=d=>d&&d>=iniP&&d<fimEx;
-  const orc=[];const vers=[];
-  for(const e of selEmp()){const v=await versaoOrc(e.id,S.ano).catch(()=>null);if(!v)continue;vers.push(v.nome);
-    (await caixaDaVersao(v)).forEach(x=>{const c=conta(x.conta_id);if(!noP(x.data)||ehTransf(c))return;if(S.fx.ct.size&&!passaFx({conta_id:x.conta_id}))return;orc.push({l:{conta_id:x.conta_id},v:x.valor})})}
+  const orc=orcCx.map(x=>({l:{conta_id:x.conta_id},v:x.valor}));const vers=orcCx.vers;
   const lanc=pagas.filter(p=>noP(p.vencimento)&&cls(p)==='ok').map(p=>({l:p.lancamentos,v:valP(p)})).concat(abertas.filter(p=>noP(p.vencimento)&&cls(p)==='ok').map(p=>({l:p.lancamentos,v:+p.valor})));
   const real=pagas.filter(p=>noP(p.data_pagamento)&&cls(p)==='ok').map(p=>({l:p.lancamentos,v:valP(p)}));
   if(!orc.length&&!lanc.length&&!real.length)return '';
@@ -917,7 +972,7 @@ function saldoPorConta({bs,movs,abertas,meses,cur,fimEx,ehTr}){
     :`<div class="veredito bad">${icone('alerta',18)}<div><b>Atenção: faltam ${brl.format(-prev)} para fechar ${MESES[+m.slice(5)-1]}/${m.slice(0,4)}.</b><span>Hoje ${brl.format(t('hoje'))}, entra ${brl.format(t('rec'))}, sai ${brl.format(-t('pag'))}. Antecipe recebimentos ou renegocie pagamentos.</span></div></div>`;
   return `<div class="panel"><div class="ph"><div><h2>Saldo por conta · ${MESES[+m.slice(5)-1]}/${m.slice(0,4)}</h2><p class="hint">${atual?'Até hoje':'No mês'}: saldo no início do mês, o que entrou e saiu, se o saldo está aumentando e a previsão para o fim do mês com o que está em aberto (inclui as atrasadas).</p></div></div>
    ${atual||futuro?veredito:''}
-   <div class="tbl-wrap"><table><thead><tr><th>Conta</th><th class="n">Início do mês</th><th class="n">Entrou</th><th class="n">Saiu</th><th class="n">${atual?'Saldo hoje':futuro?'Saldo atual':'Saldo no fim'}</th><th class="n">Tendência</th><th class="n">A receber</th><th class="n">A pagar</th><th class="n">Previsto no fim do mês</th><th>Situação</th></tr></thead><tbody>
+   <div class="tbl-wrap"><table><thead><tr><th>Conta</th><th class="n">Início do mês</th><th class="n">Entrou</th><th class="n">Saiu</th><th class="n">${atual?'Saldo realizado hoje':futuro?'Saldo realizado atual':'Saldo realizado no fim'}</th><th class="n">Tendência</th><th class="n">A receber</th><th class="n">A pagar</th><th class="n">Saldo previsto no fim do mês</th><th>Situação</th></tr></thead><tbody>
    ${L.map(x=>x.html).join('')}${L.length>1?`<tr class="tot"><td>Total</td><td class="n">${num.format(Math.round(t('si')))}</td><td class="n">${num.format(Math.round(t('ent')))}</td><td class="n neg">${num.format(Math.round(t('sai')))}</td><td class="n">${num.format(Math.round(t('hoje')))}</td><td></td><td class="n">${num.format(Math.round(t('rec')))}</td><td class="n neg">${num.format(Math.round(t('pag')))}</td><td class="n ${prev<0?'neg':''}">${num.format(Math.round(prev))}</td><td></td></tr>`:''}</tbody></table></div></div>`;
 }
 // Saldo de cada conta no fim de cada mês do ano. Meses que ainda não fecharam: previsão com o que vence (itálico).
@@ -932,7 +987,7 @@ function tabelaSaldosMes({bs,movs,abertas,ehTr}){
   const L=bs.map(b=>({b,...linha(b,ab.filter(p=>p.conta_bancaria_id===b.id))}));
   const sem=ab.filter(p=>!p.conta_bancaria_id);if(sem.length&&S.fxc.banco==='*')L.push({b:null,...linha(null,sem)});
   const cel=x=>`<td class="n ${x.prev?'prev':''} ${x.v<0?'neg':''}">${num.format(Math.round(x.v))}</td>`;
-  return `<div class="panel"><div class="ph"><div><h2>Saldo das contas mês a mês · ${ano}</h2><p class="hint">Fim de cada mês: saldo inicial cadastrado + tudo que foi pago e recebido na conta (inclui transferências). Itálico = previsão: saldo de hoje + contas em aberto que vencem até o fim do mês.</p></div></div>
+  return `<div class="panel"><div class="ph"><div><h2>Saldo das contas mês a mês · ${ano}</h2><p class="hint">Normal = <b>saldo realizado</b> no fim do mês (saldo inicial cadastrado + tudo que foi pago e recebido na conta, inclui transferências). <i>Itálico</i> = <b>saldo previsto</b>: saldo realizado de hoje + contas em aberto que vencem até o fim do mês.</p></div></div>
    <div class="tbl-wrap"><table><thead><tr><th>Conta</th><th class="n">Início do ano</th>${MESES.map(m=>`<th class="n">${m}</th>`).join('')}</tr></thead><tbody>
    ${L.map(l=>`<tr><td>${l.b?esc(l.b.banco_nome)+`<span class="unit">${esc(nomeEmp(empresa(l.b.empresa_id)))} · cc ${esc(l.b.conta||'')}</span>`:'<i>Sem conta bancária definida</i>'}</td><td class="n">${num.format(Math.round(l.abI))}</td>${l.fins.map(cel).join('')}</tr>`).join('')}
    <tr class="tot"><td>Saldo final do mês</td><td class="n">${num.format(Math.round(sum(L.map(l=>l.abI))))}</td>${MESES.map((_,i)=>cel({v:sum(L.map(l=>l.fins[i].v)),prev:L.some(l=>l.fins[i].prev)})).join('')}</tr>
