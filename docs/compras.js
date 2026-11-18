@@ -463,7 +463,9 @@ const FORMS_CMP={
     await evento(p,'Cancelado',f.motivo.value.trim());recarregar();fecharDrawer();toast(`${numPC(p)} cancelado.`);render(true)},
   async 'cmp-produto'(f){
     const emp=f.empresa.value;const min=pv(f.minimo.value);
-    const {data,error}=await sb.from('produtos').insert({empresa_id:emp,codigo:f.codigo.value.trim(),nome:f.nome.value.trim(),tipo:'produto',unidade:f.unidade.value.trim()||'UN',controla_estoque:true,estoque_minimo:isNaN(min)?null:min}).select('*').single();
+    const row={empresa_id:emp,codigo:f.codigo.value.trim(),nome:f.nome.value.trim(),tipo:'produto',unidade:f.unidade.value.trim()||'UN',controla_estoque:true,estoque_minimo:isNaN(min)?null:min};
+    let {data,error}=await sb.from('produtos').insert({...row,finalidade:f.finalidade?.value||null}).select('*').single();
+    if(error&&/finalidade/.test(error.message||''))({data,error}=await sb.from('produtos').insert(row).select('*').single());
     if(error)throw error;S.produtos.push({id:data.id,empresa_id:emp,codigo:data.codigo,nome:data.nome});recarregar();fecharDrawer();toast('Produto cadastrado.');render(true)},
   async 'cmp-mov'(f){
     const prd=(C.produtos||[]).find(p=>p.id===f.produto.value);const q=pv(f.qtd.value);if(!prd||isNaN(q)||q<=0)return toast('Escolha o produto e a quantidade.');
@@ -473,17 +475,21 @@ const FORMS_CMP={
 };
 
 // ---------- tela: estoque
+// finalidade do produto: para venda ou administrativo (uso interno). Sem a coluna preenchida, deduz pelo preço/conta de receita.
+const finalidade=p=>p.finalidade||(p.preco_padrao!=null||p.conta_receita_id?'venda':'administrativo');
 async function vEstoque(){
   await dados();const mov=await estoque();
   const prods=(C.produtos||[]).filter(p=>S.empresas.some(e=>e.id===p.empresa_id));
   const ms=mov.filter(m=>naSel(m.empresa_id,m.predio_id));
   const G={};ms.forEach(m=>{const key=m.produto_id+'|'+(m.predio_id||'');const g=G[key]=G[key]||{produto_id:m.produto_id,empresa_id:m.empresa_id,predio_id:m.predio_id,q:0,qe:0,ve:0,ult:null};
     const s=m.tipo==='saida'?-1:1;g.q+=s*(+m.quantidade);if(m.tipo==='entrada'){g.qe+=+m.quantidade;g.ve+=(+m.quantidade)*(+m.custo_unitario||0)}if(!g.ult||m.data>g.ult)g.ult=m.data});
-  const linhas=Object.values(G).map(g=>({...g,p:prods.find(x=>x.id===g.produto_id),cm:g.qe?g.ve/g.qe:0})).filter(g=>g.p).sort((a,b)=>a.p.nome.localeCompare(b.p.nome));
+  const fin=C.estFin||'*';const passa=p=>fin==='*'||finalidade(p)===fin;
+  const linhas=Object.values(G).map(g=>({...g,p:prods.find(x=>x.id===g.produto_id),cm:g.qe?g.ve/g.qe:0})).filter(g=>g.p&&passa(g.p)).sort((a,b)=>a.p.nome.localeCompare(b.p.nome));
+  const temCol=prods.some(p=>'finalidade' in p);const nV=prods.filter(p=>finalidade(p)==='venda').length,nA=prods.length-nV;
   const porProd={};linhas.forEach(g=>porProd[g.produto_id]=(porProd[g.produto_id]||0)+g.q);
-  const abaixo=prods.filter(p=>p.estoque_minimo!=null&&(porProd[p.id]||0)<+p.estoque_minimo&&selEmp().some(e=>e.id===p.empresa_id));
+  const abaixo=prods.filter(p=>passa(p)&&p.estoque_minimo!=null&&(porProd[p.id]||0)<+p.estoque_minimo&&selEmp().some(e=>e.id===p.empresa_id));
   const valor=sum(linhas.map(g=>Math.max(0,g.q)*g.cm));const mes=HOJE.slice(0,7);
-  const entMes=ms.filter(m=>m.tipo==='entrada'&&m.data.startsWith(mes));
+  const entMes=ms.filter(m=>m.tipo==='entrada'&&m.data.startsWith(mes)&&passa(prods.find(x=>x.id===m.produto_id)||{}));
   const D=await dados();const aCaminho=D.ped.filter(p=>p.status==='comprado'&&naSel(p.empresa_id,p.predio_id));
   const tiles=[['Itens com saldo',String(linhas.filter(g=>g.q>0).length),`<span class="chip mute">${prods.length} produtos cadastrados</span>`,'cestoque','accent'],
     ['Valor em estoque',k(valor),'<span class="chip mute">custo médio</span>','cverba','accent'],
@@ -492,21 +498,25 @@ async function vEstoque(){
     ['Compras a caminho',String(aCaminho.length),`<a href="#compras" class="chip info" style="text-decoration:none">${k(sum(aCaminho.map(p=>+p.valor_aprovado||0)))}</a>`,'compras','warn']];
   const ed=podeEditarAlguma();
   const origem=m=>{if(m.compra_item_id){const it=D.itens.find(i=>i.id===m.compra_item_id);const p=it&&D.ped.find(x=>x.id===it.pedido_id);return p?`<button class="linkbtn small" data-pc="${p.id}">${numPC(p)}</button>`:'Compra'}return m.nf_item_id?'Nota fiscal':'Manual'};
-  return `<section class="grid g-tiles">${tiles.map(t=>`<div class="tile"><div class="lbl">${tic(t[3],t[4])}${t[0]}</div><div class="val">${t[1]}</div><div class="cmp">${t[2]}</div></div>`).join('')}</section>
-  <div class="panel"><div class="ph"><div><h2>Saldo por produto e unidade</h2><p class="hint">${esc(escopo())} · entradas das compras entregues, notas e movimentos manuais</p></div>
+  const filtroFin=`<div class="fbar"><div class="fb-item"><span>Tipo de estoque</span><div class="seg" role="group" aria-label="Tipo de estoque"><button data-c="est-fin" data-v="*" class="${fin==='*'?'on':''}">Todos (${prods.length})</button><button data-c="est-fin" data-v="venda" class="${fin==='venda'?'on':''}">Para venda (${nV})</button><button data-c="est-fin" data-v="administrativo" class="${fin==='administrativo'?'on':''}">Administrativo / uso interno (${nA})</button></div></div>
+    <span class="muted" style="font-size:12px;flex:1;min-width:220px">${temCol?'Mude o tipo de cada produto na coluna “Tipo”.':'Produto com preço de venda ou conta de receita conta como “para venda”; o resto, como uso interno. Para escolher produto a produto, aplique a atualização do banco (0029).'}</span></div>`;
+  const ed0=podeEditarAlguma();
+  const celFin=p=>temCol&&ed0&&podeEditar(p.empresa_id)?`<select data-est-fin="${p.id}" aria-label="Tipo de estoque" style="padding:3px 6px;font-size:12px"><option value="venda" ${finalidade(p)==='venda'?'selected':''}>Venda</option><option value="administrativo" ${finalidade(p)==='administrativo'?'selected':''}>Uso interno</option></select>`:`<span class="chip ${finalidade(p)==='venda'?'good':'mute'}">${finalidade(p)==='venda'?'Venda':'Uso interno'}</span>`;
+  return filtroFin+`<section class="grid g-tiles">${tiles.map(t=>`<div class="tile"><div class="lbl">${tic(t[3],t[4])}${t[0]}</div><div class="val">${t[1]}</div><div class="cmp">${t[2]}</div></div>`).join('')}</section>
+  <div class="panel"><div class="ph"><div><h2>Saldo por produto e unidade${fin==='venda'?' · estoque para venda':fin==='administrativo'?' · estoque administrativo (uso interno)':''}</h2><p class="hint">${esc(escopo())} · entradas das compras entregues, notas e movimentos manuais</p></div>
     ${ed?`<div class="acts-row"><button class="btn ghost" data-c="novo-produto">+ Produto</button><button class="btn" data-c="nova-mov">Movimentar estoque</button></div>`:''}</div>
-    ${linhas.length?`<div class="tbl-wrap"><table><thead><tr><th>Produto</th><th>Unidade</th><th class="n">Saldo</th><th class="n">Custo médio</th><th class="n">Valor</th><th class="n">Mínimo</th><th>Última mov.</th></tr></thead><tbody>
+    ${linhas.length?`<div class="tbl-wrap"><table><thead><tr><th>Produto</th><th>Tipo</th><th>Unidade</th><th class="n">Saldo</th><th class="n">Custo médio</th><th class="n">Valor</th><th class="n">Mínimo</th><th>Última mov.</th></tr></thead><tbody>
     ${linhas.map(g=>{const min=g.p.estoque_minimo!=null?+g.p.estoque_minimo:null;const baixo=min!=null&&porProd[g.produto_id]<min;
-      return `<tr><td>${esc(g.p.codigo)} · ${esc(g.p.nome)}${S.empresas.length>1?`<span class="unit">${esc(nomeEmp(empresa(g.empresa_id)))}</span>`:''}</td><td>${esc(predio(g.predio_id)?.nome||'Sem prédio')}</td><td class="n ${g.q<0?'neg':''}">${qtd.format(g.q)} ${esc(g.p.unidade||'')}</td><td class="n">${brl2.format(g.cm)}</td><td class="n">${num.format(Math.round(Math.max(0,g.q)*g.cm))}</td><td class="n">${min!=null?qtd.format(min)+(baixo?' <span class="chip bad">baixo</span>':''):'–'}</td><td>${dataBR(g.ult)}</td></tr>`}).join('')}
-    <tr class="tot"><td colspan="4">Total</td><td class="n">${num.format(Math.round(valor))}</td><td colspan="2"></td></tr></tbody></table></div>`:`<div class="empty"><b>Estoque vazio</b>As entradas chegam pela esteira de compras (ao registrar a entrega) ou por “Movimentar estoque”.</div>`}</div>
+      return `<tr><td>${esc(g.p.codigo)} · ${esc(g.p.nome)}${S.empresas.length>1?`<span class="unit">${esc(nomeEmp(empresa(g.empresa_id)))}</span>`:''}</td><td>${celFin(g.p)}</td><td>${esc(predio(g.predio_id)?.nome||'Sem prédio')}</td><td class="n ${g.q<0?'neg':''}">${qtd.format(g.q)} ${esc(g.p.unidade||'')}</td><td class="n">${brl2.format(g.cm)}</td><td class="n">${num.format(Math.round(Math.max(0,g.q)*g.cm))}</td><td class="n">${min!=null?qtd.format(min)+(baixo?' <span class="chip bad">baixo</span>':''):'–'}</td><td>${dataBR(g.ult)}</td></tr>`}).join('')}
+    <tr class="tot"><td colspan="5">Total</td><td class="n">${num.format(Math.round(valor))}</td><td colspan="2"></td></tr></tbody></table></div>`:`<div class="empty"><b>Estoque vazio</b>As entradas chegam pela esteira de compras (ao registrar a entrega) ou por “Movimentar estoque”.</div>`}</div>
   <div class="panel"><h2>Últimas movimentações</h2><p class="hint">Mais recentes primeiro</p>${ms.length?`<div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Tipo</th><th class="n">Qtd</th><th class="n">Custo un.</th><th>Origem</th><th>Observação</th></tr></thead><tbody>
-    ${ms.slice(0,40).map(m=>{const p=prods.find(x=>x.id===m.produto_id);return `<tr><td>${dataBR(m.data)}</td><td>${esc(p?.nome||'?')}</td><td><span class="chip ${m.tipo==='entrada'?'good':m.tipo==='saida'?'bad':'mute'}">${m.tipo}</span></td><td class="n">${qtd.format(+m.quantidade)}</td><td class="n">${m.custo_unitario!=null?brl2.format(+m.custo_unitario):'–'}</td><td>${origem(m)}</td><td class="wrap">${esc(m.observacao||'')}</td></tr>`}).join('')}</tbody></table></div>`:'<p class="muted">Sem movimentações.</p>'}</div>`;
+    ${ms.filter(m=>passa(prods.find(x=>x.id===m.produto_id)||{})).slice(0,40).map(m=>{const p=prods.find(x=>x.id===m.produto_id);return `<tr><td>${dataBR(m.data)}</td><td>${esc(p?.nome||'?')}</td><td><span class="chip ${m.tipo==='entrada'?'good':m.tipo==='saida'?'bad':'mute'}">${m.tipo}</span></td><td class="n">${qtd.format(+m.quantidade)}</td><td class="n">${m.custo_unitario!=null?brl2.format(+m.custo_unitario):'–'}</td><td>${origem(m)}</td><td class="wrap">${esc(m.observacao||'')}</td></tr>`}).join('')}</tbody></table></div>`:'<p class="muted">Sem movimentações.</p>'}</div>`;
 }
 function formProduto(){const emps=S.empresas.filter(e=>podeEditar(e.id));const emp=selEmp().find(e=>podeEditar(e.id))||emps[0];
   abrirSheet(`<h3>Novo produto de estoque</h3><form data-form="cmp-produto" class="form-grid">
   <div class="field wide"><label for="pEmp">Empresa</label><select id="pEmp" name="empresa">${emps.map(e=>`<option value="${e.id}" ${e===emp?'selected':''}>${esc(nomeEmp(e))}</option>`).join('')}</select></div>
   <div class="field"><label for="pCod">Código</label><input id="pCod" name="codigo" required></div><div class="field" style="grid-column:span 2"><label for="pNome">Nome</label><input id="pNome" name="nome" required></div>
-  <div class="field"><label for="pUn">Unidade</label><input id="pUn" name="unidade" value="UN"></div><div class="field"><label for="pMin">Estoque mínimo</label><input id="pMin" name="minimo" inputmode="decimal"></div>
+  <div class="field"><label for="pUn">Unidade</label><input id="pUn" name="unidade" value="UN"></div><div class="field"><label for="pFin">Tipo de estoque</label><select id="pFin" name="finalidade"><option value="venda">Para venda</option><option value="administrativo">Administrativo / uso interno</option></select></div><div class="field"><label for="pMin">Estoque mínimo</label><input id="pMin" name="minimo" inputmode="decimal"></div>
   <div class="wide acts-row"><button class="btn">Salvar</button><button type="button" class="btn ghost" data-acao="fechar">Cancelar</button></div></form>`)}
 function formMov(){const prods=(C.produtos||[]).filter(p=>podeEditar(p.empresa_id)&&p.controla_estoque!==false);if(!prods.length)return toast('Cadastre um produto antes.');
   abrirSheet(`<h3>Movimentar estoque</h3><form data-form="cmp-mov" class="form-grid">
@@ -527,6 +537,7 @@ document.addEventListener('click',async ev=>{
     else if(a==='abrir')await abrirPedido(b.dataset.id);
     else if(a==='item-add'){const box=document.getElementById('cItens');box.insertAdjacentHTML('beforeend',linhaItem(box.children.length+1));box.lastElementChild.querySelector('input').focus()}
     else if(a==='item-del'){const box=document.getElementById('cItens');if(box.children.length>1){b.closest('[data-item]').remove();totalForm(box.closest('form'))}}
+    else if(a==='est-fin'){C.estFin=b.dataset.v;render(true)}
     else if(a==='novo-produto')formProduto();
     else if(a==='nova-mov'){await dados();formMov()}
     else{
@@ -543,7 +554,8 @@ document.addEventListener('click',async ev=>{
   }catch(e){console.error(e);toast(traduz(e));b.disabled=false}
 });
 document.addEventListener('input',ev=>{const f=ev.target.form;if(!f)return;if(f.dataset.form==='cmp-pedido')totalForm(f);else if(f.dataset.form==='cmp-cotacao')previewCot(f)});
-document.addEventListener('change',ev=>{const t=ev.target;if(t.hasAttribute('data-cmp-emp')){const o=opcoesPedido(t.value),f=t.form;f.predio.innerHTML=o.pred;f.conta.innerHTML=o.contas;f.centro.innerHTML=o.cc;document.getElementById('dlProd').innerHTML=o.prods}});
+document.addEventListener('change',async ev=>{const t=ev.target;if(t.dataset.estFin){const pr=(C.produtos||[]).find(x=>x.id===t.dataset.estFin);const {error}=await sb.from('produtos').update({finalidade:t.value}).eq('id',t.dataset.estFin);if(error){toast(traduz(error));return}if(pr)pr.finalidade=t.value;toast('Tipo de estoque atualizado.');render(true);return}
+  if(t.hasAttribute('data-cmp-emp')){const o=opcoesPedido(t.value),f=t.form;f.predio.innerHTML=o.pred;f.conta.innerHTML=o.contas;f.centro.innerHTML=o.cc;document.getElementById('dlProd').innerHTML=o.prods}});
 
 // ---------- registro no app
 delete EM_BREVE.estoque;
