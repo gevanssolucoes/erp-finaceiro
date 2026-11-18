@@ -51,14 +51,16 @@ async function painel(empId){
 const vX=VIEWS.auditoria;
 VIEWS.auditoria=async function(){
   const h=await vX();const E=stExt();if(!E.emp)return h;
-  let p='';try{p=await painel(E.emp)}catch(err){console.warn(err)}
+  let p='';if(!E.aberto&&!E.prev){try{p=await painel(E.emp)}catch(err){console.warn(err)}}
+  // o painel das contas entra logo depois dos passos guiados
+  const put=(x,y)=>{const j=x.indexOf('<!--/passos-->');return j>=0?x.slice(0,j+14)+y+x.slice(j+14):y+x};
   // botão de lote quando há sugestões no extrato aberto
   let lote='';const ls=E.aberto&&!E.prev?(E._ls||[]):[];
   const sug=ls.filter(l=>l.status==='nao_lancado'&&l.match);
   if(sug.length&&podeEditar(E.emp)){const ab=sug.filter(l=>l.match.tipo==='aberta').length,vi=sug.length-ab;
     lote=`<div class="lote-conc"><span><b>${sug.length} sugest${sug.length>1?'ões':'ão'} pronta${sug.length>1?'s':''}:</b> ${vi?`${vi} vínculo${vi>1?'s':''} com baixas já registradas`:''}${vi&&ab?' e ':''}${ab?`${ab} conta${ab>1?'s':''} em aberto para dar baixa`:''}. Confira na lista e aceite tudo de uma vez.</span><button class="btn" data-acao="ext-aceitar-todas">Aceitar ${sug.length} sugest${sug.length>1?'ões':'ão'}</button></div>`}
-  if(!lote)return p+h;
-  const i=h.indexOf('<div class="sit-conc');return i>=0?p+h.slice(0,i)+lote+h.slice(i):p+h+lote};
+  if(!lote)return put(h,p);
+  const i=h.indexOf('<div class="sit-conc');return put(i>=0?h.slice(0,i)+lote+h.slice(i):h+lote,p)};
 
 async function aceitarTodas(btn){
   const E=stExt();const ls=(E._ls||[]).filter(l=>l.status==='nao_lancado'&&l.match);if(!ls.length)return;
