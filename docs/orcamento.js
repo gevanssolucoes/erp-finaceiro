@@ -129,7 +129,7 @@ async function abaEditar3(emp,v,ed){
     <div class="orc-bar"><div class="grp">
       ${edita?`<button class="btn" data-acao="orc-preencher">${icone('raio',15)} Preencher automático</button>`:''}
       <button class="btn ghost" data-acao="orc-exportar" title="Baixar a base em Excel para preencher">${icone('exporta',15)} Exportar Excel</button>
-      ${edita?`<button class="btn ghost" data-acao="orc-importar" title="Trazer a planilha preenchida">${icone('importa',15)} Importar Excel</button><input type="file" id="orcArq" accept=".xlsx,.xls,.csv" hidden>`:''}
+      <button class="btn ghost" data-acao="orc-importar" title="Trazer a planilha preenchida">${icone('importa',15)} Importar Excel</button><input type="file" id="orcArq" accept=".xlsx,.xls,.csv" hidden>
       <button class="btn ghost" data-acao="orc-gerar-contas" title="Lançar em contas a pagar e a receber o que está orçado">${icone('contas',15)} Gerar contas a pagar/receber</button></div>
       <div class="grp">
       <div class="seg" role="group" aria-label="Preencher por">${[['competencia','Competência'],['caixa','Caixa']].map(([k_,n])=>`<button ${edita?`data-acao="orc-base" data-base="${k_}"`:'disabled'} class="${E.base===k_?'on':''}" aria-pressed="${E.base===k_}" title="${k_==='caixa'?'Os valores digitados são o que entra e sai do caixa em cada mês':'Os valores digitados são da competência; o caixa sai pelas premissas de prazo'}">${n}</button>`).join('')}</div>
@@ -162,7 +162,7 @@ function recalc(){
   const kp=document.getElementById('orcKpis');if(kp)kp.innerHTML=kpis(T,v);
 }
 function barraMobile(v,edita,pred){
-  return `<div class="orc-bar" style="margin-top:8px"><div class="grp">${edita?`<button class="btn ghost" data-acao="orc-preencher">${icone('raio',15)} Preencher</button>`:''}<button class="btn ghost" data-acao="orc-exportar">${icone('exporta',15)} Excel</button>${edita?`<button class="btn ghost" data-acao="orc-importar">${icone('importa',15)} Importar</button><input type="file" id="orcArq" accept=".xlsx,.xls,.csv" hidden>`:''}<button class="btn ghost" data-acao="orc-gerar-contas">${icone('contas',15)} Gerar contas</button></div></div>`;
+  return `<div class="orc-bar" style="margin-top:8px"><div class="grp">${edita?`<button class="btn ghost" data-acao="orc-preencher">${icone('raio',15)} Preencher</button>`:''}<button class="btn ghost" data-acao="orc-exportar">${icone('exporta',15)} Excel</button><button class="btn ghost" data-acao="orc-importar">${icone('importa',15)} Importar</button><input type="file" id="orcArq" accept=".xlsx,.xls,.csv" hidden><button class="btn ghost" data-acao="orc-gerar-contas">${icone('contas',15)} Gerar contas</button></div></div>`;
 }
 
 // ---------- digitação
@@ -362,7 +362,11 @@ Object.assign(ACOES_ORC,{
   'orc-preencher':b=>formPreencher(b.dataset.cid),
   'repetir':b=>formPreencher(b.dataset.cid),
   'orc-exportar':()=>exportar(),
-  'orc-importar':()=>document.getElementById('orcArq')?.click(),
+  'orc-importar':()=>{const G=S._orcMd;if(!G)return;
+    if(G.v.congelada)return toast('Este orçamento está travado e não aceita importar. Crie um forecast a partir dele ou um novo orçamento.');
+    if(!podeEditar(G.emp))return toast('Seu acesso a esta empresa é só de consulta.');
+    if(G.pred==='*'){const s_=document.getElementById('orcPredio');s_?.focus();return toast('Escolha a unidade (ou “Sem unidade”) no campo ao lado para importar a planilha nela.')}
+    document.getElementById('orcArq')?.click()},
   'orc-gerar-contas':()=>formGerar(),
   'gc-lancar':b=>lancarGerar(b),
   'gc-todos':()=>{const nm=document.getElementById('gcTodos')?.value.trim();if(!nm)return toast('Digite o fornecedor ou cliente.');document.querySelectorAll('[data-gc]:not([data-gc="*"])').forEach(cb=>{if(cb.checked){const i=document.querySelector(`[data-gcp="${cb.dataset.gc}"]`);if(i)i.value=nm}})},
