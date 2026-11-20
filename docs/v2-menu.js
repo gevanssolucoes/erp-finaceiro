@@ -5,12 +5,12 @@
 if(typeof S==='undefined'||typeof ROTAS==='undefined')return;
 
 const GRUPOS_V2=[
-  ['Gestão',['gestao','fluxo-bi','producao']],
+  ['Gestão',['gestao','fluxo-bi','producao','conexoes']],
   ['Dia a dia',['painel','lancamentos','contas','nfs','pagamentos','boletos','aprovacoes']],
   ['Relatórios',['dre','fluxo','faturamento']],
   ['Controle e auditoria',['auditoria','fechamento','historico','excecoes','compras','estoque']],
   ['Planejamento',['orcamento','premissas-v3','salario']],
-  ['Cadastros',['plano','empresas','grupos','bancos','tributos','importar','usuarios']],
+  ['Cadastros',['cadastros','plano','empresas','grupos','bancos','tributos','importar','usuarios']],
   ['Pessoas',['pessoas','ausencias']],
   ['Sistema',['admin']],
 ];

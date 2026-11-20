@@ -58,14 +58,17 @@ table.map select{font:inherit;font-size:13px;color:var(--ink);background:var(--s
 .tabs button[aria-selected="true"]{background:var(--accent);color:#fff}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:9px;font-size:13px;font-weight:600;z-index:30;max-width:calc(100% - 32px)}
 [hidden]{display:none!important}
+details.link summary{cursor:pointer;font-weight:600;color:var(--accent-ink);font-size:13px}
+.lk{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.lk input{font:inherit;font-size:13px;flex:1 1 160px;min-width:0;border:1px solid var(--line);border-radius:7px;padding:8px 10px;background:var(--surface);color:var(--ink);min-height:38px}
 @media print{.faixa,.passos,.tabs,[data-nao-imprime]{display:none!important}body{background:#fff}.panel{break-inside:avoid}@page{size:A4 landscape;margin:12mm}}
 </style></head><body>
 <header class="faixa"><div class="in"><div class="marca"><img src="marca/gevans-icone.svg" alt=""><div><b>Gevans Dados</b><small>Sua planilha de orçamento e realizado vira painel de BI</small></div></div><a href="./">Conhecer o Gevans Gestor</a></div></header>
 <main class="wrap">
   <div><h1>Envie a planilha, receba as telas prontas</h1><p class="lead">Para quem já tem orçamento e realizado em Excel e quer os relatórios do Gevans Gestor sem lançar nada no sistema. A planilha é lida aqui no seu navegador e não é enviada para nenhum servidor.</p></div>
   <section class="passos" aria-label="Passos">
-    <div class="panel passo"><span class="n">Passo 1</span><h2>Baixe o modelo</h2><p class="hint" style="margin:0">Uma aba com os lançamentos (orçado e realizado) e outra, opcional, com as premissas de pagamento de cada conta. Pode usar a sua planilha também: no passo 3 você diz qual coluna é qual.</p><div><button class="btn ghost" type="button" id="btModelo">Baixar modelo de planilha</button> <button class="linkbtn" type="button" id="btExemplo">Ver com dados de exemplo</button></div></div>
-    <div class="panel passo"><span class="n">Passo 2</span><h2>Envie a base</h2><label class="drop" id="drop" for="arq"><b id="dropTxt">Arraste o arquivo aqui ou clique para escolher</b><span class="hint">Excel (.xlsx, .xls) ou CSV</span><input id="arq" type="file" accept=".xlsx,.xls,.csv" hidden></label></div>
+    <div class="panel passo"><span class="n">Passo 1</span><h2>Baixe o modelo</h2><p class="hint" style="margin:0">Uma aba com os lançamentos (orçado e realizado) e outra, opcional, com as premissas de pagamento de cada conta. Pode usar a sua própria base também, em Excel, CSV, PDF ou link de API: no passo 3 você diz qual coluna é qual.</p><div><button class="btn ghost" type="button" id="btModelo">Baixar modelo de planilha</button> <button class="linkbtn" type="button" id="btExemplo">Ver com dados de exemplo</button></div></div>
+    <div class="panel passo"><span class="n">Passo 2</span><h2>Envie a base</h2><label class="drop" id="drop" for="arq"><b id="dropTxt">Arraste o arquivo aqui ou clique para escolher</b><span class="hint">Excel, CSV, PDF com tabela ou JSON</span><input id="arq" type="file" accept=".xlsx,.xls,.csv,.pdf,.json" hidden></label>
+      <details class="link"><summary>Buscar de um link de API</summary><div class="lk"><input id="url" type="url" placeholder="https://… (JSON ou CSV)" aria-label="Link da API"><input id="token" type="password" placeholder="Token (opcional)" aria-label="Token" autocomplete="off"><button class="btn ghost" type="button" id="btLink">Buscar</button></div><p class="hint" style="margin:6px 0 0">Banco SQL (PostgreSQL, MySQL, SQL Server) e APIs que não liberam o navegador: use a tela Conexões de dados no Gevans Gestor.</p></details></div>
     <div class="panel passo"><span class="n">Passo 3</span><h2>Confira as colunas</h2><div id="mapa"><p class="hint" style="margin:0">Aparece aqui depois do envio.</p></div></div>
   </section>
   <div id="avisos"></div>
@@ -73,6 +76,7 @@ table.map select{font:inherit;font-size:13px;color:var(--ink);background:var(--s
   <div id="view"></div>
 </main>
 <script src="vendor/xlsx.full.min.js"></script>
+<script src="fontes-dados.js"></script>
 <script src="dados.js"></script>
 <script src="v3-bi.js"></script>
 <script>iniciarDados()</script>
