@@ -326,6 +326,98 @@ table.mapa i{display:block;height:16px;border-radius:3px;cursor:pointer}
 .side .logo-g>rect:first-child{fill:#1b3a44}
 .marca-v{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}.marca-v svg{height:118px;width:auto;max-width:100%}.marca-v small{color:var(--ink-2);font-size:12px}
 @media (min-width:821px){.side>.brand{flex-direction:column;align-items:flex-start;gap:8px;position:relative}.side>.brand .recolhe{position:absolute;top:0;right:0}.app.mini .side>.brand{align-items:center}.app.mini .side>.brand .recolhe{position:static}}
+
+/* ---- v4: comparação, fluxo, filtros compactos, busca na tela e marca ---- */
+.g-auto{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.g-auto .tile .val{font-size:clamp(16px,1.35vw,21px);white-space:nowrap}
+.tile .chip{white-space:normal}
+.grp-row td .chip{text-transform:none;letter-spacing:0}
+.fx-pop .dd-busca{width:auto;height:auto;accent-color:auto}
+.chip .vs{font-weight:500;opacity:.8;font-size:10.5px}
+.tile .cmp>span:not(.chip){color:var(--ink-2)}
+.cmp-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.cmp-lbl{display:inline-flex;align-items:center;gap:6px;font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--ink-2)}
+.cmp-info{font-size:12.5px}
+.panel .cmp-bar{border:0;padding:0 0 10px;background:none}
+.pct-de{font-size:10px;color:var(--ink-3);margin-left:4px;font-family:var(--f-body)}
+.dre-comp th.col-base,.dre-comp td.col-base,td.col-base,th.col-base{background:color-mix(in srgb,var(--surface-2) 70%,transparent);color:var(--ink-2)}
+tr.tot td.col-base{background:var(--surface-2)}
+.fbar{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.fb-item{display:flex;flex-direction:column;gap:3px;min-width:0}
+.fb-item>span{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--ink-2)}
+.fbar .fx-chips{margin:0 0 0 auto}
+.tbl-fluxo tr.sec td{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:700;background:var(--surface);padding-top:12px}
+.tbl-fluxo tr.saldo td{background:var(--accent-soft);color:var(--accent-ink)}
+.tbl-fluxo tr.saldo td.neg{color:var(--bad)}
+td.prev{font-style:italic;opacity:.8}
+tr.prevrow td:first-child{font-style:italic}
+th .unit{display:block;font-size:9.5px;letter-spacing:.03em;text-transform:none;color:var(--ink-3);font-weight:500}
+.tile .val.neg{color:var(--bad)}
+.veredito{display:flex;gap:10px;align-items:flex-start;border-radius:9px;padding:10px 12px;margin-bottom:12px}
+.veredito b{display:block}.veredito span{font-size:12.5px;color:var(--ink-2)}
+.veredito.good{background:var(--good-soft);color:var(--good)}.veredito.bad{background:var(--bad-soft);color:var(--bad)}
+.veredito svg{flex:none;margin-top:2px}
+/* filtros em quadro compacto com listas suspensas */
+.fx-pop{padding:12px 14px;gap:10px}
+.fx-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:12.5px}.fx-head b{display:inline-flex;align-items:center;gap:6px;font-size:13.5px}
+.fx-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
+@media (max-width:640px){.fx-grid{grid-template-columns:minmax(0,1fr)}}
+.dd{position:relative;min-width:0}
+.dd>summary{list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:7px;padding:6px 10px;display:flex;flex-direction:column;gap:1px;background:var(--surface)}
+.dd>summary::-webkit-details-marker{display:none}
+.dd>summary::after{content:'▾';position:absolute;right:10px;top:12px;color:var(--ink-3);font-size:11px}
+.dd[open]>summary{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.dd-t{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);font-weight:700}
+.dd-v{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:14px}
+.dd-list{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:9px;box-shadow:0 12px 30px rgba(10,20,24,.18);padding:8px;display:flex;flex-direction:column;gap:6px;min-width:240px}
+.dd-busca{border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit;background:var(--surface);color:var(--ink)}
+.dd-itens{max-height:220px;overflow:auto;display:flex;flex-direction:column}
+.dd-itens label{display:flex;gap:8px;align-items:center;padding:4px 2px;font-size:13px;cursor:pointer}
+.dd-itens label small{margin-left:auto;font-family:var(--f-num);font-size:10.5px}
+.dd-itens label[hidden]{display:none}
+.dd-acts{display:flex;justify-content:space-between;align-items:center;font-size:12px}
+.fx-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* busca por digitação em qualquer tela */
+.busca-tela{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:0 8px;min-width:0}
+.busca-tela:focus-within,.busca-tela.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.busca-tela svg{width:15px;height:15px;flex:none;fill:none;stroke:var(--ink-2);stroke-width:2;stroke-linecap:round}
+.busca-tela input{border:0;outline:0;background:transparent;padding:6px 0;width:150px;font:inherit;color:var(--ink);min-width:0}
+.busca-tela small{font-family:var(--f-num);font-size:11px;color:var(--accent-ink);white-space:nowrap}
+.fb-oculta{display:none!important}
+@media (max-width:820px){.busca-tela{flex:1 1 100%}.busca-tela input{width:100%}}
+/* marca Gevans em destaque */
+.top{border-top:3px solid transparent;border-image:linear-gradient(90deg,#0F2A33,#0D5F73 40%,#4FB3C9 80%,#F2B544) 1}
+.gv-assina{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:12px 8px 4px;border-top:1px solid var(--side-hi)}
+.gv-assina .logo-g{width:34px;height:34px}
+.gv-assina b{color:#fff;font-size:13px;letter-spacing:.01em;line-height:1.1}
+.gv-assina small{color:var(--side-ink-2);font-size:11px;display:block}
+.gv-assina .gv-ouro{display:block;width:28px;height:3px;border-radius:2px;background:#F2B544}
+.app.mini .gv-assina b,.app.mini .gv-assina small,.app.mini .gv-assina .gv-ouro{display:none}
+.tile{position:relative;overflow:hidden}
+.tile::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,#4FB3C9,#0D5F73)}
+.gv-rodape{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--ink-3);font-size:11.5px;padding:6px 0 0}
+.gv-rodape .logo-g{width:22px;height:22px}
+.gv-rodape b{color:var(--ink-2)}
+.passos{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.passos li{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:9px;padding:9px 12px;min-width:0;color:var(--ink-2)}
+.passos li b{display:block;font-size:13px;color:var(--ink)}.passos li small{display:block;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.passos .pn{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:none;font-weight:700;font-size:12.5px;background:var(--surface-2);color:var(--ink-2)}
+.passos li.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}.passos li.on .pn{background:var(--accent);color:#fff}
+.passos li.ok .pn{background:var(--good);color:#fff}
+.passo-agora{margin-top:10px;font-size:13px;background:var(--accent-soft);color:var(--accent-ink);border-radius:8px;padding:8px 12px}
+.pn-mini{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;margin:0 4px 0 0;vertical-align:1px}
+@media (max-width:820px){.passos{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sk{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;flex:none}
+.sk-real{background:var(--accent)}.sk-prev{background:repeating-linear-gradient(45deg,var(--accent) 0 2px,transparent 2px 4px);border:1px solid var(--accent)}.sk-orc{background:#6250D6}
+.sl-legenda{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);padding:0 4px}
+.sl-legenda b{color:var(--ink)}
+.tile-saldos{grid-column:span 2}.tile-saldos .sl b{white-space:nowrap}
+.tile-saldos .sl{display:flex;align-items:center;gap:4px;font-size:12.5px;color:var(--ink-2)}
+.tile-saldos .sl b{margin-left:auto;font-family:var(--f-num);font-weight:500;font-size:14.5px;color:var(--ink)}.tile-saldos .sl b.neg{color:var(--bad)}
+.tbl-fluxo tr.sl-orc td{background:color-mix(in srgb,#6250D6 10%,var(--surface));color:#4b3fb0}
+.tbl-fluxo tr.sl-prev td{font-style:italic}
+.tbl-rom td.sub{padding-left:26px;color:var(--ink-2)}.tbl-rom tr.tot td.sub{color:var(--ink)}
+.tbl-rom tr.sec td{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:700;padding-top:12px}
 </style>
 </head><body>
 
@@ -334,6 +426,7 @@ table.mapa i{display:block;height:16px;border-radius:3px;cursor:pointer}
   <aside class="side">
     <div class="brand"><span id="brandLogo"></span><div><b id="brandNome">Gevans Gestor</b><small id="brandSub">Gevans Soluções</small></div><button class="recolhe" id="btnRecolhe" type="button" aria-label="Recolher menu" title="Recolher menu"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button></div>
     <nav class="nav" id="nav"></nav>
+    <div class="gv-assina" id="gvAssina" title="Gevans Gestor · Gevans Soluções"></div>
     <div class="side-foot" id="sideFoot"></div>
   </aside>
   <div class="main">
@@ -341,7 +434,8 @@ table.mapa i{display:block;height:16px;border-radius:3px;cursor:pointer}
       <div><h1 id="title">Painel</h1><div class="sub" id="subtitle"></div></div>
       <div class="filters" id="filtros">
         <button class="fbtn" id="fEmp" aria-haspopup="true" aria-expanded="false"><span id="fEmpTxt">Empresas</span><small>▾</small></button>
-        <button class="fbtn" id="fMais" type="button" hidden>Filtros</button>
+        <label class="busca-tela" id="fBuscaBox" title="Filtra as linhas das tabelas desta tela"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="fBuscaTela" type="search" placeholder="Filtrar nesta tela…" autocomplete="off" aria-label="Filtrar nesta tela"><small id="fBuscaN"></small></label>
+        <button class="fbtn" id="fMais" type="button" aria-haspopup="true" aria-expanded="false" hidden>Filtros</button>
         <select id="fAno" aria-label="Ano"></select>
         <div class="seg" id="fTipo" role="group" aria-label="Tipo de período"><button data-per="ano">Ano</button><button data-per="tri">Trimestre</button><button data-per="mes">Mês</button></div>
         <select id="fPer" aria-label="Período"></select>
@@ -516,7 +610,7 @@ async function parcelasAbertas(){
   return S.parcAbertas;
 }
 async function parcelasPagas(a){
-  if(!S.pagas[a])S.pagas[a]=todos(()=>sb.from('parcelas').select('id,empresa_id,valor,valor_pago,data_pagamento,conta_bancaria_id,lancamentos(predio_id,conta_id,centro_custo_id,parceiro_id)').eq('status','paga').gte('data_pagamento',a+'-01-01').lte('data_pagamento',a+'-12-31')).catch(e=>{delete S.pagas[a];throw e});
+  if(!S.pagas[a])S.pagas[a]=todos(()=>sb.from('parcelas').select('id,empresa_id,lancamento_id,valor,valor_pago,vencimento,data_pagamento,conta_bancaria_id,lancamentos(predio_id,conta_id,centro_custo_id,parceiro_id,descricao)').eq('status','paga').gte('data_pagamento',a+'-01-01').lte('data_pagamento',a+'-12-31')).catch(e=>{delete S.pagas[a];throw e});
   return S.pagas[a];
 }
 function invalidar(){S.lanc={};S.parcAbertas=null;S.pagas={}}
@@ -572,54 +666,78 @@ function chartFluxo({labels,ent,sai,acum}){
   pts.forEach((p,i)=>s+=`<circle cx="${p[0]}" cy="${p[1]}" r="2.6" fill="var(--accent)"><title>${labels[i]} · acumulado ${brl.format(acum[i])}</title></circle>`);
   return '<div class="chart-scroll">'+s+'</svg></div>';
 }
-function deltaChip(atual,ant,inverso=false){if(!ant)return'<span class="chip mute">sem base</span>';const d=(atual-ant)/Math.abs(ant);const bom=inverso?d<=0:d>=0;return `<span class="chip ${Math.abs(d)<.01?'mute':bom?'good':'bad'}">${d>=0?'▲':'▼'} ${pct(Math.abs(d))}</span>`}
-function ppDiff(a,b){if(!isFinite(a)||!isFinite(b))return'';const d=(a-b)*100;return `<span class="chip ${Math.abs(d)<.2?'mute':d>0?'good':'bad'}">${d>0?'+':''}${d.toFixed(1).replace('.',',')} p.p.</span>`}
+function deltaChip(atual,ant,inverso=false,vs=''){if(!ant)return'<span class="chip mute">sem base</span>';const d=(atual-ant)/Math.abs(ant);const bom=inverso?d<=0:d>=0;return `<span class="chip ${Math.abs(d)<.01?'mute':bom?'good':'bad'}" title="${vs?'comparado com '+esc(vs):''}">${d>=0?'▲':'▼'} ${pct(Math.abs(d))}${vs?` <small class="vs">vs ${esc(vs)}</small>`:''}</span>`}
+function ppDiff(a,b,vs=''){if(!isFinite(a)||!isFinite(b))return'';const d=(a-b)*100;return `<span class="chip ${Math.abs(d)<.2?'mute':d>0?'good':'bad'}">${d>0?'+':''}${d.toFixed(1).replace('.',',')} p.p.${vs?` <small class="vs">vs ${esc(vs)}</small>`:''}</span>`}
 function cell(v,cls){return cls==='pct'?`<td class="n">${pct(v)}</td>`:`<td class="n ${v<0?'neg':''}">${num.format(Math.round(v))}</td>`}
 function escopo(){const es=selEmp(),us=selUn(),all=unidades();return es.length===S.empresas.length&&us.length===all.length?(S.empresas.length>1?'Consolidado de todas as empresas':nomeEmp(es[0])||''):es.length===1?nomeEmp(es[0])+' · '+us.map(u=>u.nome).join(', '):`${es.length} empresas · ${us.length} unidades`}
 function vazio(titulo,texto,acao=''){return `<div class="panel empty"><b>${titulo}</b>${texto}${acao?`<div style="margin-top:14px">${acao}</div>`:''}</div>`}
 const semDados=()=>vazio('Nenhum lançamento neste período',`<p style="margin:0">Não há lançamentos em ${labelPer()} para ${esc(escopo())}. Troque o período ou importe dados antigos.</p>`,podeEditarAlguma()?'<a class="btn" href="#importar">Importar planilha</a>':'');
 
+// ===================== Comparação (período anterior, mesmo período do ano passado ou orçamento)
+S.cmp=S.cmp||'ant';
+function baseCmp(){
+  if(S.cmp==='ano')return {tipo:'ano',a:S.ano-1,p:S.per,nome:labelPer(S.ano-1,S.per),curto:labelCurto(S.ano-1,S.per)};
+  if(S.cmp==='orc')return {tipo:'orc',a:S.ano,p:S.per,nome:'orçamento de '+labelPer(),curto:'orçado'};
+  const ant=perAnterior();return {tipo:'ant',a:ant.a,p:ant.p,nome:labelPer(ant.a,ant.p),curto:labelCurto(ant.a,ant.p)};
+}
+async function versaoOrc(emp,a){const vs=await versoesDe(emp);return vs.find(v=>v.ano===a&&v.tipo==='orcamento'&&v.congelada)||vs.find(v=>v.ano===a&&v.tipo==='orcamento')||null}
+// linhas do orçamento (competência) das empresas e unidades escolhidas, no período
+async function orcadoDoPer(a=S.ano,p=S.per){const ms=new Set(mesesDoPer(a,p));let out=[];const vers=[];
+  for(const e of selEmp()){const v=await versaoOrc(e.id,a);if(!v)continue;vers.push(v);const ls=await linhasDe(v.id);out=out.concat(ls.filter(l=>ms.has(l.competencia.slice(0,7))&&naSel(l.empresa_id,l.predio_id)&&passaFx(l)))}
+  out.vers=vers;return out}
+async function lancBase(B){return B.tipo==='orc'?orcadoDoPer():lancDoPer(B.a,B.p)}
+function seletorCmp(){const B=baseCmp(),ant=perAnterior();
+  const op=[['ant',S.per.tipo==='ano'?'Ano anterior':S.per.tipo==='tri'?'Trimestre anterior':'Mês anterior',labelCurto(ant.a,ant.p)],['ano','Mesmo período do ano passado',labelCurto(S.ano-1,S.per)],['orc','Orçamento',labelCurto()]];
+  return `<div class="cmp-bar"><span class="cmp-lbl">${icone('filtro',14)} Comparar com</span><div class="seg" role="group" aria-label="Comparar com">${op.map(([id,n,s])=>`<button data-cmp="${id}" class="${S.cmp===id?'on':''}" title="${esc(s)}">${n}</button>`).join('')}</div><span class="muted cmp-info">Todo % abaixo diz contra o quê: <b>${esc(B.nome)}</b></span></div>`}
+
 // ===================== Painel
 async function vPainel(){
-  const ant=perAnterior();
-  const [atual,anterior,ano,anoAnt,abertas]=await Promise.all([lancDoPer(),lancDoPer(ant.a,ant.p),lancAno(S.ano),lancAno(S.ano-1),parcelasAbertas()]);
+  const B=baseCmp();
+  const [atual,base,ano,anoAnt,abertas,orc]=await Promise.all([lancDoPer(),lancBase(B),lancAno(S.ano),lancAno(S.ano-1),parcelasAbertas(),orcadoDoPer().catch(()=>[])]);
   if(!atual.length)return semDados();
-  const d=dre(atual),dA=dre(anterior);
+  const d=dre(atual),dB=dre(base),vs=B.curto;
   const ps=abertas.filter(parcNaSel);
   const vencP=ps.filter(p=>p.vencimento<HOJE&&p.valor<0),vencR=ps.filter(p=>p.vencimento<HOJE&&p.valor>0);
   const sem=ps.filter(p=>p.vencimento>=HOJE&&p.vencimento<=addDias(HOJE,7));
+  const ref=v=>`<span>${B.tipo==='orc'?'orçado':esc(vs)}: ${k(v)}</span>`;
   const tiles=[
-    ['Receita bruta',k(d.rb),deltaChip(d.rb,dA.rb),'vs '+labelCurto(ant.a,ant.p)],
-    ['Margem bruta',pct(d.mb),ppDiff(d.mb,dA.mb),'lucro bruto '+k(d.lb)],
-    ['EBITDA',k(d.eb),deltaChip(d.eb,dA.eb),'margem '+pct(d.me)],
-    ['Lucro líquido',k(d.ll),deltaChip(d.ll,dA.ll),'margem '+pct(d.ml)],
-    ['Vencido em aberto',k(-sum(vencP.map(p=>p.valor))),vencP.length?`<span class="chip bad">${vencP.length} a pagar</span>`:'<span class="chip good">nada a pagar</span>',vencR.length?k(sum(vencR.map(p=>p.valor)))+' a receber':'']];
+    ['Receita bruta',k(d.rb),deltaChip(d.rb,dB.rb,false,vs),ref(dB.rb)],
+    ['Receita líquida',k(d.rl),deltaChip(d.rl,dB.rl,false,vs),`<span>${pct(d.rl/d.rb)} da receita bruta</span>`],
+    ['Margem bruta',pct(d.mb),ppDiff(d.mb,dB.mb,vs),`<span>lucro bruto ${k(d.lb)} · % da receita líquida</span>`],
+    ['EBITDA',k(d.eb),deltaChip(d.eb,dB.eb,false,vs),`<span>margem ${pct(d.me)} da receita líquida</span>`],
+    ['Lucro líquido',k(d.ll),deltaChip(d.ll,dB.ll,false,vs),`<span>margem ${pct(d.ml)} da receita líquida</span>`],
+    ['Vencido em aberto',k(-sum(vencP.map(p=>p.valor))),vencP.length?`<span class="chip bad">${vencP.length} a pagar</span>`:'<span class="chip good">nada a pagar</span>',vencR.length?`<span>${k(sum(vencR.map(p=>p.valor)))} a receber atrasado</span>`:'']];
   const filtroUn=l=>naSel(l.empresa_id,l.predio_id);
   const recMes=MESES.map((_,i)=>dre(ano.filter(l=>filtroUn(l)&&l.competencia.slice(5,7)==String(i+1).padStart(2,'0'))).rb);
   const recAnt=MESES.map((_,i)=>dre(anoAnt.filter(l=>filtroUn(l)&&l.competencia.slice(5,7)==String(i+1).padStart(2,'0'))).rb);
   const hi=new Set(mesesDoPer().map(x=>+x.slice(5)-1));
-  // por empresa e unidade
+  // resultado por empresa e unidade contra a meta (orçamento do período)
+  const temOrc=orc.length>0;
+  const meta=(dr,dO)=>{if(!dO||!dO.n)return '<span class="chip mute">sem orçamento</span>';const dif=dr.ll-dO.ll,tol=Math.max(Math.abs(dO.ll)*.1,1);
+    return dif>=0?'<span class="chip good">✓ Dentro da meta</span>':dif>=-tol?'<span class="chip warn">Perto da meta</span>':'<span class="chip bad">Fora da meta</span>'};
+  const linhaRes=(nome,cls,dr,dO,share)=>`<tr class="${cls}"><td>${nome}</td><td class="n">${k(dr.rb)}</td><td class="n">${dO&&dO.n?k(dO.rb):'–'}</td><td class="n">${dO&&dO.n?deltaChip(dr.rb,dO.rb,false,'orçado'):''}</td><td class="n ${dr.ll<0?'neg':''}">${k(dr.ll)}</td><td class="n">${dO&&dO.n?k(dO.ll):'–'}</td><td class="n ${dO&&dO.n&&dr.ll-dO.ll<0?'neg':''}">${dO&&dO.n?k(dr.ll-dO.ll):'–'}</td><td>${meta(dr,dO)}</td><td class="n">${pct(dr.ml)}</td><td class="n">${share}</td></tr>`;
   let comp='';
-  selEmp().forEach(e=>{const us=selUn().filter(u=>u.emp===e);const de=dre(atual.filter(l=>l.empresa_id===e.id));
-    comp+=`<tr class="grp-row"><td>${esc(nomeEmp(e))}</td><td class="n">${k(de.rb)}</td><td class="n">${pct(de.mb)}</td><td class="n">${k(de.eb)}</td><td class="n ${de.ll<0?'neg':''}">${k(de.ll)}</td><td class="n">${pct(de.ml)}</td><td class="n">${pct(de.rb/d.rb)}</td></tr>`;
-    if(us.length>1)us.forEach(u=>{const du=dre(atual.filter(l=>unidadeDe(l.empresa_id,l.predio_id)===u.key));if(!du.n)return;comp+=`<tr class="l3"><td>${esc(u.nome)}</td><td class="n">${k(du.rb)}</td><td class="n">${pct(du.mb)}</td><td class="n">${k(du.eb)}</td><td class="n ${du.ll<0?'neg':''}">${k(du.ll)}</td><td class="n">${pct(du.ml)}</td><td class="n">${pct(du.rb/d.rb)}</td></tr>`})});
-  comp+=`<tr class="tot"><td>Total da seleção</td><td class="n">${k(d.rb)}</td><td class="n">${pct(d.mb)}</td><td class="n">${k(d.eb)}</td><td class="n">${k(d.ll)}</td><td class="n">${pct(d.ml)}</td><td class="n">100,0%</td></tr>`;
-  // maiores despesas e centros de custo
-  const porNome=C=>{const o={};for(const [id,v] of Object.entries(C)){const c=conta(id);const key=c?c.codigo+' '+c.nome:'?';o[key]=(o[key]||0)+v}return o};
+  selEmp().forEach(e=>{const us=selUn().filter(u=>u.emp===e);const de=dre(atual.filter(l=>l.empresa_id===e.id)),dO=temOrc?dre(orc.filter(l=>l.empresa_id===e.id)):null;
+    comp+=linhaRes(esc(nomeEmp(e)),'grp-row',de,dO,pct(de.rb/d.rb));
+    if(us.length>1)us.forEach(u=>{const f=l=>unidadeDe(l.empresa_id,l.predio_id)===u.key;const du=dre(atual.filter(f));if(!du.n)return;comp+=linhaRes(esc(u.nome),'l3',du,temOrc?dre(orc.filter(f)):null,pct(du.rb/d.rb))})});
+  comp+=linhaRes('Total da seleção','tot',d,temOrc?dre(orc):null,'100,0%');
+  // maiores despesas (só o nome da conta) e centros de custo
+  const porNome=C=>{const o={};for(const [id,v] of Object.entries(C)){const c=conta(id);const key=c?c.nome:'Conta não encontrada';o[key]=(o[key]||0)+v}return o};
   const desp=Object.entries(porNome(d.contas)).filter(([,v])=>v<0).sort((a,b)=>a[1]-b[1]).slice(0,8);const maxD=Math.abs(desp[0]?.[1]||1);
-  const dAntC=porNome(dA.contas);
-  const porCC={};atual.filter(l=>l.valor<0).forEach(l=>{const n=centro(l.centro_custo_id)?.nome||'Sem centro de custo';porCC[n]=(porCC[n]||0)+ +l.valor});
+  const dBC=porNome(dB.contas);const totDesp=-sum(Object.values(d.contas).filter(v=>v<0));
+  const porCC={};atual.filter(l=>l.valor<0&&!ehTransf(conta(l.conta_id))).forEach(l=>{const n=centro(l.centro_custo_id)?.nome||'Sem centro de custo';porCC[n]=(porCC[n]||0)+ +l.valor});
   const cc=Object.entries(porCC).sort((a,b)=>a[1]-b[1]);const totCC=sum(cc.map(x=>x[1]))||1;
   const alerts=[];
   if(vencP.length)alerts.push(['bad','#contas',`${vencP.length} conta${vencP.length>1?'s':''} a pagar vencida${vencP.length>1?'s':''}`,brl.format(-sum(vencP.map(p=>p.valor)))+' em aberto']);
   if(vencR.length)alerts.push(['warn','#contas',`${vencR.length} recebimento${vencR.length>1?'s':''} atrasado${vencR.length>1?'s':''}`,brl.format(sum(vencR.map(p=>p.valor)))+' a receber']);
   alerts.push(['accent','#contas',`${sem.length} vencimento${sem.length===1?'':'s'} nos próximos 7 dias`,`${brl.format(-sum(sem.filter(p=>p.valor<0).map(p=>p.valor)))} a pagar · ${brl.format(sum(sem.filter(p=>p.valor>0).map(p=>p.valor)))} a receber`]);
+  if(temOrc){const dO=dre(orc);const dif=d.ll-dO.ll;alerts.push([dif>=0?'good':'warn','#orcamento',dif>=0?'Resultado dentro do orçamento':'Resultado abaixo do orçamento',`Lucro líquido ${k(d.ll)} contra ${k(dO.ll)} orçado (${dif>=0?'+':''}${k(dif)})`])}
   if(d.semGrupo)alerts.push(['warn','#plano','Lançamentos em contas sem grupo da DRE',brl.format(d.semGrupo)+' fora da DRE. Defina o grupo no plano de contas.']);
   const semPred=atual.filter(l=>!l.predio_id&&S.predios.some(p=>p.empresa_id===l.empresa_id));
   if(semPred.length)alerts.push(['warn','#lancamentos',`${semPred.length} lançamento${semPred.length>1?'s':''} sem unidade`,'Ficam fora da visão por unidade.']);
   const ind=await faixaIndicadores();
-  return ind+chipsFx()+`
-  <section class="grid g-tiles">${tiles.map(t=>`<div class="tile"><div class="lbl">${t[0]}</div><div class="val">${t[1]}</div><div class="cmp">${t[2]}<span>${t[3]}</span></div></div>`).join('')}</section>
+  return ind+seletorCmp()+chipsFx()+`
+  <section class="grid g-tiles g-auto">${tiles.map(t=>`<div class="tile"><div class="lbl">${t[0]}</div><div class="val">${t[1]}</div><div class="cmp">${t[2]}${t[3]}</div></div>`).join('')}</section>
   <section class="grid g-2">
     <div class="panel"><div class="ph"><div><h2>Receita bruta por mês · ${S.ano}</h2><p class="hint">Barras fortes: ${labelPer()}. Linha: ${S.ano-1}.</p></div></div>
       ${chartBarsLine({labels:MESES,bars:recMes,line:recAnt,hi,nomeBar:'Receita '+S.ano,nomeLine:'Receita '+(S.ano-1)})}
@@ -628,105 +746,252 @@ async function vPainel(){
       ${alerts.map(a=>`<a class="alert" href="${a[1]}" style="color:inherit;text-decoration:none"><span class="dot" style="background:var(--${a[0]})"></span><div><b>${a[2]}</b><small>${a[3]}</small></div></a>`).join('')}
     </div></div>
   </section>
-  <div class="panel"><div class="ph"><div><h2>Resultado por empresa e unidade</h2><p class="hint">${labelPer()} · regime de competência</p></div></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Empresa / unidade</th><th class="n">Receita bruta</th><th class="n">Margem bruta</th><th class="n">EBITDA</th><th class="n">Lucro líquido</th><th class="n">Margem líq.</th><th class="n">% da receita</th></tr></thead><tbody>${comp}</tbody></table></div></div>
+  <div class="panel"><div class="ph"><div><h2>Resultado por empresa e unidade · meta do orçamento</h2><p class="hint">${labelPer()} · regime de competência · ${temOrc?`meta = ${esc([...new Set(orc.vers.map(v=>v.nome))].join(', '))}`:`sem orçamento de ${S.ano} cadastrado: cadastre em <a href="#orcamento">Orçamento</a> para ver a meta`}. Margem líquida = lucro líquido ÷ receita líquida.</p></div></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Empresa / unidade</th><th class="n">Receita bruta</th><th class="n">Receita orçada</th><th class="n">vs orçado</th><th class="n">Lucro líquido</th><th class="n">Meta (lucro orçado)</th><th class="n">Diferença</th><th>Situação</th><th class="n">Margem líq.</th><th class="n">% da receita total</th></tr></thead><tbody>${comp}</tbody></table></div></div>
   <section class="grid g-2e">
-    <div class="panel"><h2>Maiores despesas</h2><p class="hint">${labelPer()} · comparado com ${labelCurto(ant.a,ant.p)}</p>
-      ${desp.length?`<div class="tbl-wrap"><table><thead><tr><th>Conta</th><th class="n">Valor</th><th></th><th class="n">Variação</th></tr></thead><tbody>
-      ${desp.map(([id,v])=>{return `<tr><td>${esc(id)}</td><td class="n">${num.format(Math.round(-v))}</td><td><div class="bar-cell"><span style="width:${Math.round(80*Math.abs(v)/maxD)}px"></span></div></td><td class="n">${deltaChip(-v,-(dAntC[id]||0),true)}</td></tr>`}).join('')}</tbody></table></div>`:'<p class="muted">Sem despesas no período.</p>'}</div>
-    <div class="panel"><h2>Despesas por centro de custo</h2><p class="hint">${labelPer()} · custos e despesas</p>
+    <div class="panel"><h2>Maiores despesas</h2><p class="hint">${labelPer()} · variação contra ${esc(B.nome)} · % = parte do total de custos e despesas</p>
+      ${desp.length?`<div class="tbl-wrap"><table><thead><tr><th>Conta</th><th class="n">Valor</th><th class="n">% do total</th><th></th><th class="n">vs ${esc(vs)}</th></tr></thead><tbody>
+      ${desp.map(([id,v])=>`<tr><td>${esc(id)}</td><td class="n">${num.format(Math.round(-v))}</td><td class="n">${pct(-v/totDesp)}</td><td><div class="bar-cell"><span style="width:${Math.round(80*Math.abs(v)/maxD)}px"></span></div></td><td class="n">${deltaChip(-v,-(dBC[id]||0),true)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">Sem despesas no período.</p>'}</div>
+    <div class="panel"><h2>Despesas por centro de custo</h2><p class="hint">${labelPer()} · % = parte do total de custos e despesas</p>
       ${cc.length?`<div class="tbl-wrap"><table><thead><tr><th>Centro de custo</th><th class="n">Valor</th><th class="n">% do total</th><th></th></tr></thead><tbody>
       ${cc.map(([n,v])=>`<tr><td>${esc(n)}</td><td class="n">${num.format(Math.round(-v))}</td><td class="n">${pct(v/totCC)}</td><td><div class="bar-cell"><span style="width:${Math.round(90*v/totCC)}px"></span></div></td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">Sem despesas no período.</p>'}</div>
   </section>`;
 }
 
 // ===================== DRE
+// % de cada linha sobre a receita líquida; a receita líquida mostra o % sobre a receita bruta
+function pctRL(d,key,cls){if(cls==='pct')return '<td class="n"></td>';if(key==='rl')return `<td class="n" title="Receita líquida ÷ receita bruta">${pct(d.rl/d.rb)}<span class="pct-de">da RB</span></td>`;return `<td class="n">${d.rl?pct(d[key]/d.rl):'–'}</td>`}
 async function vDRE(){
   const atual=await lancDoPer();
   if(!atual.length)return semDados();
-  let cols;
+  const comp=S.dreModo==='comp';let cols,B=null;
   if(S.dreModo==='mes'){const ms=mesesDoPer();cols=ms.length>1?ms.map(m=>({nome:MESES[+m.slice(5)-1]+'/'+m.slice(2,4),ls:atual.filter(l=>l.competencia.startsWith(m))})):[];cols.push({nome:ms.length>1?'Total':labelCurto(),ls:atual,tot:true})}
   else if(S.dreModo==='unid'){cols=selUn().map(u=>({nome:(S.empresas.length>1?nomeEmp(u.emp)+'\n':'')+u.nome,ls:atual.filter(l=>unidadeDe(l.empresa_id,l.predio_id)===u.key)})).filter(c=>c.ls.length);cols.push({nome:'Total',ls:atual,tot:true})}
-  else{const ant=perAnterior();const [la,ly]=await Promise.all([lancDoPer(ant.a,ant.p),lancDoPer(S.ano-1,S.per)]);
-    cols=[{nome:labelCurto(),ls:atual,tot:true},{nome:labelCurto(ant.a,ant.p),ls:la,var:0},{nome:labelCurto(S.ano-1,S.per),ls:ly,var:0}]}
-  const D=cols.map(c=>dre(c.ls));const T=D[cols.findIndex(c=>c.tot)];
-  const comp=S.dreModo==='comp';
-  const head=`<tr><th>Linha</th>${cols.map((c,i)=>`<th class="n">${c.nome.split('\n').map((x,j)=>j?`<span class="unit">${esc(x)}</span>`:esc(x)).join('')}</th>${comp&&i>0?'<th class="n">Var.</th>':''}`).join('')}${comp?'':'<th class="n">% RL</th>'}</tr>`;
+  else{B=baseCmp();const base=await lancBase(B);
+    cols=[{nome:(B.tipo==='orc'?'Orçado\n':'Comparação\n')+(B.tipo==='orc'?labelCurto():B.curto),ls:base,base:true},{nome:'Realizado\n'+labelCurto(),ls:atual,tot:true}]}
+  const D=cols.map(c=>dre(c.ls));const ti=cols.findIndex(c=>c.tot),T=D[ti];
+  const th=n=>n.split('\n').map((x,j)=>j?`<span class="unit">${esc(x)}</span>`:esc(x)).join('');
+  const head=comp?`<tr><th>Linha</th><th class="n col-base">${th(cols[0].nome)}</th><th class="n col-base">% RL</th><th class="n">${th(cols[1].nome)}</th><th class="n">% RL</th><th class="n">Variação R$</th><th class="n">Variação %</th></tr>`
+    :`<tr><th>Linha</th>${cols.map(c=>`<th class="n">${th(c.nome)}</th>`).join('')}<th class="n">% RL</th></tr>`;
   const zero=key=>D.every(d=>!d[key]);
+  const cC=(v,cls,extra='')=>cls==='pct'?`<td class="n ${extra}">${pct(v)}</td>`:`<td class="n ${extra} ${v<0?'neg':''}">${num.format(Math.round(v))}</td>`;
   let rows='';
   for(const [n,key,cls,grupos] of LINHAS_DRE){
     if((key==='ou'||key==='ir')&&zero(key))continue;if(key==='lair'&&zero('ou')&&zero('ir'))continue;
     const aberto=grupos&&S.abertos.has(key);
-    rows+=`<tr class="${cls}${grupos?' click':''}" ${grupos?`data-abre="${key}"`:''}><td>${grupos?(aberto?'▾ ':'▸ '):''}${n}</td>${D.map((d,i)=>cell(d[key],cls)+(comp&&i>0?`<td class="n">${cls==='pct'?ppDiff(D[0][key],d[key]):deltaChip(D[0][key],d[key])}</td>`:'')).join('')}${comp?'':`<td class="n">${cls==='pct'?'':pct(T[key]/T.rl)}</td>`}</tr>`;
+    const ini=`<tr class="${cls}${grupos?' click':''}" ${grupos?`data-abre="${key}"`:''}><td>${grupos?(aberto?'▾ ':'▸ '):''}${n}</td>`;
+    if(comp){const b=D[0][key],a=D[1][key];
+      rows+=ini+cC(b,cls,'col-base')+pctRL(D[0],key,cls).replace('class="n"','class="n col-base"')+cC(a,cls)+pctRL(D[1],key,cls)+(cls==='pct'?`<td class="n"></td><td class="n">${ppDiff(a,b)}</td>`:`${cC(a-b,'')}<td class="n">${deltaChip(a,b)}</td>`)+'</tr>'}
+    else rows+=ini+D.map(d=>cC(d[key],cls)).join('')+pctRL(T,key,cls)+'</tr>';
     if(aberto){const arv=montarArvore(cols.map(c=>c.ls.filter(l=>grupos.includes(conta(l.conta_id)?.grupo_dre)).map(l=>({l,v:+l.valor}))));
-      rows+=linhasArvore(arv,'dre|'+key,1,vals=>vals.map((x,i)=>cell(x,'')+(comp&&i>0?`<td class="n">${deltaChip(vals[0],x)}</td>`:'')).join('')+(comp?'':`<td class="n">${pct(vals[cols.findIndex(c=>c.tot)]/T.rl)}</td>`))}
+      rows+=linhasArvore(arv,'dre|'+key,1,vals=>comp
+        ?cC(vals[0],'','col-base')+`<td class="n col-base">${D[0].rl?pct(vals[0]/D[0].rl):'–'}</td>`+cC(vals[1],'')+`<td class="n">${D[1].rl?pct(vals[1]/D[1].rl):'–'}</td>`+cC(vals[1]-vals[0],'')+`<td class="n">${deltaChip(vals[1],vals[0])}</td>`
+        :vals.map(x=>cC(x,'')).join('')+`<td class="n">${T.rl?pct(vals[ti]/T.rl):'–'}</td>`)}
   }
-  return `<div class="panel"><div class="ph"><div><h2>Demonstração do resultado · ${labelPer()}</h2><p class="hint">Regime de competência · ${esc(escopo())} · clique em ▸ para abrir conta › subconta › centro de custo › fornecedor</p></div>
-    <div class="seg" role="group" aria-label="Visão da DRE"><button data-dre="mes" class="${S.dreModo==='mes'?'on':''}">Por mês</button><button data-dre="unid" class="${S.dreModo==='unid'?'on':''}">Por empresa e unidade</button><button data-dre="comp" class="${S.dreModo==='comp'?'on':''}">Comparativo</button></div></div>
-    ${chipsFx()}<div class="tbl-wrap"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div>
+  const semOrc=comp&&B.tipo==='orc'&&!cols[0].ls.length;
+  return `<div class="panel"><div class="ph"><div><h2>Demonstração do resultado · ${labelPer()}</h2><p class="hint">Regime de competência · ${esc(escopo())} · % RL = sobre a receita líquida (na linha da receita líquida, % sobre a receita bruta) · clique em ▸ para abrir conta › subconta › centro de custo › fornecedor</p></div>
+    <div class="seg" role="group" aria-label="Visão da DRE"><button data-dre="mes" class="${S.dreModo==='mes'?'on':''}">Por mês</button><button data-dre="unid" class="${S.dreModo==='unid'?'on':''}">Por empresa e unidade</button><button data-dre="comp" class="${comp?'on':''}">Real x orçado / comparativo</button></div></div>
+    ${comp?seletorCmp():''}${chipsFx()}
+    ${semOrc?`<div class="effect" style="margin-bottom:10px">Não há orçamento de ${S.ano} para ${esc(escopo())}. Cadastre em <a href="#orcamento">Orçamento e forecast</a>.</div>`:''}
+    <div class="tbl-wrap"><table class="${comp?'dre-comp':''}"><thead>${head}</thead><tbody>${rows}</tbody></table></div>
     ${T.semGrupo?`<p class="chip warn" style="margin-top:10px;white-space:normal">${brl.format(T.semGrupo)} lançados em contas sem grupo da DRE não aparecem acima. Ajuste no plano de contas.</p>`:''}
-    ${comp?'<p class="muted" style="font-size:12.5px;margin:10px 0 0">Variação: período atual contra o período anterior e contra o mesmo período do ano passado. Quando o orçamento for ativado, ele entra nesta comparação.</p>':''}</div>`;
+    ${comp?`<p class="muted" style="font-size:12.5px;margin:10px 0 0">Primeiro vem o número de comparação (${esc(B.nome)}), depois o realizado de ${labelPer()}. Variação = realizado − comparação; nas margens, diferença em pontos percentuais.</p>`:''}</div>`;
 }
 </script>
 <script>
-// ===================== Fluxo de caixa (realizado pelas parcelas pagas)
+// ===================== Fluxo de caixa
+// Uma fonte só: saldo das contas bancárias no início do período + tudo que foi pago e recebido = saldo final.
+// Assim os cards, a tabela e os saldos por conta batem entre si.
+S.fxc=S.fxc||{banco:'*',base:'pag'};
+const GRUPOS_OP=new Set(['receita_bruta','deducoes','custos','despesas_operacionais','ir_csll']);
+const ORDEM_FX=['receita_bruta','deducoes','custos','despesas_operacionais','ir_csll','resultado_financeiro','outras','nao_operacional','_'];
+const valP=p=>+(p.valor_pago??p.valor);
+const mesSeg=m=>{const [a,b]=m.split('-').map(Number);return b===12?`${a+1}-01`:`${a}-${String(b+1).padStart(2,'0')}`};
+// saldo da conta no início do dia d: saldo inicial cadastrado + tudo que foi pago/recebido nela desde a data do saldo inicial
+function saldoContaEm(b,d,movs){const dsi=b.data_saldo_inicial;return +b.saldo_inicial+sum(movs.filter(p=>p.conta_bancaria_id===b.id&&(!dsi||p.data_pagamento>=dsi)&&p.data_pagamento<d).map(valP))}
+function filtrosFluxo(bs){const F=S.fxc;
+  return `<div class="fbar"><label class="fb-item"><span>Conta bancária</span><select id="fxBanco"><option value="*">Todas as contas</option>${bs.map(b=>`<option value="${b.id}" ${F.banco===b.id?'selected':''}>${esc(b.banco_nome)} · cc ${esc(b.conta||'')}${S.empresas.length>1?' · '+esc(nomeEmp(empresa(b.empresa_id))):''}</option>`).join('')}</select></label>
+   <div class="fb-item"><span>Mês por data de</span><div class="seg" role="group" aria-label="Data usada"><button data-fxbase="pag" class="${F.base==='pag'?'on':''}" title="Realizado: quando foi pago ou recebido. Do mês atual em diante soma o que está em aberto.">Pagamento</button><button data-fxbase="venc" class="${F.base==='venc'?'on':''}" title="Pelo vencimento: o que foi lançado para vencer em cada mês, pago ou não.">Vencimento</button></div></div>
+   ${chipsFx()}</div>`}
 async function vFluxo(){
-  const [pagas,abertas0]=await Promise.all([parcelasPagas(S.ano),parcelasAbertas()]);
-  const naoTr=p=>!ehTransf(conta(p.lancamentos?.conta_id));const abertas=abertas0.filter(naoTr);
-  const ps=pagas.filter(p=>parcNaSel(p)&&naoTr(p));
-  const ab=abertas.filter(p=>parcNaSel(p)&&p.vencimento.startsWith(String(S.ano)));
-  if(!ps.length&&!ab.length)return vazio('Nenhum pagamento ou recebimento em '+S.ano,'<p style="margin:0">O fluxo de caixa usa as parcelas com data de pagamento. Lançamentos importados com “Data Pagamento” aparecem aqui.</p>',podeEditarAlguma()?'<a class="btn" href="#importar">Importar planilha</a>':'');
-  const ent=Array(12).fill(0),sai=Array(12).fill(0),pEnt=Array(12).fill(0),pSai=Array(12).fill(0);
-  ps.forEach(p=>{const m=+p.data_pagamento.slice(5,7)-1,v=+(p.valor_pago??p.valor);v>=0?ent[m]+=v:sai[m]+=v});
-  ab.forEach(p=>{const m=+p.vencimento.slice(5,7)-1,v=+p.valor;v>=0?pEnt[m]+=v:pSai[m]+=v});
+  const F=S.fxc,venc=F.base==='venc';const empIds=new Set(selEmp().map(e=>e.id));
+  const bancosEmp=S.bancos.filter(b=>empIds.has(b.empresa_id)&&b.ativa!==false);
+  if(F.banco!=='*'&&!bancosEmp.some(b=>b.id===F.banco))F.banco='*';
+  const bs=F.banco==='*'?bancosEmp:bancosEmp.filter(b=>b.id===F.banco);
+  const [pagasAno,pagasAnt,abertas0,movs]=await Promise.all([parcelasPagas(S.ano),venc?parcelasPagas(S.ano+1).catch(()=>[]):[],parcelasAbertas(),movBancos()]);
+  const doBanco=p=>F.banco==='*'||p.conta_bancaria_id===F.banco;
+  const daSel=p=>empIds.has(p.empresa_id)&&doBanco(p);
+  const pagas=pagasAno.concat(pagasAnt).filter(daSel),abertas=abertas0.filter(daSel);
+  const meses=mesesDoPer(),n=meses.length,iniP=meses[0]+'-01',fimEx=mesSeg(meses[n-1])+'-01';
+  const hojeM=HOJE.slice(0,7);const cur=hojeM<meses[0]?0:hojeM>meses[n-1]?n:meses.indexOf(hojeM);
+  const mi=dt=>dt?meses.indexOf(dt.slice(0,7)):-1;
+  const cls=p=>{const c=conta(p.lancamentos?.conta_id);return ehTransf(c)?'tr':!parcNaSel(p)?'fora':'ok'};
+  const grupoDe=p=>conta(p.lancamentos?.conta_id)?.grupo_dre||'_';
+  // movimentos do período: pagos (data de pagamento ou de vencimento) e, no modo pagamento, os em aberto do mês atual em diante
+  const porGrupo={},Z=()=>Array(n).fill(0),tr=Z(),fora=Z(),rec=Z(),pag=Z(),real=Z();
+  const add=(p,i,v,prev)=>{if(i<0)return;const c=cls(p);if(c==='tr'){tr[i]+=v;return}if(c==='fora'){fora[i]+=v;return}
+    if(prev){v>=0?rec[i]+=v:pag[i]+=v;return}real[i]+=v;const g=grupoDe(p);(porGrupo[g]=porGrupo[g]||Array.from({length:n},()=>[]))[i].push({l:p.lancamentos,v})};
+  pagas.forEach(p=>add(p,mi(venc?p.vencimento:p.data_pagamento),valP(p),false));
+  if(venc)abertas.forEach(p=>add(p,mi(p.vencimento),+p.valor,false));
+  else if(cur<n)abertas.forEach(p=>{const i=p.vencimento<iniP?-1:mi(p.vencimento);const ii=p.vencimento.slice(0,7)<meses[cur]?cur:i;if(ii>=cur)add(p,ii,+p.valor,true)});
+  // saldo inicial: contas bancárias no primeiro dia do período
+  const SI0=bs.length?sum(bs.map(b=>saldoContaEm(b,iniP,movs))):0;
+  const SI=Z(),SF=Z(),ger=Z(),SR=Z(),SO=Z(),orcM=Z();let s=SI0,sr=SI0;
+  // orçamento de caixa do período (para o saldo orçado)
+  const orcCx=await orcCaixaPer(iniP,fimEx);orcCx.forEach(x=>{const i=mi(x.data);if(i>=0)orcM[i]+=x.valor});let so=SI0;
+  for(let i=0;i<n;i++){SI[i]=s;ger[i]=real[i]+tr[i]+fora[i]+rec[i]+pag[i];s+=ger[i];SF[i]=s;sr+=venc?0:real[i]+tr[i]+fora[i];SR[i]=sr;so+=orcM[i];SO[i]=so}
+  const prevCol=i=>!venc&&i>=cur;
+  // cards
+  const pagasPer=pagas.filter(p=>{const d=venc?p.vencimento:p.data_pagamento;return d>=iniP&&d<fimEx&&cls(p)==='ok'});
+  const movPer=venc?pagasPer.map(p=>({p,v:valP(p)})).concat(abertas.filter(p=>p.vencimento>=iniP&&p.vencimento<fimEx&&cls(p)==='ok').map(p=>({p,v:+p.valor}))):pagasPer.map(p=>({p,v:valP(p)}));
+  const op=movPer.filter(x=>GRUPOS_OP.has(grupoDe(x.p))),nop=movPer.filter(x=>!GRUPOS_OP.has(grupoDe(x.p)));
+  const eOp=sum(op.filter(x=>x.v>0).map(x=>x.v)),sOp=sum(op.filter(x=>x.v<0).map(x=>x.v)),gNop=sum(nop.map(x=>x.v));
+  const abSel=abertas.filter(p=>cls(p)==='ok');
+  const abPer=abSel.filter(p=>p.vencimento<fimEx);
+  const aRec=sum(abPer.filter(p=>p.valor>0).map(p=>+p.valor)),aPag=sum(abPer.filter(p=>p.valor<0).map(p=>+p.valor));
+  const vR=abSel.filter(p=>p.vencimento<HOJE&&p.valor>0),vP=abSel.filter(p=>p.vencimento<HOJE&&p.valor<0);
+  const recebido=sum(pagasPer.filter(p=>valP(p)>0).map(valP));const inad=sum(vR.map(p=>+p.valor));
+  const temPrev=SF.some((_,i)=>prevCol(i));const fimTxt=venc?'Saldo previsto pelo vencimento':'Saldo previsto (realizado + em aberto)';
+  const temOrc=orcCx.length>0,fimP=dataBR(addDias(fimEx,-1)),iR=Math.min(cur,n)-1;
+  if(!pagas.length&&!abertas.length&&!bs.length)return vazio('Nenhum pagamento ou recebimento','<p style="margin:0">O fluxo de caixa usa as contas bancárias (saldo inicial) e as parcelas pagas e em aberto. Cadastre as contas bancárias e importe ou lance os pagamentos.</p>',podeEditarAlguma()?'<a class="btn" href="#bancos">Contas bancárias</a>':'');
+  const T=(lbl,val,cmp)=>`<div class="tile"><div class="lbl">${lbl}</div><div class="val ${val<0?'neg':''}">${k(val)}</div><div class="cmp">${cmp}</div></div>`;
+  const tiles=`<section class="grid g-tiles g-auto">
+    ${T('Saldo inicial (banco)',SI0,`<span>real, em ${dataBR(iniP)} · ${bs.length} conta${bs.length===1?'':'s'}</span>`)}
+    ${T('Entradas operacionais',eOp,`<span>${venc?'lançado para vencer':'recebido'} em ${labelPer()}</span>`)}
+    ${T('Saídas operacionais',sOp,`<span>${venc?'lançado para vencer':'pago'} · ${eOp?pct(-sOp/eOp)+' das entradas':''}</span>`)}
+    ${T('Geração de caixa total',eOp+sOp+gNop,`${eOp+sOp+gNop>=0?'<span class="chip good">positiva</span>':'<span class="chip bad">negativa</span>'}<span>operacional ${k(eOp+sOp)} · não operacional ${k(gNop)}</span>`)}
+    <div class="tile tile-saldos"><div class="lbl">Saldos em ${fimP}</div>
+      ${venc?'':`<div class="sl"><span class="sk sk-real"></span><span>Realizado</span><b class="${SR[n-1]<0?'neg':''}">${k(cur<n?SR[n-1]:SF[n-1])}</b></div>`}
+      <div class="sl"><span class="sk sk-prev"></span><span>${venc?'Previsto (vencimento)':'Previsto'}</span><b class="${SF[n-1]<0?'neg':''}">${k(SF[n-1])}</b></div>
+      <div class="sl"><span class="sk sk-orc"></span><span>Orçado</span><b class="${SO[n-1]<0?'neg':''}">${temOrc?k(SO[n-1]):'–'}</b></div></div>
+    <div class="tile"><div class="lbl">Em aberto</div><div class="val">${k(aRec+aPag)}</div><div class="cmp"><span class="chip good">${k(aRec)} a receber</span><span class="chip bad">${k(-aPag)} a pagar</span><span>vencendo até ${dataBR(addDias(fimEx,-1))}</span></div></div>
+    <div class="tile"><div class="lbl">Vencidas e inadimplência</div><div class="val">${k(inad)}</div><div class="cmp">${vR.length?`<span class="chip bad">${vR.length} a receber vencida${vR.length>1?'s':''}</span>${recebido?`<span>${pct(inad/(recebido+inad))} de inadimplência (vencido ÷ recebido + vencido no período)</span>`:''}`:'<span class="chip good">nenhum recebimento atrasado</span>'}${vP.length?`<span class="chip warn">${vP.length} a pagar vencida${vP.length>1?'s':''} · ${k(-sum(vP.map(p=>+p.valor)))}</span>`:''}</div></div>
+  </section>`;
+  // gráfico do ano (entradas e saídas pagas, sem transferências)
+  const ent=Array(12).fill(0),sai=Array(12).fill(0);pagas.filter(p=>p.data_pagamento.startsWith(String(S.ano))&&cls(p)==='ok').forEach(p=>{const m=+p.data_pagamento.slice(5,7)-1,v=valP(p);v>=0?ent[m]+=v:sai[m]+=v});
   let a=0;const ultimo=Math.max(...ent.map((e,i)=>e||sai[i]?i:-1));const acum=ent.map((e,i)=>i>ultimo?null:(a+=e+sai[i]));
-  const porGrupo={};ps.forEach(p=>{const g=conta(p.lancamentos.conta_id)?.grupo_dre||'_';const m=+p.data_pagamento.slice(5,7)-1;const v=+(p.valor_pago??p.valor);(porGrupo[g]=porGrupo[g]||Array.from({length:12},()=>[])) [m].push({l:p.lancamentos,v})});
-  const tdM=vals=>vals.map(x=>`<td class="n ${x<0?'neg':''}">${Math.abs(x)>=.5?num.format(Math.round(x)):''}</td>`).join('')+`<td class="n ${sum(vals)<0?'neg':''}">${num.format(Math.round(sum(vals)))}</td>`;
-  const gruposF=Object.keys(porGrupo).sort((a,b)=>{const o=['receita_bruta','deducoes','custos','despesas_operacionais','resultado_financeiro','outras','nao_operacional','ir_csll','_'];return o.indexOf(a)-o.indexOf(b)});
-  const corpoArv=gruposF.map(g=>{const cols=porGrupo[g];const tot=cols.map(c=>sum(c.map(x=>x.v)));const key='fx|'+g,ab=S.abertos.has(key);
-    return `<tr class="l2 click" data-abre="${key}"><td>${ab?'▾ ':'▸ '}${esc(GRUPOS[g]||'Sem grupo da DRE')}</td>${tdM(tot)}</tr>`+(ab?linhasArvore(montarArvore(cols),key,1,tdM):'')}).join('');
-  const tE=sum(ent),tS=sum(sai);
-  const SB=await saldosBancos(ab);
-  return `<section class="grid g-tiles" style="grid-template-columns:repeat(4,minmax(0,1fr))">
-    <div class="tile"><div class="lbl">Entradas ${S.ano}</div><div class="val">${k(tE)}</div><div class="cmp">recebido</div></div>
-    <div class="tile"><div class="lbl">Saídas ${S.ano}</div><div class="val">${k(-tS)}</div><div class="cmp">pago</div></div>
-    <div class="tile"><div class="lbl">Geração de caixa</div><div class="val">${k(tE+tS)}</div><div class="cmp">${tE+tS>=0?'<span class="chip good">positiva</span>':'<span class="chip bad">negativa</span>'}</div></div>
-    <div class="tile"><div class="lbl">Em aberto no ano</div><div class="val">${k(sum(pEnt)+sum(pSai))}</div><div class="cmp">${k(sum(pEnt))} a receber · ${k(-sum(pSai))} a pagar</div></div></section>
+  // tabela
+  const td=(v,i,extra='')=>`<td class="n ${extra} ${prevCol(i)?'prev':''} ${v<0?'neg':''}">${Math.abs(v)>=.5?num.format(Math.round(v)):''}</td>`;
+  const tdM=vals=>vals.map((v,i)=>td(v,i)).join('')+`<td class="n ${sum(vals)<0?'neg':''}">${num.format(Math.round(sum(vals)))}</td>`;
+  const gruposF=Object.keys(porGrupo).sort((x,y)=>ORDEM_FX.indexOf(x)-ORDEM_FX.indexOf(y));
+  const corpo=gruposF.map(g=>{const cs=porGrupo[g];const tot=cs.map(c=>sum(c.map(x=>x.v)));const key='fx|'+g,ab=S.abertos.has(key);
+    return `<tr class="l2 click" data-abre="${key}"><td>${ab?'▾ ':'▸ '}${esc(GRUPOS[g]||'Sem grupo da DRE')}</td>${tdM(tot)}</tr>`+(ab?linhasArvore(montarArvore(cs),key,1,tdM):'')}).join('');
+  const lin=(nome,vals,c='l2',dica='')=>vals.some(v=>Math.abs(v)>=.5)?`<tr class="${c}"><td${dica?` title="${esc(dica)}"`:''}>${nome}</td>${tdM(vals)}</tr>`:'';
+  const sal=(nome,vals,tot)=>`<tr class="tot saldo"><td>${nome}</td>${vals.map((v,i)=>td(v,i)).join('')}<td class="n ${tot<0?'neg':''}">${num.format(Math.round(tot))}</td></tr>`;
+  const cab=meses.map((m,i)=>`<th class="n">${MESES[+m.slice(5)-1]}/${m.slice(2,4)}${prevCol(i)?`<span class="unit">${i===cur&&hojeM===m?'real + previsto':'previsto'}</span>`:''}</th>`).join('');
+  const tabela=`<div class="tbl-wrap"><table class="tbl-fluxo"><thead><tr><th>Fluxo de caixa</th>${cab}<th class="n">Total</th></tr></thead><tbody>
+    ${sal('Saldo inicial do mês',SI,SI0)}
+    <tr class="sec"><td colspan="${n+2}">Movimentações do mês ${venc?'(pelo vencimento)':'(pagas e recebidas)'}</td></tr>
+    ${corpo||`<tr><td colspan="${n+2}" class="muted">Nada pago ou recebido no período.</td></tr>`}
+    ${lin('Transferências entre contas',tr,'l2','Saída de uma conta e entrada em outra. Somando todas as contas, dá zero.')}
+    ${lin('Fora do filtro (outras unidades, centros ou contas)',fora,'l2 muted','Movimentos das contas bancárias que não entram no filtro escolhido. Ficam aqui para o saldo final continuar igual ao do banco.')}
+    ${lin('(+) A receber em aberto',rec,'l2 prevrow','Contas a receber que vencem no mês (as atrasadas entram no mês atual).')}
+    ${lin('(−) A pagar em aberto',pag,'l2 prevrow','Contas a pagar que vencem no mês (as atrasadas entram no mês atual).')}
+    <tr class="tot"><td>Geração de caixa do mês</td>${tdM(ger)}</tr>
+    <tr class="sec"><td colspan="${n+2}">Saldo no fim do mês</td></tr>
+    ${venc?'':`<tr class="tot saldo sl-real"><td><span class="sk sk-real"></span>Saldo realizado (banco)</td>${SR.map((v,i)=>i<=Math.max(cur,0)&&!(i===cur&&cur>=n)?td(v,i,'real'):'<td class="n muted">–</td>').join('')}<td class="n ${SR[Math.min(cur,n-1)]<0?'neg':''}">${num.format(Math.round(SR[Math.min(cur,n-1)]))}</td></tr>`}
+    ${temPrev||venc?`<tr class="tot saldo sl-prev"><td><span class="sk sk-prev"></span>${fimTxt}</td>${SF.map((v,i)=>venc||i>=cur?td(v,i):'<td class="n muted" title="Mês já fechado: igual ao saldo realizado">·</td>').join('')}<td class="n ${SF[n-1]<0?'neg':''}">${num.format(Math.round(SF[n-1]))}</td></tr>`:''}
+    ${temOrc?`<tr class="saldo sl-orc"><td><span class="sk sk-orc"></span>Saldo orçado (saldo inicial + orçamento de caixa)</td>${SO.map(v=>`<td class="n ${v<0?'neg':''}">${num.format(Math.round(v))}</td>`).join('')}<td class="n">${num.format(Math.round(SO[n-1]))}</td></tr>
+    <tr class="pct"><td>Previsto − orçado</td>${SF.map((v,i)=>`<td class="n ${v-SO[i]<0?'neg':''}">${num.format(Math.round(v-SO[i]))}</td>`).join('')}<td class="n">${num.format(Math.round(SF[n-1]-SO[n-1]))}</td></tr>`:''}
+  </tbody></table></div>`;
+  const roMes=realOrcMes({pagas,orcCx,meses,mi,cls,grupoDe,cur,hojeM});
+  const legenda=`<div class="sl-legenda"><span><span class="sk sk-real"></span><b>Realizado</b> = o que já entrou e saiu do banco</span><span><span class="sk sk-prev"></span><b>Previsto</b> = realizado + contas a pagar e receber em aberto</span><span><span class="sk sk-orc"></span><b>Orçado</b> = saldo inicial + orçamento de caixa${temOrc?'':' (sem orçamento cadastrado)'}</span></div>`;
+  const [lor,porConta]=await Promise.all([lancadoOrcadoRealizado({pagas,abertas,venc,iniP,fimEx,cls,grupoDe,orcCx}),saldoPorConta({bs,movs,abertas,meses,cur,fimEx,ehTr:p=>cls(p)==='tr'})]);
+  return filtrosFluxo(bancosEmp)+legenda+tiles+porConta+`
+  <div class="panel"><div class="ph"><div><h2>Fluxo de caixa · ${labelPer()}</h2><p class="hint">${esc(escopo())}${F.banco!=='*'?' · '+esc(bancoTxt(banco(F.banco))):''} · Saldo inicial + movimentações na estrutura da DRE (clique em ▸ para abrir conta › subconta › centro de custo › fornecedor) = saldo final. ${venc?'Meses pela data de vencimento: pago e em aberto juntos.':'Meses pela data de pagamento; do mês atual em diante entram as contas em aberto (colunas em itálico).'}</p></div></div>
+    ${tabela}
+    ${pagas.some(p=>!p.conta_bancaria_id)&&F.banco==='*'?`<p class="chip warn" style="margin-top:10px;white-space:normal">${pagas.filter(p=>!p.conta_bancaria_id).length} pagamento(s) sem conta bancária: entram no fluxo, mas não no saldo de nenhuma conta.</p>`:''}</div>
+  ${roMes}
+  ${lor}
   <div class="panel"><h2>Entradas e saídas por mês · ${S.ano}</h2><p class="hint">Regime de caixa, pela data de pagamento · ${esc(escopo())}</p>${chartFluxo({labels:MESES,ent,sai,acum})}
     <div class="legend"><span><i style="background:var(--good)"></i>Entradas</span><span><i style="background:var(--bad)"></i>Saídas</span><span><i style="background:var(--accent)"></i>Geração de caixa acumulada</span></div></div>
-  <div class="panel"><h2>Fluxo de caixa realizado por conta</h2><p class="hint">Valores pagos e recebidos. Clique em ▸ para abrir conta › subconta › centro de custo › fornecedor. A última linha mostra o que ainda vence em cada mês.</p>${chipsFx()}
-    <div class="tbl-wrap"><table><thead><tr><th>Conta</th>${MESES.map(m=>`<th class="n">${m}</th>`).join('')}<th class="n">Total</th></tr></thead><tbody>
-    ${corpoArv}
-    <tr class="tot"><td>Entradas</td>${ent.map(x=>`<td class="n">${num.format(Math.round(x))}</td>`).join('')}<td class="n">${num.format(Math.round(tE))}</td></tr>
-    <tr class="tot"><td>Saídas</td>${sai.map(x=>`<td class="n neg">${num.format(Math.round(x))}</td>`).join('')}<td class="n neg">${num.format(Math.round(tS))}</td></tr>
-    <tr class="tot"><td>Saldo do mês</td>${ent.map((x,i)=>`<td class="n ${x+sai[i]<0?'neg':''}">${num.format(Math.round(x+sai[i]))}</td>`).join('')}<td class="n">${num.format(Math.round(tE+tS))}</td></tr>
-    <tr class="pct"><td>Em aberto (a vencer ou vencido)</td>${pEnt.map((x,i)=>`<td class="n">${x+pSai[i]?num.format(Math.round(x+pSai[i])):''}</td>`).join('')}<td class="n">${num.format(Math.round(sum(pEnt)+sum(pSai)))}</td></tr>
-    </tbody></table></div></div>${SB.html}`;
+  ${tabelaSaldosMes({bs,movs,abertas,ehTr:p=>cls(p)==='tr'})}`;
 }
-// saldo de cada conta bancária no início e no fim de cada mês: saldo inicial cadastrado + tudo que foi pago ou recebido nela
-// (transferências entre contas incluídas). Meses futuros: último saldo + o que vence no mês (previsto).
-async function saldosBancos(abertas){
-  const emps=selEmp();const bs=S.bancos.filter(b=>emps.some(e=>e.id===b.empresa_id)&&b.ativa!==false);
-  if(!bs.length)return {html:`<div class="panel"><h2>Saldos das contas bancárias</h2><p class="muted" style="margin:0">Cadastre as contas bancárias com o saldo inicial para ver o saldo de cada mês aqui. <a href="#bancos">Contas bancárias</a></p></div>`};
-  const ps=await movBancos();const ano=S.ano,mesAt=HOJE.slice(0,4)==String(ano)?+HOJE.slice(5,7)-1:(ano<+HOJE.slice(0,4)?11:-1);
-  const ini=i=>`${ano}-${String(i+1).padStart(2,'0')}-01`,fimM=i=>i===11?`${ano+1}-01-01`:ini(i+1);
-  const saldoAte=(b,d)=>b.data_saldo_inicial&&d<=b.data_saldo_inicial?null:+b.saldo_inicial+sum(ps.filter(p=>p.conta_bancaria_id===b.id&&(!b.data_saldo_inicial||p.data_pagamento>=b.data_saldo_inicial)&&p.data_pagamento<d).map(p=>+(p.valor_pago??p.valor)));
-  const linhas=bs.map(b=>{const abI=saldoAte(b,ini(0));const fins=MESES.map((_,i)=>i>mesAt?null:saldoAte(b,fimM(i)));return {b,abI,fins}});
-  const totI=linhas.some(l=>l.abI!=null)?sum(linhas.map(l=>l.abI??0)):null;
-  const totF=MESES.map((_,i)=>linhas.some(l=>l.fins[i]!=null)?sum(linhas.map(l=>l.fins[i]??0)):null);
-  // previsão para os meses que ainda não fecharam: parte do último saldo conhecido e soma o que vence
-  const prev=MESES.map(()=>null);let base=mesAt>=0?totF[mesAt]:totI;
-  if(base!=null)for(let i=Math.max(mesAt+1,0);i<12;i++){base=base+sum(abertas.filter(p=>p.vencimento.slice(5,7)==String(i+1).padStart(2,'0')||(i===mesAt+1&&p.vencimento<ini(Math.max(mesAt+1,0)))).map(p=>+p.valor));prev[i]=base}
-  const hoje=mesAt>=0&&HOJE.startsWith(String(ano))?sum(bs.map(b=>saldoAte(b,somaDias(HOJE,1))??0)):null;
-  const cel=(v,cls='')=>`<td class="n ${cls} ${v!=null&&v<0?'neg':''}">${v==null?'<span class="muted">–</span>':num.format(Math.round(v))}</td>`;
-  const semData=bs.filter(b=>!b.data_saldo_inicial);
-  return {hoje,html:`<div class="panel"><div class="ph"><div><h2>Saldos das contas bancárias · ${ano}</h2><p class="hint">Saldo no fim de cada mês: saldo inicial cadastrado + tudo que foi pago e recebido na conta (inclui transferências entre contas). ${prev.some(v=>v!=null)?'Os meses em itálico são previsão: último saldo + contas em aberto que vencem no mês.':''}${hoje!=null?` Saldo hoje: <b>${brl2.format(hoje)}</b>.`:''}</p></div></div>
-    ${semData.length?`<div class="effect" style="margin-bottom:10px">${semData.length} conta${semData.length>1?'s':''} sem data do saldo inicial: o saldo considera todos os lançamentos dela. Informe a data em <a href="#bancos">Contas bancárias</a>.</div>`:''}
-    <div class="tbl-wrap"><table><thead><tr><th>Conta</th><th class="n">Início do ano</th>${MESES.map(m=>`<th class="n">${m}</th>`).join('')}</tr></thead><tbody>
-    ${linhas.map(l=>`<tr><td>${esc(l.b.banco_nome)}<span class="unit">${esc(nomeEmp(empresa(l.b.empresa_id)))} · cc ${esc(l.b.conta||'')}</span></td>${cel(l.abI)}${l.fins.map(v=>cel(v)).join('')}</tr>`).join('')}
-    <tr class="tot"><td>Saldo final do mês</td>${cel(totI)}${totF.map((v,i)=>v!=null?cel(v):prev[i]!=null?`<td class="n ${prev[i]<0?'neg':''}" style="font-style:italic;opacity:.75">${num.format(Math.round(prev[i]))}</td>`:cel(null)).join('')}</tr>
-    <tr class="pct"><td>Saldo inicial do mês</td>${cel(null)}${MESES.map((_,i)=>{const v=i===0?totI:(totF[i-1]??prev[i-1]);return v!=null&&totF[i-1]==null&&i>0?`<td class="n" style="font-style:italic;opacity:.75">${num.format(Math.round(v))}</td>`:cel(v)}).join('')}</tr>
-    </tbody></table></div></div>`}}
+// Lançado (tudo que vence no período, pago ou não) x Orçado (caixa do orçamento) x Realizado (pago no período)
+// Realizado x Orçado mês a mês: por grupo da DRE (abre orçado, diferença e %) e totais de entradas, saídas e geração
+function realOrcMes({pagas,orcCx,meses,mi,cls,grupoDe,cur,hojeM}){
+  if(!orcCx.length)return `<div class="panel"><h2>Realizado x Orçado mês a mês</h2><p class="muted" style="margin:0">Não há orçamento de ${S.ano} para ${esc(escopo())}. Cadastre em <a href="#orcamento">Orçamento e forecast</a> para comparar mês a mês.</p></div>`;
+  const n=meses.length,Z=()=>Array(n).fill(0),R={},O={};const fechado=i=>meses[i]<=hojeM;
+  pagas.forEach(p=>{if(cls(p)!=='ok')return;const i=mi(p.data_pagamento);if(i<0)return;const g=grupoDe(p);(R[g]=R[g]||Z())[i]+=valP(p)});
+  orcCx.forEach(x=>{const i=mi(x.data);if(i<0)return;const g=conta(x.conta_id)?.grupo_dre||'_';(O[g]=O[g]||Z())[i]+=x.valor});
+  const gs=[...new Set([...Object.keys(R),...Object.keys(O)])].sort((a,b)=>ORDEM_FX.indexOf(a)-ORDEM_FX.indexOf(b));
+  const nf=v=>`<td class="n ${v<0?'neg':''}">${Math.abs(v)>=.5?num.format(Math.round(v)):'0'}</td>`;
+  const ate=a=>sum(a.filter((_,i)=>fechado(i)));
+  const chipP=(r,o)=>{if(!o)return '<span class="muted">–</span>';const at=r/o;const bom=o>0?at>=.95:at<=1.05;return `<span class="chip ${bom?'good':'bad'}">${pct(at)}</span>`};
+  const bloco=(r,o,cls='')=>{const dif=r.map((v,i)=>v-o[i]);
+    return `<tr class="${cls}"><td class="sub">Orçado</td>${o.map(v=>`<td class="n col-base ${v<0?'neg':''}">${num.format(Math.round(v))}</td>`).join('')}<td class="n col-base">${num.format(Math.round(sum(o)))}</td></tr>
+     <tr class="${cls}"><td class="sub">Realizado</td>${r.map((v,i)=>fechado(i)?nf(v):'<td class="n muted">–</td>').join('')}<td class="n">${num.format(Math.round(ate(r)))}</td></tr>
+     <tr class="${cls}"><td class="sub">Diferença (realizado − orçado)</td>${dif.map((v,i)=>fechado(i)?nf(v):'<td class="n muted">–</td>').join('')}<td class="n ${ate(r)-ate(o)<0?'neg':''}">${num.format(Math.round(ate(r)-ate(o)))}</td></tr>
+     <tr class="${cls} pctl"><td class="sub">Realizado ÷ orçado</td>${r.map((v,i)=>`<td class="n">${fechado(i)?chipP(v,o[i]):''}</td>`).join('')}<td class="n">${chipP(ate(r),ate(o))}</td></tr>`};
+  let rows='';
+  gs.forEach(g=>{const r=R[g]||Z(),o=O[g]||Z(),key='rom|'+g,ab=S.abertos.has(key);
+    rows+=`<tr class="l2 click" data-abre="${key}"><td>${ab?'▾ ':'▸ '}${esc(GRUPOS[g]||'Sem grupo da DRE')}</td>${r.map((v,i)=>`<td class="n">${fechado(i)?chipP(v,o[i]):'<span class="muted">–</span>'}</td>`).join('')}<td class="n">${chipP(ate(r),ate(o))}</td></tr>`+(ab?bloco(r,o,'arv n2'):'')});
+  const tot=f=>{const r=Z(),o=Z();Object.values(R).forEach(a=>a.forEach((v,i)=>{if(f(v))r[i]+=v}));orcCx.forEach(x=>{const i=mi(x.data);if(i>=0&&f(x.valor))o[i]+=x.valor});return [r,o]};
+  const [eR,eO]=tot(v=>v>0),[sR,sO]=tot(v=>v<0),gR=eR.map((v,i)=>v+sR[i]),gO=eO.map((v,i)=>v+sO[i]);
+  const cab=meses.map(m=>`<th class="n">${MESES[+m.slice(5)-1]}/${m.slice(2,4)}${m===hojeM?'<span class="unit">até hoje</span>':''}</th>`).join('');
+  return `<div class="panel"><div class="ph"><div><h2>Realizado x Orçado mês a mês · ${labelPer()}</h2><p class="hint">Regime de caixa (data de pagamento) contra o orçamento de caixa (${esc([...new Set(orcCx.vers)].join(', '))}). % = realizado ÷ orçado: verde quando a receita chega a 95% do orçado ou a despesa fica até 5% acima. Clique em ▸ para abrir o orçado, o realizado e a diferença de cada grupo. Meses futuros mostram só o orçado.</p></div></div>
+   <div class="tbl-wrap"><table class="tbl-rom"><thead><tr><th>Grupo</th>${cab}<th class="n">Acumulado até hoje</th></tr></thead><tbody>
+   <tr class="sec"><td colspan="${n+2}">Realizado ÷ orçado por grupo da DRE</td></tr>${rows}
+   <tr class="sec"><td colspan="${n+2}">Entradas</td></tr>${bloco(eR,eO)}
+   <tr class="sec"><td colspan="${n+2}">Saídas</td></tr>${bloco(sR,sO)}
+   <tr class="sec"><td colspan="${n+2}">Geração de caixa</td></tr>${bloco(gR,gO,'tot')}
+   </tbody></table></div></div>`}
+// orçamento de caixa (versão oficial do ano de cada empresa escolhida) com data dentro do período
+async function orcCaixaPer(iniP,fimEx){const out=[];out.vers=[];
+  for(const e of selEmp()){const v=await versaoOrc(e.id,S.ano).catch(()=>null);if(!v)continue;out.vers.push(v.nome);
+    (await caixaDaVersao(v)).forEach(x=>{if(!(x.data>=iniP&&x.data<fimEx)||ehTransf(conta(x.conta_id)))return;if(S.fx.ct.size&&!passaFx({conta_id:x.conta_id}))return;out.push(x)})}
+  return out}
+async function lancadoOrcadoRealizado({pagas,abertas,iniP,fimEx,cls,grupoDe,orcCx}){
+  const noP=d=>d&&d>=iniP&&d<fimEx;
+  const orc=orcCx.map(x=>({l:{conta_id:x.conta_id},v:x.valor}));const vers=orcCx.vers;
+  const lanc=pagas.filter(p=>noP(p.vencimento)&&cls(p)==='ok').map(p=>({l:p.lancamentos,v:valP(p)})).concat(abertas.filter(p=>noP(p.vencimento)&&cls(p)==='ok').map(p=>({l:p.lancamentos,v:+p.valor})));
+  const real=pagas.filter(p=>noP(p.data_pagamento)&&cls(p)==='ok').map(p=>({l:p.lancamentos,v:valP(p)}));
+  if(!orc.length&&!lanc.length&&!real.length)return '';
+  const gr=x=>conta(x.l?.conta_id)?.grupo_dre||'_';
+  const tds=v=>{const [o,l,r]=v;const at=o?r/o:NaN;return `<td class="n col-base ${o<0?'neg':''}">${o?num.format(Math.round(o)):'–'}</td><td class="n ${l<0?'neg':''}">${num.format(Math.round(l))}</td><td class="n ${r<0?'neg':''}">${num.format(Math.round(r))}</td><td class="n">${isFinite(at)?`<span class="chip ${at>=.95&&at<=1.05?'good':(o>0?at>1.05:at<.95)?'good':'warn'}">${pct(at)}</span>`:'–'}</td><td class="n ${l-r<0?'neg':''}">${Math.abs(l-r)>=.5?num.format(Math.round(l-r)):''}</td>`};
+  const gs=[...new Set([...orc,...lanc,...real].map(gr))].sort((a,b)=>ORDEM_FX.indexOf(a)-ORDEM_FX.indexOf(b));
+  const rows=gs.map(g=>{const cs=[orc,lanc,real].map(a=>a.filter(x=>gr(x)===g));const key='lor|'+g,ab=S.abertos.has(key);
+    return `<tr class="l2 click" data-abre="${key}"><td>${ab?'▾ ':'▸ '}${esc(GRUPOS[g]||'Sem grupo da DRE')}</td>${tds(cs.map(c=>sum(c.map(x=>x.v))))}</tr>`+(ab?linhasArvore(montarArvore(cs),key,1,tds):'')}).join('');
+  const tot=f=>[orc,lanc,real].map(a=>sum(a.filter(f).map(x=>x.v)));
+  return `<div class="panel"><div class="ph"><div><h2>Lançado x Orçado x Realizado · ${labelPer()}</h2><p class="hint">Orçado: caixa do ${vers.length?esc([...new Set(vers)].join(', ')):'orçamento (nenhum cadastrado para '+S.ano+')'} pelas premissas de prazo. Lançado: tudo que vence no período, pago ou não. Realizado: o que foi pago ou recebido no período. % = realizado ÷ orçado.</p></div></div>
+   <div class="tbl-wrap"><table><thead><tr><th>Grupo / conta</th><th class="n col-base">Orçado</th><th class="n">Lançado</th><th class="n">Realizado</th><th class="n">Realizado ÷ orçado</th><th class="n">Lançado e não realizado</th></tr></thead><tbody>${rows}
+   <tr class="tot"><td>Entradas</td>${tds(tot(x=>x.v>0))}</tr><tr class="tot"><td>Saídas</td>${tds(tot(x=>x.v<0))}</tr><tr class="tot"><td>Geração de caixa</td>${tds(tot(()=>true))}</tr></tbody></table></div></div>`;
+}
+// Saldo de cada conta no mês: começo do mês, hoje, tendência e se fecha o mês positivo
+function saldoPorConta({bs,movs,abertas,meses,cur,fimEx,ehTr}){
+  if(!bs.length)return `<div class="panel"><h2>Saldo por conta</h2><p class="muted" style="margin:0">Cadastre as contas bancárias com o saldo inicial para ver o saldo de cada conta. <a href="#bancos">Contas bancárias</a></p></div>`;
+  const m=meses[Math.min(cur,meses.length-1)],mIni=m+'-01',mFim=mesSeg(m)+'-01',atual=HOJE.slice(0,7)===m,futuro=m>HOJE.slice(0,7);
+  const ate=atual?addDias(HOJE,1):futuro?mIni:mFim;
+  const ab=abertas.filter(p=>!ehTr(p)&&(atual||futuro?p.vencimento<mFim:false));
+  const linha=(nome,sub,si,mv,abs)=>{const ent=sum(mv.filter(v=>v>0)),sai=sum(mv.filter(v=>v<0)),hoje=si+ent+sai;const rec=sum(abs.filter(p=>p.valor>0).map(p=>+p.valor)),pag=sum(abs.filter(p=>p.valor<0).map(p=>+p.valor)),prev=hoje+rec+pag,var_=hoje-si;
+    return {html:`<tr><td>${nome}${sub?`<span class="unit">${sub}</span>`:''}</td><td class="n">${num.format(Math.round(si))}</td><td class="n">${num.format(Math.round(ent))}</td><td class="n neg">${num.format(Math.round(sai))}</td><td class="n ${hoje<0?'neg':''}"><b>${num.format(Math.round(hoje))}</b></td><td class="n">${Math.abs(var_)<.5?'<span class="chip mute">estável</span>':var_>0?`<span class="chip good">▲ ${k(var_)}</span>`:`<span class="chip bad">▼ ${k(-var_)}</span>`}</td><td class="n">${rec?num.format(Math.round(rec)):''}</td><td class="n neg">${pag?num.format(Math.round(pag)):''}</td><td class="n ${prev<0?'neg':''}"><b>${num.format(Math.round(prev))}</b></td><td>${prev>=0?`<span class="chip good">Fecha o mês positivo</span>`:`<span class="chip bad">Falta ${k(-prev)}</span>`}</td></tr>`,si,ent,sai,hoje,rec,pag,prev}};
+  const L=bs.map(b=>linha(esc(b.banco_nome),`${esc(nomeEmp(empresa(b.empresa_id)))} · cc ${esc(b.conta||'')}`,saldoContaEm(b,mIni,movs),movs.filter(p=>p.conta_bancaria_id===b.id&&p.data_pagamento>=mIni&&p.data_pagamento<ate&&(!b.data_saldo_inicial||p.data_pagamento>=b.data_saldo_inicial)).map(valP),ab.filter(p=>p.conta_bancaria_id===b.id)));
+  const sem=ab.filter(p=>!p.conta_bancaria_id);if(sem.length&&S.fxc.banco==='*')L.push(linha('<i>Sem conta bancária definida</i>','contas em aberto ainda sem banco',0,[],sem));
+  const t=k_=>sum(L.map(x=>x[k_]));const prev=t('prev');
+  const veredito=prev>=0?`<div class="veredito good">${icone('carteira',18)}<div><b>Vai ter dinheiro para fechar ${MESES[+m.slice(5)-1]}/${m.slice(0,4)}.</b><span>Saldo previsto no fim do mês: ${brl.format(prev)} (hoje ${brl.format(t('hoje'))}, entra ${brl.format(t('rec'))}, sai ${brl.format(-t('pag'))}).</span></div></div>`
+    :`<div class="veredito bad">${icone('alerta',18)}<div><b>Atenção: faltam ${brl.format(-prev)} para fechar ${MESES[+m.slice(5)-1]}/${m.slice(0,4)}.</b><span>Hoje ${brl.format(t('hoje'))}, entra ${brl.format(t('rec'))}, sai ${brl.format(-t('pag'))}. Antecipe recebimentos ou renegocie pagamentos.</span></div></div>`;
+  return `<div class="panel"><div class="ph"><div><h2>Saldo por conta · ${MESES[+m.slice(5)-1]}/${m.slice(0,4)}</h2><p class="hint">${atual?'Até hoje':'No mês'}: saldo no início do mês, o que entrou e saiu, se o saldo está aumentando e a previsão para o fim do mês com o que está em aberto (inclui as atrasadas).</p></div></div>
+   ${atual||futuro?veredito:''}
+   <div class="tbl-wrap"><table><thead><tr><th>Conta</th><th class="n">Início do mês</th><th class="n">Entrou</th><th class="n">Saiu</th><th class="n">${atual?'Saldo realizado hoje':futuro?'Saldo realizado atual':'Saldo realizado no fim'}</th><th class="n">Tendência</th><th class="n">A receber</th><th class="n">A pagar</th><th class="n">Saldo previsto no fim do mês</th><th>Situação</th></tr></thead><tbody>
+   ${L.map(x=>x.html).join('')}${L.length>1?`<tr class="tot"><td>Total</td><td class="n">${num.format(Math.round(t('si')))}</td><td class="n">${num.format(Math.round(t('ent')))}</td><td class="n neg">${num.format(Math.round(t('sai')))}</td><td class="n">${num.format(Math.round(t('hoje')))}</td><td></td><td class="n">${num.format(Math.round(t('rec')))}</td><td class="n neg">${num.format(Math.round(t('pag')))}</td><td class="n ${prev<0?'neg':''}">${num.format(Math.round(prev))}</td><td></td></tr>`:''}</tbody></table></div></div>`;
+}
+// Saldo de cada conta no fim de cada mês do ano. Meses que ainda não fecharam: previsão com o que vence (itálico).
+function tabelaSaldosMes({bs,movs,abertas,ehTr}){
+  if(!bs.length)return '';
+  const ano=S.ano,hojeM=HOJE.slice(0,7),ini=i=>`${ano}-${String(i+1).padStart(2,'0')}-01`,fimM=i=>i===11?`${ano+1}-01-01`:ini(i+1);
+  const mesAt=String(ano)===HOJE.slice(0,4)?+HOJE.slice(5,7)-1:ano<+HOJE.slice(0,4)?11:-1;
+  const ab=abertas.filter(p=>!ehTr(p));
+  const prevMes=(lista,i)=>sum(lista.filter(p=>i===Math.max(mesAt,0)&&mesAt>=0?p.vencimento<fimM(i):p.vencimento>=ini(i)&&p.vencimento<fimM(i)).map(p=>+p.valor));
+  const linha=(b,lista)=>{let s=b?saldoContaEm(b,ini(0),movs):0;const abI=s;const fins=MESES.map((_,i)=>{if(i<mesAt||(i===mesAt&&ini(i).slice(0,7)<hojeM)){s=b?saldoContaEm(b,fimM(i),movs):s;return {v:s}}
+      if(i===mesAt){s=(b?saldoContaEm(b,addDias(HOJE,1),movs):s)+prevMes(lista,i);return {v:s,prev:true}}s+=prevMes(lista,i);return {v:s,prev:true}});return {abI,fins}};
+  const L=bs.map(b=>({b,...linha(b,ab.filter(p=>p.conta_bancaria_id===b.id))}));
+  const sem=ab.filter(p=>!p.conta_bancaria_id);if(sem.length&&S.fxc.banco==='*')L.push({b:null,...linha(null,sem)});
+  const cel=x=>`<td class="n ${x.prev?'prev':''} ${x.v<0?'neg':''}">${num.format(Math.round(x.v))}</td>`;
+  return `<div class="panel"><div class="ph"><div><h2>Saldo das contas mês a mês · ${ano}</h2><p class="hint">Normal = <b>saldo realizado</b> no fim do mês (saldo inicial cadastrado + tudo que foi pago e recebido na conta, inclui transferências). <i>Itálico</i> = <b>saldo previsto</b>: saldo realizado de hoje + contas em aberto que vencem até o fim do mês.</p></div></div>
+   <div class="tbl-wrap"><table><thead><tr><th>Conta</th><th class="n">Início do ano</th>${MESES.map(m=>`<th class="n">${m}</th>`).join('')}</tr></thead><tbody>
+   ${L.map(l=>`<tr><td>${l.b?esc(l.b.banco_nome)+`<span class="unit">${esc(nomeEmp(empresa(l.b.empresa_id)))} · cc ${esc(l.b.conta||'')}</span>`:'<i>Sem conta bancária definida</i>'}</td><td class="n">${num.format(Math.round(l.abI))}</td>${l.fins.map(cel).join('')}</tr>`).join('')}
+   <tr class="tot"><td>Saldo final do mês</td><td class="n">${num.format(Math.round(sum(L.map(l=>l.abI))))}</td>${MESES.map((_,i)=>cel({v:sum(L.map(l=>l.fins[i].v)),prev:L.some(l=>l.fins[i].prev)})).join('')}</tr>
+   </tbody></table></div></div>`}
 
 // ===================== Contas a pagar e receber
 function statusParcela(p){if(p.vencimento<HOJE)return['Vencida','bad'];if(p.vencimento===HOJE)return['Vence hoje','warn'];if(p.vencimento<=addDias(HOJE,7))return['Próx. 7 dias','info'];return['Aberta','mute']}
@@ -1868,20 +2133,35 @@ function passaFx(l){if(!l)return true;const F=S.fx;
   if(F.pf.size&&!F.pf.has(nomeParc(l.parceiro_id)||'—'))return false;
   if(F.ct.size){const c=conta(l.conta_id);if(!c||!cadeiaConta(c.id).concat(c).some(x=>F.ct.has(x.codigo+' '+x.nome)))return false}
   return true}
+// filtros em um quadro compacto: cada filtro é uma lista suspensa com busca por digitação; tudo cabe sem rolar a tela
 function formFiltros(){
+  if(document.getElementById('fxPop')){fecharFxPop();return}
   const es=new Set(selEmp().map(e=>e.id));
   const uniq=a=>[...new Set(a)].sort((x,y)=>x.localeCompare(y,undefined,{numeric:true}));
   const ccs=uniq(S.centros.filter(c=>es.has(c.empresa_id)).map(c=>c.nome)).concat('—');
   const pfs=uniq(S.parceiros.filter(p=>es.has(p.empresa_id)).map(p=>p.nome)).concat('—');
   const cts=uniq(S.contas.filter(c=>es.has(c.empresa_id)&&c.conta_pai).map(c=>c.codigo+' '+c.nome));
-  const box=(nome,arr,set,vaz)=>`<div class="checks fx" data-fxbox="${nome}">${arr.map(x=>`<label><input type="checkbox" data-fx="${nome}" value="${esc(x)}" ${set.has(x)?'checked':''}>${x==='—'?`<i class="muted">${vaz}</i>`:esc(x)}</label>`).join('')}</div>`;
-  drawer(`<h3>${icone('filtro')} Mais filtros</h3><p class="muted" style="margin:0">Valem para Painel, DRE, Fluxo de caixa, Contas e Lançamentos. Nada marcado = tudo.</p>
-   <form data-form="filtros" class="form-grid" style="grid-template-columns:minmax(0,1fr)">
-    <div class="field"><label>Centro de custo</label>${box('cc',ccs,S.fx.cc,'Sem centro de custo')}</div>
-    <div class="field"><label for="fxBusca">Fornecedor ou cliente</label><input id="fxBusca" placeholder="Buscar pelo nome" autocomplete="off">${box('pf',pfs,S.fx.pf,'Sem fornecedor ou cliente')}</div>
-    <div class="field"><label>Conta ou subconta</label>${box('ct',cts,S.fx.ct,'')}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Aplicar</button><button type="button" class="btn ghost" data-acao="limpar-fx">Limpar filtros</button><button type="button" class="btn ghost" data-acao="fechar">Cancelar</button></div></form>`)}
-const FORMS_FX={async filtros(f){['cc','pf','ct'].forEach(n=>S.fx[n]=new Set([...f.querySelectorAll(`[data-fx="${n}"]:checked`)].map(i=>i.value)));fecharDrawer();atualizaFxBtn();render()}};
+  const dd=(nome,titulo,arr,set,vaz)=>`<details class="dd" data-dd="${nome}"><summary><span class="dd-t">${titulo}</span><b class="dd-v">${set.size?set.size+' escolhido'+(set.size>1?'s':''):'Todos'}</b></summary>
+    <div class="dd-list"><input class="dd-busca" placeholder="Digite para filtrar" autocomplete="off"><div class="dd-itens">${arr.map(x=>`<label><input type="checkbox" data-fx="${nome}" value="${esc(x)}" ${set.has(x)?'checked':''}><span>${x==='—'?`<i class="muted">${vaz}</i>`:esc(nome==='ct'?x.replace(/^[\d.]+\s+/,''):x)}</span>${nome==='ct'?`<small class="muted">${esc(x.split(' ')[0])}</small>`:''}</label>`).join('')}</div>
+    <div class="dd-acts"><button type="button" class="linkbtn small" data-dd-todos="${nome}">Limpar</button><span class="muted dd-n"></span></div></div></details>`;
+  const b=document.getElementById('fMais').getBoundingClientRect();
+  const w=Math.min(720,innerWidth-32),left=Math.max(16,Math.min(b.left+scrollX,innerWidth-w-16+scrollX));
+  document.getElementById('popLayer').insertAdjacentHTML('beforeend',`<div class="pop fx-pop" id="fxPop" style="top:${b.bottom+scrollY+6}px;left:${left}px;width:${w}px">
+   <form data-form="filtros"><div class="fx-head"><b>${icone('filtro',15)} Filtros</b><span class="muted">Valem para Painel, DRE, Fluxo de caixa, Contas e Lançamentos. Nada escolhido = tudo.</span></div>
+   <div class="fx-grid">${dd('cc','Centro de custo',ccs,S.fx.cc,'Sem centro de custo')}${dd('pf','Fornecedor ou cliente',pfs,S.fx.pf,'Sem fornecedor ou cliente')}${dd('ct','Conta ou subconta',cts,S.fx.ct,'')}</div>
+   <div class="fx-acts"><button class="btn">Aplicar</button><button type="button" class="btn ghost" data-acao="limpar-fx">Limpar tudo</button><button type="button" class="linkbtn" data-acao="fx-fechar">Fechar</button></div></form></div>`);
+  document.getElementById('fMais').setAttribute('aria-expanded','true');
+}
+function fecharFxPop(){document.getElementById('fxPop')?.remove();document.getElementById('fMais')?.setAttribute('aria-expanded','false')}
+document.addEventListener('toggle',ev=>{const d=ev.target;if(!d.classList?.contains('dd')||!d.open)return;d.closest('.fx-grid')?.querySelectorAll('details.dd[open]').forEach(o=>{if(o!==d)o.open=false});d.querySelector('.dd-busca')?.focus()},true);
+document.addEventListener('input',ev=>{const t=ev.target;
+  if(t.classList?.contains('dd-busca')){const q=norm(t.value);let n=0;t.closest('.dd-list').querySelectorAll('.dd-itens label').forEach(l=>{const ok=!q||norm(l.textContent).includes(q);l.hidden=!ok;if(ok)n++});t.closest('.dd-list').querySelector('.dd-n').textContent=q?n+' encontrado'+(n===1?'':'s'):''}
+  else if(t.dataset?.fx){const d=t.closest('details.dd');const n=d.querySelectorAll('input[data-fx]:checked').length;d.querySelector('.dd-v').textContent=n?n+' escolhido'+(n>1?'s':''):'Todos'}});
+document.addEventListener('click',ev=>{
+  const td=ev.target.closest('[data-dd-todos]');if(td){const d=td.closest('details.dd');d.querySelectorAll('input[data-fx]').forEach(i=>i.checked=false);d.querySelector('.dd-v').textContent='Todos';return}
+  if(ev.target.closest('[data-acao=fx-fechar]')){fecharFxPop();return}
+  if(document.getElementById('fxPop')&&!ev.target.closest('#fxPop')&&!ev.target.closest('#fMais'))fecharFxPop()});
+const FORMS_FX={async filtros(f){['cc','pf','ct'].forEach(n=>S.fx[n]=new Set([...f.querySelectorAll(`[data-fx="${n}"]:checked`)].map(i=>i.value)));fecharDrawer();fecharFxPop();atualizaFxBtn();render()}};
 function atualizaFxBtn(){const b=document.getElementById('fMais');if(!b)return;const n=fxAtivos();b.innerHTML=`${icone('filtro',15)}<span>Filtros</span>${n?`<b class="fx-n">${n}</b>`:''}`;b.classList.toggle('on',n>0)}
 function chipsFx(){const n=fxAtivos();if(!n)return '';const t=[...S.fx.cc].map(x=>'Centro: '+(x==='—'?'sem':x)).concat([...S.fx.pf].map(x=>'Parceiro: '+(x==='—'?'sem':x)),[...S.fx.ct].map(x=>'Conta: '+x));
   return `<div class="fx-chips">${t.slice(0,6).map(x=>`<span class="chip info">${esc(x)}</span>`).join('')}${t.length>6?`<span class="chip mute">+${t.length-6}</span>`:''}<button class="linkbtn small" data-acao="limpar-fx">Limpar filtros</button></div>`}
@@ -2576,19 +2856,28 @@ async function vExtratos(){
   const ed=podeEditar(E.emp);
   const {data:hist}=await sb.from('extratos').select('*').eq('empresa_id',E.emp).order('enviado_em',{ascending:false}).limit(30);
   let resumo={};if(hist?.length){const {data:ls}=await sb.from('extrato_linhas').select('extrato_id,status,valor').in('extrato_id',hist.map(h=>h.id));(ls||[]).forEach(l=>{const r=resumo[l.extrato_id]||(resumo[l.extrato_id]={n:0,pend:0,ok:0});r.n++;if(l.status==='nao_lancado'||l.status==='valor_diferente')r.pend++;else r.ok++})}
-  const topo=`<div class="panel"><div class="audit-head"><div><h2>Importar extrato bancário</h2><p class="hint" style="margin-bottom:8px">Envie o extrato do banco. O sistema confere cada movimentação com as baixas já registradas, mostra o que falta lançar e sugere a conta do plano.</p>
+  // passos guiados: 1 conta · 2 enviar · 3 conferir e lançar · 4 aprovar
+  let passo=2,sitAb=null;if(E.prev)passo=3;else if(E.aberto){sitAb=(hist||[]).find(h=>h.id===E.aberto)?.situacao||'aberto';passo=sitAb==='aberto'?3:4}
+  const bSel=banco(E.banco);
+  const PASSOS=[['Escolha a conta',bSel?esc(bSel.banco_nome)+' · cc '+esc(bSel.conta||''):'empresa e banco'],['Envie o extrato','.ofx, .csv ou .pdf'],['Confira e lance','o que falta no sistema'],['Aprove e conclua','trava o extrato']];
+  const agora=passo===2?'Envie o extrato da conta escolhida. Pode mandar vários arquivos de uma vez.':passo===3&&E.prev?'Confira a prévia abaixo e clique em “Gravar e conciliar”.':passo===3?'Lance ou dê baixa nas linhas “Não lançado”. Quando zerar, envie para aprovação.':sitAb==='concluido'?'Conciliação concluída. Escolha outra conta ou envie o próximo extrato.':'Aguardando quem aprova concluir a conciliação.';
+  const passos=`<div class="panel passos-conc"><ol class="passos">${PASSOS.map(([t,sub],i)=>{const n=i+1,st=n<passo||(n===4&&sitAb==='concluido')?'ok':n===passo?'on':'';return `<li class="${st}"><span class="pn">${st==='ok'?'✓':n}</span><div><b>${t}</b><small>${sub}</small></div></li>`}).join('')}</ol>
+    <div class="passo-agora"><b>Agora:</b> ${agora}${E.aberto||E.prev?' <button class="linkbtn small" data-acao="'+(E.prev?'ext-cancelar':'ext-fechar')+'">Voltar ao início</button>':''}</div></div><!--/passos-->`;
+  const foco=!!(E.prev||E.aberto);
+  const topo=passos+`<div class="panel"><div class="audit-head"><div><h2><span class="pn-mini">1</span> Escolha a conta <span class="pn-mini">2</span> Envie o extrato</h2><p class="hint" style="margin-bottom:8px">O sistema confere cada movimentação com as baixas já registradas, mostra o que falta lançar e sugere a conta do plano.</p>
       <div class="ctrls" style="justify-content:flex-start"><select id="extEmp" aria-label="Empresa">${emps.map(e=>`<option value="${e.id}" ${e.id===E.emp?'selected':''}>${esc(nomeEmp(e))}</option>`).join('')}</select>
       <select id="extBanco" aria-label="Conta bancária">${bs.map(b=>`<option value="${b.id}" ${b.id===E.banco?'selected':''}>${esc(b.banco_nome)} · ag ${esc(b.agencia)} · cc ${esc(b.conta)}</option>`).join('')}</select></div></div>
-    ${ed?`<label class="drop" for="arqExt" style="padding:12px 14px"><div><b data-ext-lendo>${E.lendo?'Lendo '+esc(E.lendo)+'…':'Enviar extratos'}</b><p>.ofx, .csv ou .pdf · pode escolher vários arquivos de uma vez (ex.: um por mês)</p></div><span class="btn">Escolher arquivos</span><input type="file" id="arqExt" accept=".ofx,.qfx,.csv,.pdf" multiple hidden></label>`:''}</div>
+    ${ed&&foco?`<details class="dica"><summary>Enviar outro extrato</summary>`:''}${ed?`<label class="drop" for="arqExt" style="padding:12px 14px"><div><b data-ext-lendo>${E.lendo?'Lendo '+esc(E.lendo)+'…':'Enviar extratos'}</b><p>.ofx, .csv ou .pdf · pode escolher vários arquivos de uma vez (ex.: um por mês)</p></div><span class="btn">Escolher arquivos</span><input type="file" id="arqExt" accept=".ofx,.qfx,.csv,.pdf" multiple hidden></label>`:''}${ed&&foco?'</details>':''}</div>
     <details class="dica"><summary>Como tirar o extrato do Nubank</summary><ol><li>No app do Nubank, abra a conta e toque em <b>Extrato</b> (ou no ícone de exportar, no canto de cima).</li><li>Escolha o período e o formato. <b>OFX</b> é o mais confiável; CSV e PDF também funcionam.</li><li>O arquivo chega por e-mail. Salve no computador ou celular e envie aqui.</li></ol><p class="muted" style="margin:6px 0 0">Movimentações que já estão em outro extrato da mesma conta são reconhecidas e não entram duas vezes.</p></details></div>`;
   let corpo='';
   if(E.prev)corpo=telaPrevia(E);
   else if(E.aberto){try{const A=await abrirExtratoSalvo(E.aberto);corpo=telaConciliacao(A,ed&&(A.x.situacao||'aberto')==='aberto')}catch(err){E.aberto=null;corpo=vazio('Não consegui abrir o extrato',`<p style="margin:0">${esc(traduz(err))}</p>`)}}
-  const histHtml=`<div class="panel"><h2>Extratos importados · ${esc(nomeEmp(empresa(E.emp)))}</h2><p class="hint">Abra um extrato para lançar o que falta. Excluir apaga só o extrato; os lançamentos feitos a partir dele continuam.</p>
+  if(hist?.length){const ord=h=>h.situacao==='concluido'?2:h.situacao==='aguardando_aprovacao'?1:0;hist.sort((a,b)=>ord(a)-ord(b))}
+  const histHtml=`<div class="panel"><h2>Extratos já enviados · ${esc(nomeEmp(empresa(E.emp)))}</h2><p class="hint">Os que ainda têm pendência aparecem primeiro: clique em <b>Continuar</b> para seguir de onde parou. Excluir apaga só o extrato; os lançamentos feitos a partir dele continuam.</p>
     ${hist?.length?`<div class="tbl-wrap"><table><thead><tr><th>Enviado</th><th>Conta</th><th>Arquivo</th><th>Período</th><th class="n">Linhas</th><th>Situação</th><th></th></tr></thead><tbody>
     ${hist.map(h=>{const r=resumo[h.id]||{n:0,pend:0};return `<tr class="${E.aberto===h.id?'sel':''}"><td class="mono">${h.enviado_em?dataBR(String(h.enviado_em).slice(0,10)):''}</td><td>${esc(banco(h.conta_bancaria_id)?.banco_nome||'')}</td><td class="wrap">${esc(h.arquivo_nome||'')}</td><td class="mono">${dataBR(h.periodo_inicio)} a ${dataBR(h.periodo_fim)}</td><td class="n">${r.n}</td>
       <td>${h.situacao==='concluido'?'<span class="chip good">Concluída</span>':h.situacao==='aguardando_aprovacao'?'<span class="chip info">Aguardando aprovação</span>':r.pend?`<span class="chip warn">${r.pend} pendente${r.pend>1?'s':''}</span>`:'<span class="chip mute">Conferido, falta aprovar</span>'}</td>
-      <td style="white-space:nowrap"><button class="btn ghost" data-acao="ext-abrir" data-id="${h.id}">Abrir</button>${ed?` <button class="linkbtn small" data-acao="ext-excluir" data-id="${h.id}" style="color:var(--bad)">Excluir</button>`:''}</td></tr>`}).join('')}</tbody></table></div>`:'<p class="muted" style="margin:0">Nenhum extrato importado nesta empresa ainda.</p>'}</div>`;
+      <td style="white-space:nowrap"><button class="btn ${h.situacao==='concluido'?'ghost':''}" data-acao="ext-abrir" data-id="${h.id}">${h.situacao==='concluido'?'Ver':'Continuar'}</button>${ed?` <button class="linkbtn small" data-acao="ext-excluir" data-id="${h.id}" style="color:var(--bad)">Excluir</button>`:''}</td></tr>`}).join('')}</tbody></table></div>`:'<p class="muted" style="margin:0">Nenhum extrato importado nesta empresa ainda.</p>'}</div>`;
   return topo+corpo+histHtml;
 }
 const qMov=n=>n+(n===1?' movimentação':' movimentações');
@@ -3057,15 +3346,16 @@ const ACOES_PES={
 const ROTAS=[
 ['g','Visão geral'],['painel','Painel'],['dre','DRE'],['faturamento','Faturamento e impostos'],['fluxo','Fluxo de caixa'],['contas','Contas a pagar e receber'],['boletos','Boletos do e-mail'],['lancamentos','Lançamentos'],
  ['g','Controle'],['auditoria','Extratos e conciliação'],['nfs','Notas fiscais',1],['estoque','Estoque',1],
- ['g','Planejamento'],['orcamento','Orçamento e forecast'],['premissas','Premissas de prazo'],['salario','Salário líquido (PF)'],
+ ['g','Planejamento'],['orcamento','Orçamento e forecast'],['premissas','Premissas de pagamento'],['salario','Salário líquido (PF)'],
  ['g','Cadastros'],['plano','Plano de contas'],['empresas','Empresas e unidades'],['bancos','Contas bancárias'],['tributos','Impostos e maquininha'],['importar','Importar dados antigos'],['usuarios','Usuários'],
  ['g','Pessoas'],['pessoas','Colaboradores'],['ausencias','Férias e ausências'],
 ];
 const TITULOS=Object.fromEntries(ROTAS.filter(r=>r[0]!=='g'));
 const VIEWS={painel:vPainel,dre:vDRE,fluxo:vFluxo,contas:vContas,boletos:vBoletos,lancamentos:vLancamentos,plano:vPlano,empresas:vEmpresas,importar:vImportar,usuarios:vUsuarios,faturamento:vFaturamento,tributos:vTributos,orcamento:vOrcamento,premissas:vPremissas,bancos:vBancos,salario:vSalario,auditoria:vExtratos,pessoas:vPessoas,ausencias:vAusencias};
-const USA_PERIODO=new Set(['painel','dre','lancamentos','faturamento']),USA_ANO=new Set(['painel','dre','lancamentos','fluxo','faturamento','pessoas','ausencias']),USA_EMP=new Set(['painel','dre','lancamentos','fluxo','contas','boletos','faturamento','pessoas','ausencias']);
+const USA_PERIODO=new Set(['painel','dre','lancamentos','faturamento','fluxo']),USA_ANO=new Set(['painel','dre','lancamentos','fluxo','faturamento','pessoas','ausencias']),USA_EMP=new Set(['painel','dre','lancamentos','fluxo','contas','boletos','faturamento','pessoas','ausencias']);
 function rota(){const h=location.hash.slice(1);return TITULOS[h]&&podeVer(h)?h:'painel'}
 function renderNav(r){
+  const gv=document.getElementById('gvAssina');if(gv&&!gv.firstChild)gv.innerHTML=`${LOGO}<span class="gv-ouro"></span><div><b>Gevans Gestor</b><small>por Gevans Soluções</small></div>`;
   document.getElementById('nav').innerHTML=ROTAS.filter(x=>x[0]==='g'||podeVer(x[0])).filter((x,i,a)=>x[0]!=='g'||(a[i+1]&&a[i+1][0]!=='g')).map(([id,n,soon])=>id==='g'?`<div class="nav-group">${n}</div>`:`<a href="#${id}" class="${id===r?'on':''}" title="${esc(n)}"><span class="nl">${icone(id)}<span>${n}</span></span>${soon?'<span class="soon">em breve</span>':''}${S.navCount?.[id]?`<span class="count" title="${S.navCount[id]} pendente${S.navCount[id]>1?'s':''}">${S.navCount[id]}</span>`:''}</a>`).join('');
   document.getElementById('sideFoot').innerHTML=`<div style="display:flex;flex-direction:column;gap:4px"><span style="overflow-wrap:anywhere">${esc(S.perfil?.nome||'')}${S.master?' · master':''}<br>${esc(S.user?.email||'')}</span>${S.empresas.length>1?'<span><button class="linkbtn small" data-acao="trocar-empresa" style="color:var(--side-ink)">Trocar empresa</button></span>':''}${S.master?'<span><a class="linkbtn small" href="master.html" target="_blank" rel="noopener" style="color:var(--side-ink)">Portal master (clientes e mensalidades)</a></span>':''}<span><button class="linkbtn small" data-acao="alterar-senha" style="color:var(--side-ink)">Alterar senha</button> · <button class="linkbtn small" data-acao="sair" style="color:var(--side-ink)">Sair</button></span></div>`;
 }
@@ -3092,16 +3382,21 @@ function renderFiltros(r){
   fP.hidden=!USA_PERIODO.has(r)||S.per.tipo==='ano';
   fP.innerHTML=S.per.tipo==='tri'?[0,1,2,3].map(q=>`<option value="${q}" ${q===S.per.v?'selected':''}>${q+1}º trimestre</option>`).join(''):MESES.map((m,i)=>`<option value="${i}" ${i===S.per.v?'selected':''}>${m}/${S.ano}</option>`).join('');
 }
+// filtro por digitação: esconde as linhas das tabelas (e os cartões) da tela que não têm o texto digitado
+function aplicaBuscaTela(){const i=document.getElementById('fBuscaTela');if(!i)return;const q=norm(i.value.trim());const v=document.getElementById('view');let tot=0,vis=0;
+  v.querySelectorAll('table tbody tr, .cc, .fm, .ver, [data-busca]').forEach(el=>{if(el.matches('tr.tot,tr.sec,tr.saldo,tr.pct')||el.querySelector('th'))return;tot++;const ok=!q||norm(el.textContent).includes(q);el.classList.toggle('fb-oculta',!ok);if(ok)vis++});
+  const n=document.getElementById('fBuscaN');if(n)n.textContent=q?`${vis} de ${tot}`:'';document.getElementById('fBuscaBox')?.classList.toggle('on',!!q)}
+document.addEventListener('input',ev=>{if(ev.target.id==='fBuscaTela')aplicaBuscaTela()});
 let renderSeq=0;
 async function render(quieto){
-  const r=rota(),seq=++renderSeq;renderNav(r);renderFiltros(r);marcaPelaSelecao();
+  const r=rota(),seq=++renderSeq;if(S._rotaBusca!==r){S._rotaBusca=r;const bi=document.getElementById('fBuscaTela');if(bi)bi.value=''}renderNav(r);renderFiltros(r);marcaPelaSelecao();
   document.getElementById('title').textContent=TITULOS[r];
   document.getElementById('subtitle').textContent=USA_EMP.has(r)&&S.empresas.length?escopo()+(USA_PERIODO.has(r)?' · '+labelPer():USA_ANO.has(r)?' · '+S.ano:''):'';
   const v=document.getElementById('view');
   if(EM_BREVE[r]){v.innerHTML=vEmBreve(r);return}
   if(!S.empresas.length&&!['empresas','usuarios'].includes(r)){v.innerHTML=semEmpresa();return}
   if(!quieto)v.classList.add('loading');
-  try{const html=await VIEWS[r]();if(seq!==renderSeq)return;v.innerHTML=html;decorarTiles(v);v.querySelectorAll('.om-mes.on,.versions.orc-vers .ver.on').forEach(e=>{const p=e.parentElement;p.scrollLeft=e.offsetLeft-p.offsetLeft-(p.clientWidth-e.offsetWidth)/2})}
+  try{const html=await VIEWS[r]();if(seq!==renderSeq)return;v.innerHTML=html+`<footer class="gv-rodape">${LOGO}<span><b>Gevans Gestor</b> · gestão financeira por Gevans Soluções</span></footer>`;decorarTiles(v);aplicaBuscaTela();v.querySelectorAll('.om-mes.on,.versions.orc-vers .ver.on').forEach(e=>{const p=e.parentElement;p.scrollLeft=e.offsetLeft-p.offsetLeft-(p.clientWidth-e.offsetWidth)/2})}
   catch(err){if(seq!==renderSeq)return;console.error(err);v.innerHTML=vazio('Não consegui carregar esta tela',`<p style="margin:0">${esc(traduz(err))}</p>`,'<button class="btn" data-acao="recarregar">Tentar de novo</button>')}
   finally{if(seq===renderSeq)v.classList.remove('loading')}
 }
@@ -3235,6 +3530,7 @@ document.addEventListener('change',ev=>{const t=ev.target;
   else if(t.id==='orcEmp'){if(S.orcEdit?.sujo&&!S._descarta){toast('Há valores não salvos. Salve antes de trocar.');t.value=S.orcEmp;return}S.orcEmp=t.value;S.orcVer=null;S.orcEdit=null;render()}
   else if(t.id==='orcPredio'){if(S.orcEdit?.sujo){toast('Salve antes de trocar de unidade.');t.value=S.orcEdit.pred??'*';return}S.orcPredio=t.value;S.orcEdit=null;render(true)}
   else if(t.id==='premEmp'){S.premEmp=t.value;render()}
+  else if(t.id==='fxBanco'){S.fxc.banco=t.value;render(true)}
   else if(t.id==='ausMes'){S.ausMes=+t.value;render(true)}
   else if(t.id==='usrEmp'){S.usrEmp=t.value;render(true)}
   else if(t.dataset.trocaPes)trocaEmpPes(t);
@@ -3250,7 +3546,7 @@ document.addEventListener('change',ev=>{const t=ev.target;
   else if(t.dataset.fe){const keys=unidades().filter(u=>u.emp.id===t.dataset.fe).map(u=>u.key);if(setSel(keys,t.checked))render();renderPop()}
   else if(t.dataset.fu){if(setSel([t.dataset.fu],t.checked))render();renderPop()}
 });
-document.addEventListener('keydown',ev=>{if(ev.key==='Escape'){fecharDrawer();fecharPop()}});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape'){fecharDrawer();fecharPop();fecharFxPop()}});
 document.addEventListener('click',async ev=>{
   if(document.getElementById('pop')&&!ev.target.closest('#pop')&&!ev.target.closest('#fEmp'))fecharPop();
   if(ev.target.dataset?.fundo){fecharDrawer();return}
@@ -3258,6 +3554,8 @@ document.addEventListener('click',async ev=>{
   const per=ev.target.closest('[data-per]');if(per){const t=per.dataset.per,hm=+HOJE.slice(5,7)-1,base=S.per.tipo==='mes'?S.per.v:S.per.tipo==='tri'?3*S.per.v:(S.ano===+HOJE.slice(0,4)?hm:11);
     S.per={tipo:t,v:t==='tri'?Math.floor(base/3):t==='mes'?base:0};render();return}
   const dr=ev.target.closest('[data-dre]');if(dr){S.dreModo=dr.dataset.dre;render(true);return}
+  const cm=ev.target.closest('[data-cmp]');if(cm){S.cmp=cm.dataset.cmp;render(true);return}
+  const fb=ev.target.closest('[data-fxbase]');if(fb){S.fxc.base=fb.dataset.fxbase;render(true);return}
   const ab=ev.target.closest('[data-abre]');if(ab){const k_=ab.dataset.abre;S.abertos.has(k_)?S.abertos.delete(k_):S.abertos.add(k_);render(true);return}
   const pf=ev.target.closest('[data-pesfiltro]');if(pf){S.pesFiltro=pf.dataset.pesfiltro;render(true);return}
   const cp=ev.target.closest('[data-cp]');if(cp){S.cpLado=cp.dataset.cp;render(true);return}
@@ -3294,7 +3592,7 @@ document.addEventListener('click',async ev=>{
   else if(ACOES_PF[a])await ACOES_PF[a](b);
   else if(ACOES_EXT[a])await ACOES_EXT[a](b);
   else if(ACOES_PES[a])await ACOES_PES[a](b);
-  else if(a==='limpar-fx'){S.fx={cc:new Set(),pf:new Set(),ct:new Set()};fecharDrawer();atualizaFxBtn();render()}
+  else if(a==='limpar-fx'){S.fx={cc:new Set(),pf:new Set(),ct:new Set()};fecharDrawer();if(typeof fecharFxPop==='function')fecharFxPop();atualizaFxBtn();render()}
   else if(a==='gerar-link'){b.disabled=true;const r=await chamarAdmin({acao:'link',email:b.dataset.email,redirectTo:BASE_URL});mostrarLink(b.dataset.email,r.link,false)}
   else if(a==='copiar-link'){const t=document.getElementById('linkAcesso');try{await navigator.clipboard.writeText(t.value);toast('Link copiado.')}catch(e){t.select();toast('Selecionei o link: copie com o menu do celular.')}}
   else if(a==='reenviar'){b.disabled=true;await chamarAdmin({acao:'reenviar',email:b.dataset.email,redirectTo:BASE_URL});toast('E-mail de acesso reenviado para '+b.dataset.email+'.');b.disabled=false}
