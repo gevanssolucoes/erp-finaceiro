@@ -119,6 +119,29 @@ eval(base+`
     await shot('conexoes-acessos');const dl1=await pg.$('[data-cxdel]');await dl1.click();await dl1.click();await pg.waitForTimeout(700);if(DB.dados_bases.length)errs.push(nome+': base não excluída');
     DB.acessos_dados.length=0;
     await ctx.close()}
+  // Produto Gevans Dados: login próprio e menu só de indicadores
+  { empresas.forEach(e=>e.produto='dados');const e0d=empresas[0].id;DB.dados_bases.length=0;DB.dados_linhas.length=0;
+    const bd={id:id(),empresa_id:e0d,nome:'Planilha 2026',origem:'excel',linhas:4,atualizado_em:'2026-11-20T10:00:00Z'};DB.dados_bases.push(bd);
+    [['realizado','2026-01-01','Vendas','receita_bruta',1000],['orcado','2026-01-01','Vendas','receita_bruta',1200],['realizado','2026-01-01','Aluguel','despesas_operacionais',-300],['orcado','2026-02-01','Vendas','receita_bruta',1300]].forEach(([t,c,n,g,v],i)=>DB.dados_linhas.push({id:i+1,base_id:bd.id,empresa_id:e0d,tipo:t,competencia:c,data_caixa:null,conta_codigo:null,conta_nome:n,grupo_dre:g,valor:v,unidade:null}));
+    const ctx=await b.newContext({viewport:{width:1366,height:900},deviceScaleFactor:1});const pg=await ctx.newPage();pg.on('pageerror',e=>errs.push('dados: '+e.message));
+    pg.on('console',m=>{if(m.type()==='error'&&!/fonts.googleapis|ERR_/.test(m.text()))errs.push('dados console: '+m.text())});
+    await pg.route('https://vovomhtwqfnlidqlmycu.supabase.co/**',rotear);await pg.route('https://fonts.googleapis.com/**',r=>r.abort());
+    await pg.route('**/rest/v1/rpc/meu_acesso_suspenso',r=>r.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:'null'}));
+    await pg.goto('http://localhost:8765/?p=dados');await pg.waitForTimeout(600);
+    const la=await pg.textContent('#auth');if(!/Gevans Dados/.test(la))errs.push('login sem a marca Gevans Dados');await pg.screenshot({path:OUTD+'/dados-login.png'});
+    await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x12345678');await pg.click('form[data-form=login] button');await pg.waitForTimeout(2000);
+    const en=await pg.$('[data-entra="*"]');if(en){await en.click();await pg.waitForTimeout(800)}
+    await pg.waitForTimeout(800);const links=await pg.$$eval('#nav a',a=>a.map(x=>x.getAttribute('href')));
+    if(links.some(h=>!['#indicadores','#conexoes','#cadastros','#plano','#usuarios'].includes(h)))errs.push('menu do Dados com telas do ERP: '+links.join(','));
+    if(!(await pg.evaluate(()=>location.hash)).includes('indicadores'))errs.push('Dados não abriu em Indicadores: '+await pg.evaluate(()=>location.hash));
+    if(await pg.$('#indEmp')){await pg.selectOption('#indEmp',e0d);await pg.waitForTimeout(900)}
+    const tv=await pg.textContent('#view');if(!/Receita/.test(tv))errs.push('Indicadores sem receita');await pg.screenshot({path:OUTD+'/dados-indicadores.png',fullPage:true});
+    await pg.click('[data-indtab="fluxo-bi"]');await pg.waitForTimeout(600);if(!/Matriz/.test(await pg.textContent('#view')))errs.push('aba Fluxo BI não abriu');
+    for(const r of ['cadastros','plano']){await pg.evaluate(h=>location.hash=h,r);await pg.waitForTimeout(800);if(!(await pg.evaluate(()=>location.hash)).includes(r))errs.push('Dados sem a tela '+r);await pg.screenshot({path:OUTD+'/dados-'+r+'.png',fullPage:true})}
+    if(!(await pg.$$eval('#nav a',a=>a.map(x=>x.getAttribute('href')))).includes('#cadastros'))errs.push('Dados sem Cadastros no menu');
+    await pg.evaluate(()=>location.hash='lancamentos');await pg.waitForTimeout(700);if(await pg.textContent('#title')!=='Indicadores')errs.push('tela do ERP abriu no Dados: '+await pg.textContent('#title'));
+    if(!/Gevans Dados/.test(await pg.textContent('#nav')+await pg.textContent('.brand')))errs.push('marca Gevans Dados fora do menu');
+    await ctx.close();empresas.forEach(e=>delete e.produto)}
   await b.close();srv.close();
   console.log('ERROS',errs.length?errs.join(' || '):'nenhum')})();
 `);

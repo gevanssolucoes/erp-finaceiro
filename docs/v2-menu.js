@@ -5,7 +5,7 @@
 if(typeof S==='undefined'||typeof ROTAS==='undefined')return;
 
 const GRUPOS_V2=[
-  ['Gestão',['gestao','fluxo-bi','producao','conexoes']],
+  ['Gestão',['gestao','fluxo-bi','indicadores','conexoes','producao']],
   ['Dia a dia',['painel','lancamentos','contas','nfs','pagamentos','boletos','aprovacoes']],
   ['Relatórios',['dre','fluxo','faturamento']],
   ['Controle e auditoria',['auditoria','fechamento','historico','excecoes','compras','estoque']],
