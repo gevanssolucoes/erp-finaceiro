@@ -47,7 +47,7 @@ function pdf(){
   const fontes=[...document.querySelectorAll('link[rel=stylesheet]')].map(l=>l.outerHTML).join('');
   const selo=c.e?seloEmp(c.e,44):`<span class="selo" style="width:44px;height:44px;background:#0d5f73;font-size:17px">G</span>`;
   const html=`<!doctype html><html lang="pt-BR" data-theme="light"><head><meta charset="utf-8"><title>${esc(c.tela)} · ${esc(c.nome)}</title>${fontes}${estilos}
-  <style>@page{size:A4 ${['dre','fluxo','lancamentos','contas','orcamento','historico'].includes(rota())?'landscape':'portrait'};margin:12mm}
+  <style>@page{size:A4 ${['dre','fluxo','lancamentos','contas','orcamento','historico','fluxo-bi','gestao'].includes(rota())?'landscape':'portrait'};margin:12mm}
   html,body{background:#fff!important;height:auto}body{padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .rel-cab{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid var(--emp,#0d5f73);padding-bottom:10px;margin-bottom:14px}
   .rel-cab .esq{display:flex;gap:12px;align-items:center}.rel-cab h1{font-size:18px;margin:0}.rel-cab .s{color:#55656d;font-size:12px}

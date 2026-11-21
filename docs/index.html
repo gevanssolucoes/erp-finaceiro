@@ -544,8 +544,8 @@ const empresa=id=>S.empresas.find(e=>e.id===id);
 const nomeEmp=e=>e?(e.nome_fantasia||e.razao_social):'';
 const predio=id=>S.predios.find(p=>p.id===id);
 const conta=id=>S.contas.find(c=>c.id===id);
-const centro=id=>S.centros.find(c=>c.id===id);
-const parceiro=id=>S.parceiros.find(p=>p.id===id);
+const centro=id=>S.centros.find(c=>c.id===id)||S.centrosInat?.find(c=>c.id===id);
+const parceiro=id=>S.parceiros.find(p=>p.id===id)||S.parceirosInat?.find(p=>p.id===id);
 const banco=id=>S.bancos.find(b=>b.id===id);
 const bancoTxt=b=>b?`${b.banco_nome} · ag ${b.agencia} · cc ${b.conta}`:'';
 const podeEditar=empId=>S.master||['admin','financeiro'].includes(S.papeis[empId]);
@@ -3625,4 +3625,10 @@ function mostrarLink(email,link,novo){drawer(`<h3>Link de acesso · ${esc(email)
 <script src="v2-implantacao.js"></script>
 <script src="v2-conciliacao.js"></script>
 <script src="v2-matriz.js"></script>
+<script src="v3-bi.js"></script>
+<script src="v3-premissas.js"></script>
+<script src="v3-esteira.js"></script>
+<script src="fontes-dados.js"></script>
+<script src="v3-conexoes.js"></script>
+<script src="v3-cadastros.js"></script>
 </body></html>
