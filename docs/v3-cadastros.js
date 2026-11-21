@@ -91,7 +91,7 @@ async function vCadastros(){
       :`<p class="hint" style="margin:8px 0">${rs.length?'Nada encontrado com esse filtro.':'Nenhum '+esc(T.um)+' cadastrado ainda.'}</p>`}
    </section>
    <h2 style="font-size:15px;margin:20px 0 0">Outros cadastros</h2>
-   <div class="cad-at">${ATALHOS.filter(([r])=>TITULOS[r]).map(([r,n,d])=>`<button data-v3go="${r}"><b>${n}</b><small>${d}</small></button>`).join('')}</div>`}
+   <div class="cad-at">${ATALHOS.filter(([r])=>TITULOS[r]&&podeVer(r)).map(([r,n,d])=>`<button data-v3go="${r}"><b>${n}</b><small>${d}</small></button>`).join('')}</div>`}
 
 function formulario(r){const T=TABS[K.tab],emp=K.emp;const novo=!r;r=r||{fornecedor:true,tipo:'produto'};
   const campo=c=>{const [n,rot,tp,ob,ops]=c,v=r[n],id='cf_'+n;

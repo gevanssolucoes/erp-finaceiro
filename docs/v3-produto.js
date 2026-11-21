@@ -1,13 +1,13 @@
 // ===================== Dois produtos: Gevans Gestor (ERP completo) e Gevans Dados (só indicadores)
 // Porta do Gevans Dados: o mesmo endereço do app com ?p=dados (o link fica lembrado neste aparelho).
 // Quem só tem empresas do produto "dados" (migração 0032) entra com a marca Gevans Dados e vê apenas
-// Indicadores, Conexões de dados e Usuários. Quem tem alguma empresa "gestor" continua com o app completo.
+// Indicadores, Conexões de dados, Cadastros (centros de custo, plano de contas...) e Usuários. Quem tem alguma empresa "gestor" continua com o app completo.
 (()=>{
 if(typeof S==='undefined'||typeof telaAuth!=='function')return;
 const qs=new URLSearchParams(location.search);
 if(qs.get('p')==='dados'||qs.get('p')==='gestor'){lsSet('gg_produto',qs.get('p'));history.replaceState(null,'',location.pathname+location.hash)}
 const portaDados=()=>lsGet('gg_produto')==='dados';
-const PERMITIDAS=new Set(['indicadores','conexoes','usuarios']);
+const PERMITIDAS=new Set(['indicadores','conexoes','cadastros','plano','usuarios']);
 const NOME_DADOS='Gevans Dados';
 
 // ---------- tela de login com a marca do produto

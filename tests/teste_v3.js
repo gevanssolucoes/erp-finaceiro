@@ -132,11 +132,13 @@ eval(base+`
     await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x12345678');await pg.click('form[data-form=login] button');await pg.waitForTimeout(2000);
     const en=await pg.$('[data-entra="*"]');if(en){await en.click();await pg.waitForTimeout(800)}
     await pg.waitForTimeout(800);const links=await pg.$$eval('#nav a',a=>a.map(x=>x.getAttribute('href')));
-    if(links.some(h=>!['#indicadores','#conexoes','#usuarios'].includes(h)))errs.push('menu do Dados com telas do ERP: '+links.join(','));
+    if(links.some(h=>!['#indicadores','#conexoes','#cadastros','#plano','#usuarios'].includes(h)))errs.push('menu do Dados com telas do ERP: '+links.join(','));
     if(!(await pg.evaluate(()=>location.hash)).includes('indicadores'))errs.push('Dados não abriu em Indicadores: '+await pg.evaluate(()=>location.hash));
     if(await pg.$('#indEmp')){await pg.selectOption('#indEmp',e0d);await pg.waitForTimeout(900)}
     const tv=await pg.textContent('#view');if(!/Receita/.test(tv))errs.push('Indicadores sem receita');await pg.screenshot({path:OUTD+'/dados-indicadores.png',fullPage:true});
     await pg.click('[data-indtab="fluxo-bi"]');await pg.waitForTimeout(600);if(!/Matriz/.test(await pg.textContent('#view')))errs.push('aba Fluxo BI não abriu');
+    for(const r of ['cadastros','plano']){await pg.evaluate(h=>location.hash=h,r);await pg.waitForTimeout(800);if(!(await pg.evaluate(()=>location.hash)).includes(r))errs.push('Dados sem a tela '+r);await pg.screenshot({path:OUTD+'/dados-'+r+'.png',fullPage:true})}
+    if(!(await pg.$$eval('#nav a',a=>a.map(x=>x.getAttribute('href')))).includes('#cadastros'))errs.push('Dados sem Cadastros no menu');
     await pg.evaluate(()=>location.hash='lancamentos');await pg.waitForTimeout(700);if(await pg.textContent('#title')!=='Indicadores')errs.push('tela do ERP abriu no Dados: '+await pg.textContent('#title'));
     if(!/Gevans Dados/.test(await pg.textContent('#nav')+await pg.textContent('.brand')))errs.push('marca Gevans Dados fora do menu');
     await ctx.close();empresas.forEach(e=>delete e.produto)}
