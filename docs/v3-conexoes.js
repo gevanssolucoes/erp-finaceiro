@@ -111,7 +111,7 @@ document.addEventListener('click',async ev=>{
     const ws=XLSX.utils.json_to_sheet(ls.map(l=>({Tipo:l.tipo==='orcado'?'Orçado':'Realizado','Competência':l.competencia,'Data pagamento':l.data_caixa||'','Código':l.conta_codigo||'',Conta:l.conta_nome,'Grupo DRE':F.GRUPOS[l.grupo_dre]||l.grupo_dre||'',Valor:+l.valor,Empresa:l.unidade||''})));
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Lançamentos');XLSX.writeFile(wb,'base-'+F.norm(b.nome).replace(/[^a-z0-9]+/g,'-')+'.xlsx');return}
   const dl=ev.target.closest('[data-cxdel]');if(dl){if(dl.dataset.ok!=='1'){dl.dataset.ok='1';dl.textContent='Confirmar exclusão';setTimeout(()=>{dl.dataset.ok='';dl.textContent='Excluir'},4000);return}
-    const {error}=await sb.from('dados_bases').delete().eq('id',dl.dataset.cxdel);if(error){toast(traduz(error));return}if(C.ver===dl.dataset.cxdel)C.ver=null;toast('Base excluída.');render(true);return}
+    const {error}=await sb.from('dados_bases').delete().eq('id',dl.dataset.cxdel);if(error){toast(traduz(error));return}I.cache={};if(C.ver===dl.dataset.cxdel)C.ver=null;toast('Base excluída.');render(true);return}
   const rv=ev.target.closest('[data-cxrev]');if(rv){if(rv.dataset.ok!=='1'){rv.dataset.ok='1';rv.textContent='Confirmar';setTimeout(()=>{rv.dataset.ok='';rv.textContent='Revogar'},4000);return}
     const {error}=await sb.rpc('revogar_acesso_dados',{p_id:rv.dataset.cxrev});if(error){toast(traduz(error));return}toast('Acesso revogado. Quem usava não conecta mais.');render(true);return}
   const b=ev.target.closest('[data-cx]');if(!b)return;const a=b.dataset.cx;
@@ -129,7 +129,7 @@ document.addEventListener('click',async ev=>{
     if(velha){const {error}=await sb.from('dados_bases').delete().eq('id',velha.id);if(error)throw error}
     const {data:nb,error}=await sb.from('dados_bases').insert({empresa_id:C.emp,nome,origem:C.origem,detalhe:C.detalhe.slice(0,300),linhas:rows.length}).select().single();if(error)throw error;
     const ls=F.paraGravar(rows,nb.id,C.emp);for(let i=0;i<ls.length;i+=1000){b.textContent=`Guardando ${Math.min(i+1000,ls.length)} de ${ls.length}…`;const {error:e2}=await sb.from('dados_linhas').insert(ls.slice(i,i+1000));if(e2){await sb.from('dados_bases').delete().eq('id',nb.id);throw e2}}
-    C.n=null;C.tabelas=[];C.ver=nb.id;C.cache.verId=null;toast(`Base “${nome}” guardada com ${num.format(rows.length)} linhas.`);await render(true);document.getElementById('cxVer')?.scrollIntoView({behavior:'smooth'})});
+    C.n=null;C.tabelas=[];C.ver=nb.id;C.cache.verId=null;I.cache={};toast(`Base “${nome}” guardada com ${num.format(rows.length)} linhas.`);await render(true);document.getElementById('cxVer')?.scrollIntoView({behavior:'smooth'})});
   if(a==='nova-chave')return ocupado(b,'Criando…',async()=>{const nome=prompt_('cxNomeApi','Power BI');const {data,error}=await sb.rpc('criar_chave_api',{p_empresa:C.emp,p_nome:nome});if(error)throw error;const k_=data[0].chave;
     const ex=API_URL+'?recurso=fluxo_mensal&formato=csv';
     mostraSegredo('Chave de API criada',`<div class="effect bad">Copie agora: a chave não aparece de novo. Quem tiver a chave lê os dados desta empresa.</div>
@@ -152,7 +152,33 @@ document.addEventListener('change',async ev=>{const t=ev.target;
   else if(t.id==='cxArq'&&t.files[0]){const f=t.files[0];try{const ext=(f.name.split('.').pop()||'').toLowerCase();carregar(await F.lerArquivo(f),ext==='pdf'?'pdf':ext==='csv'?'csv':'excel',f.name)}catch(e){console.warn(e);toast(e.message||'Não consegui ler o arquivo.')}}
 });
 
+// ---------- Indicadores: as bases da empresa no Painel gerencial e no Fluxo de caixa BI (tela principal do Gevans Dados)
+const I=S.indic=Object.assign({emp:null,base:'',tab:'gestao',ano:null,cache:{}},S.indic||{});
+async function vIndicadores(){
+  const emps=S.empresas;if(!emps.length)return semEmpresa();
+  if(!emps.some(e=>e.id===I.emp))I.emp=(selEmp()[0]||emps[0]).id;const emp=I.emp;
+  let bs;try{bs=await bases(emp)}catch(e){if(faltaMigracao(e))return vazio('Indicadores ainda não ativados','<p style="margin:0">Falta aplicar no banco a atualização 0030 (Gevans Dados).</p>');throw e}
+  const subir=podeEditar(emp)?'<button class="btn" data-v3go="conexoes">Subir dados</button>':'';
+  const selEmpI=emps.length>1?`<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><label class="hint">Empresa<br><select id="indEmp" class="v3-sel">${emps.map(e=>`<option value="${e.id}" ${e.id===emp?'selected':''}>${esc(nomeEmp(e))}</option>`).join('')}</select></label></div>`:'';
+  if(!bs.length)return selEmpI+vazio('Suba a primeira base','<p style="margin:0">Envie sua planilha de orçado e realizado (Excel, CSV ou PDF), um link de API ou conecte o banco de dados. Os indicadores aparecem na hora.</p>',subir);
+  if(I.base&&!bs.some(b=>b.id===I.base))I.base='';
+  const ck=emp+':'+I.base;if(!I.cache[ck])I.cache[ck]=await todos(()=>{let q=sb.from('dados_linhas').select('tipo,competencia,data_caixa,conta_codigo,conta_nome,grupo_dre,valor,unidade').eq('empresa_id',emp);if(I.base)q=q.eq('base_id',I.base);return q.order('id')});
+  const {rows}=F.deLinhasSalvas(I.cache[ck]);const anos=[...new Set(rows.map(r=>r.comp.slice(0,4)))].sort();
+  if(!I.ano||!anos.includes(String(I.ano)))I.ano=F.anoPadrao(rows,HOJE);
+  const D=F.montarD(rows,I.ano,{});window.V3BI.usar(D);
+  const sel=(id,ops,v,rot)=>`<label class="hint">${rot}<br><select id="${id}" class="v3-sel">${ops.map(([a,b])=>`<option value="${esc(a)}" ${String(a)===String(v)?'selected':''}>${esc(b)}</option>`).join('')}</select></label>`;
+  const topo=`<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px">
+    <div class="cx-fontes" role="tablist" style="margin:0">${[['gestao','Painel gerencial'],['fluxo-bi','Fluxo de caixa BI']].map(([k_,n])=>`<button type="button" role="tab" aria-pressed="${I.tab===k_}" data-indtab="${k_}">${n}</button>`).join('')}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">${emps.length>1?sel('indEmp',emps.map(e=>[e.id,nomeEmp(e)]),emp,'Empresa'):''}${sel('indBase',[['','Todas as bases ('+bs.length+')'],...bs.map(b=>[b.id,b.nome])],I.base,'Base')}${sel('indAno',anos.map(a=>[a,a]),I.ano,'Ano')}${subir}</div></div>`;
+  return topo+(I.tab==='fluxo-bi'?await window.V3BI.telaFluxo(D):await window.V3BI.telaGestao(D))}
+document.addEventListener('click',ev=>{const t=ev.target.closest('[data-indtab]');if(t){I.tab=t.dataset.indtab;render(true)}});
+document.addEventListener('change',ev=>{const t=ev.target;if(t.id==='indEmp'){I.emp=t.value;I.base='';render(true)}else if(t.id==='indBase'){I.base=t.value;render(true)}else if(t.id==='indAno'){I.ano=+t.value;render(true)}});
+// no Gestor, os links "abrir fluxo/comparativo" do painel das bases trocam de aba em vez de sair da tela
+document.addEventListener('click',ev=>{const g=ev.target.closest('[data-v3go]');if(!g||location.hash!=='#indicadores')return;const d=g.dataset.v3go;if(d==='fluxo-bi'||d==='gestao'){ev.stopImmediatePropagation();if(g.dataset.visao)S.v3.visao=g.dataset.visao;if(g.dataset.regime)S.v3.regime=g.dataset.regime;I.tab=d;render(true)}},true);
+
 // ---------- registro no app
+if(!ROTAS.some(x=>x[0]==='indicadores'))ROTAS.push(['indicadores','Indicadores']);
+TITULOS.indicadores='Indicadores';VIEWS.indicadores=vIndicadores;
 if(!ROTAS.some(x=>x[0]==='conexoes'))ROTAS.push(['conexoes','Conexões de dados']);
 TITULOS.conexoes='Conexões de dados';VIEWS.conexoes=vConexoes;
 })();

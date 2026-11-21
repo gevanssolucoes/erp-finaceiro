@@ -282,8 +282,8 @@ function telaMens(){
 
 function telaEmpresas(){
   const lin=S.empresas.map(e=>`<tr><td class="wrap"><b>${esc(e.nome_fantasia||e.razao_social)}</b>${e.nome_fantasia?`<span class="sub">${esc(e.razao_social)}</span>`:''}</td>
-    <td class="mono">${esc(fmtDoc(e.cnpj))}</td><td>${e.tipo_pessoa==='pf'?'Pessoa física':'Empresa'}</td><td>${esc(nomeGrupo(e.grupo_id))}</td><td>${e.ativa===false?'<span class="chip warn">Pausada</span>':chipSit(S.ass[e.grupo_id]?.situacao)}</td><td>${fmtData(e.criado_em)}</td>
-    <td class="n">${e.usuarios??0}</td><td><div class="ctrls"><button class="btn ghost sm" data-acao="emp-usuarios" data-id="${e.id}">Usuários</button>${e.ativa===false?`<button class="btn good sm" data-acao="emp-ativa" data-id="${e.id}" data-v="1">Retomar</button>`:`<button class="btn ghost sm" data-acao="emp-ativa" data-id="${e.id}" data-v="0">Pausar</button>`}<button class="btn ghost sm" data-acao="emp-excluir" data-id="${e.id}" style="color:var(--bad)">Excluir</button></div></td></tr>`).join('');
+    <td class="mono">${esc(fmtDoc(e.cnpj))}</td><td>${e.tipo_pessoa==='pf'?'Pessoa física':'Empresa'}<span class="sub">${e.produto==='dados'?'Gevans Dados':'Gevans Gestor'}</span></td><td>${esc(nomeGrupo(e.grupo_id))}</td><td>${e.ativa===false?'<span class="chip warn">Pausada</span>':chipSit(S.ass[e.grupo_id]?.situacao)}</td><td>${fmtData(e.criado_em)}</td>
+    <td class="n">${e.usuarios??0}</td><td><div class="ctrls"><button class="btn ghost sm" data-acao="emp-usuarios" data-id="${e.id}">Usuários</button><button class="btn ghost sm" data-acao="emp-produto" data-id="${e.id}" title="Trocar o produto desta empresa">${e.produto==='dados'?'Passar para Gestor':'Passar para Dados'}</button>${e.ativa===false?`<button class="btn good sm" data-acao="emp-ativa" data-id="${e.id}" data-v="1">Retomar</button>`:`<button class="btn ghost sm" data-acao="emp-ativa" data-id="${e.id}" data-v="0">Pausar</button>`}<button class="btn ghost sm" data-acao="emp-excluir" data-id="${e.id}" style="color:var(--bad)">Excluir</button></div></td></tr>`).join('');
   return `<div class="head"><div><h1>Empresas</h1><p>A conta master só cadastra: cria empresas, cria os usuários delas, pausa e exclui. Os dados de dentro de cada empresa ficam com o administrador dela, no app.</p></div><div class="ctrls"><button class="btn ghost" data-acao="isolamento">Verificar isolamento entre clientes</button></div></div>
   <div id="isol"></div>
   <div class="panel"><div class="tbl-wrap"><table><thead><tr><th>Empresa</th><th>CNPJ/CPF</th><th>Tipo</th><th>Cliente</th><th>Situação</th><th>Criada em</th><th class="n">Usuários</th><th></th></tr></thead><tbody>${lin||'<tr><td colspan="8" class="empty">Nenhuma empresa.</td></tr>'}</tbody></table></div></div>`;
@@ -309,6 +309,7 @@ const camposEmpresa=()=>`<div class="f2">
   <div class="field"><label for="eDoc">CNPJ ou CPF</label><input id="eDoc" name="doc" inputmode="numeric" required></div>
   <div class="field" style="grid-column:1/-1"><label for="eRazao">Razão social ou nome</label><input id="eRazao" name="razao" required></div>
   <div class="field" style="grid-column:1/-1"><label for="eFant">Nome fantasia (opcional)</label><input id="eFant" name="fantasia"></div>
+  <div class="field" style="grid-column:1/-1"><label for="eProd">Produto</label><select id="eProd" name="produto"><option value="gestor">Gevans Gestor · ERP financeiro completo</option><option value="dados">Gevans Dados · só sobe a base e vê os indicadores</option></select></div>
   <div class="field" style="grid-column:1/-1"><label for="ePlano">Plano de contas</label><select id="ePlano" name="plano">
     <option value="auto">Padrão do tipo escolhido acima (PJ para empresa, PF para pessoa física)</option><option value="pj">Plano padrão PJ (empresa)</option><option value="pf">Plano padrão PF (pessoa física)</option>
     ${S.empresas.length?`<optgroup label="Copiar de uma empresa já cadastrada">${S.empresas.map(e=>`<option value="copia:${e.id}">${esc(e.nome_fantasia||e.razao_social)}</option>`).join('')}</optgroup>`:''}
@@ -318,7 +319,9 @@ async function criarEmpresa(f,grupo){
   if(tipo==='pj'&&doc.length!==14)throw new Error('O CNPJ precisa ter 14 dígitos.');
   if(tipo==='pf'&&doc.length!==11)throw new Error('O CPF precisa ter 11 dígitos.');
   const pl=f.plano?.value||'auto';const {data,error}=await sb.rpc('criar_empresa',{p_cnpj:doc,p_razao_social:f.razao.value.trim(),p_nome_fantasia:f.fantasia.value.trim()||null,p_tipo:tipo,p_grupo:grupo,p_modelo:pl==='auto'||pl.startsWith('copia:')?null:pl,p_copiar_de:pl.startsWith('copia:')?pl.slice(6):null});
-  if(error)throw error;return data;
+  if(error)throw error;
+  if(f.produto?.value==='dados'){const {error:e2}=await sb.rpc('definir_produto_empresa',{p_empresa:data,p_produto:'dados'});if(e2)throw new Error('Empresa criada, mas o produto não foi gravado: '+traduz(e2))}
+  return data;
 }
 async function chamarAdmin(body){
   const {data:{session}}=await sb.auth.getSession();
@@ -378,6 +381,9 @@ const ACOES={
     if(error){box.innerHTML=`<div class="effect warn">${esc(traduz(error))}</div>`;return}
     const prob=(data||[]).filter(r=>r.nivel!=='ok'&&+r.quantidade>0);
     box.innerHTML=prob.length?`<div class="panel"><h2 style="color:var(--bad)">Encontrei ${prob.length} ponto${prob.length>1?'s':''} para revisar</h2><div class="tbl-wrap"><table><tbody>${prob.map(r=>`<tr><td>${esc(r.tipo)}</td><td>${esc(r.tabela||'')}</td><td class="n">${r.quantidade}</td><td class="wrap">${esc(r.detalhe||'')}</td></tr>`).join('')}</tbody></table></div></div>`:'<div class="effect">✓ Nenhum cruzamento entre clientes. Cada cliente só enxerga as próprias empresas.</div>'},
+  async 'emp-produto'(b){const e=S.empresas.find(x=>x.id===b.dataset.id),novo=e.produto==='dados'?'gestor':'dados';
+    if(!confirm(`Passar ${e.nome_fantasia||e.razao_social} para o ${novo==='dados'?'Gevans Dados (só indicadores)':'Gevans Gestor (ERP completo)'}? Nada é apagado; muda só o que os usuários veem.`))return;
+    const {error}=await sb.rpc('definir_produto_empresa',{p_empresa:e.id,p_produto:novo});if(error)return toast(traduz(error));toast('Produto alterado.');recarregar()},
   async 'emp-ativa'(b){const on=b.dataset.v==='1',e=S.empresas.find(x=>x.id===b.dataset.id);
     if(!on&&!confirm(`Pausar ${e.nome_fantasia||e.razao_social}? Os usuários deixam de ver esta empresa. Nada é apagado e você pode retomar quando quiser.`))return;
     const {error}=await sb.rpc('ativar_empresa',{p_empresa:e.id,p_ativa:on});if(error)return toast(traduz(error));toast(on?'Empresa retomada.':'Empresa pausada.');recarregar()},
