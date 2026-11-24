@@ -8,7 +8,7 @@ eval(base+`
 ;(async()=>{
   // login de administrador da empresa (o master não entra no app das empresas)
   perfis[0].master=false;
-  DB.premissas_recebimento=[];DB.atividades=[];DB.atividades_registros=[];DB.dados_bases=[];DB.dados_linhas=[];DB.acessos_dados=[];
+  DB.premissas_recebimento=[];DB.atividades=[];DB.atividades_registros=[];DB.dados_bases=[];DB.dados_linhas=[];DB.acessos_dados=[];DB.dados_paineis=[];
   // orçamento 2026 (rascunho) e forecast com corte em setembro, da primeira empresa
   const e0=empresas[0].id,vO={id:id(),empresa_id:e0,nome:'Orçamento 2026',ano:2026,tipo:'orcamento',congelada:false,criado_em:'2026-01-05T10:00:00Z'};
   const vF={id:id(),empresa_id:e0,nome:'Forecast 2026 · Set',ano:2026,tipo:'forecast',mes_corte:9,congelada:false,criado_em:'2026-10-02T10:00:00Z',origem_id:vO.id};
@@ -132,13 +132,32 @@ eval(base+`
     await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x12345678');await pg.click('form[data-form=login] button');await pg.waitForTimeout(2000);
     const en=await pg.$('[data-entra="*"]');if(en){await en.click();await pg.waitForTimeout(800)}
     await pg.waitForTimeout(800);const links=await pg.$$eval('#nav a',a=>a.map(x=>x.getAttribute('href')));
-    if(links.some(h=>!['#indicadores','#conexoes','#cadastros','#plano','#usuarios'].includes(h)))errs.push('menu do Dados com telas do ERP: '+links.join(','));
+    if(links.some(h=>!['#indicadores','#caixa','#conexoes','#cadastros','#plano','#usuarios'].includes(h)))errs.push('menu do Dados com telas do ERP: '+links.join(','));
     if(!(await pg.evaluate(()=>location.hash)).includes('indicadores'))errs.push('Dados não abriu em Indicadores: '+await pg.evaluate(()=>location.hash));
     if(await pg.$('#indEmp')){await pg.selectOption('#indEmp',e0d);await pg.waitForTimeout(900)}
     const tv=await pg.textContent('#view');if(!/Receita/.test(tv))errs.push('Indicadores sem receita');await pg.screenshot({path:OUTD+'/dados-indicadores.png',fullPage:true});
     await pg.click('[data-indtab="fluxo-bi"]');await pg.waitForTimeout(600);if(!/Matriz/.test(await pg.textContent('#view')))errs.push('aba Fluxo BI não abriu');
     for(const r of ['cadastros','plano']){await pg.evaluate(h=>location.hash=h,r);await pg.waitForTimeout(800);if(!(await pg.evaluate(()=>location.hash)).includes(r))errs.push('Dados sem a tela '+r);await pg.screenshot({path:OUTD+'/dados-'+r+'.png',fullPage:true})}
     if(!(await pg.$$eval('#nav a',a=>a.map(x=>x.getAttribute('href')))).includes('#cadastros'))errs.push('Dados sem Cadastros no menu');
+    // Caixa e auditoria: painel pronto de outubro (arquivos de exemplo em tests/fixtures/painel_*.json)
+    {const pj={periodo:'2026-10',empresa:'Empresa Exemplo',fonte:'planilhas de teste'};for(const pt of ['resumo','movimentos','auditoria'])pj[pt]=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/painel_'+pt+'.json'),'utf8'));
+     fs.writeFileSync(OUTD+'/painel_teste.json',JSON.stringify(pj))}
+    pg.on('dialog',d=>d.accept());
+    await pg.evaluate(()=>location.hash='caixa');await pg.waitForTimeout(1200);
+    if(await pg.$('#cxaEmp')){await pg.selectOption('#cxaEmp',e0d);await pg.waitForTimeout(800)}
+    if(!/Nenhum painel/.test(await pg.textContent('#view')))errs.push('caixa vazio sem aviso');
+    await pg.setInputFiles('#cxaArq',OUTD+'/painel_teste.json');await pg.waitForTimeout(1500);
+    if(DB.dados_paineis.length!==3)errs.push('painel não gravado: '+DB.dados_paineis.length);
+    {const t=await pg.textContent('#view');if(!/Geração de caixa/.test(t)||!/Resultado por obra/.test(t))errs.push('Caixa do mês sem indicadores');await pg.screenshot({path:OUTD+'/dados-caixa.png',fullPage:true});
+     const fim=await pg.evaluate(()=>{const m=S.cxa.atual.mov;return Math.round(m.filter(x=>x.grupo==='Receitas').reduce((a,x)=>a+x.valor,0)*100)/100});console.log('RECEBIMENTOS',fim);
+     await pg.click('[data-cxatab=fluxo]');await pg.waitForTimeout(700);const nf=await pg.$$eval('[data-cxafluxo]',x=>x.length);if(nf<5)errs.push('fluxo V07 com poucas linhas '+nf);
+     await pg.click('[data-cxafluxo]');await pg.waitForTimeout(700);if(!/lançamentos/.test(await pg.textContent('#view')))errs.push('fluxo sem detalhe');await pg.screenshot({path:OUTD+'/dados-caixa-fluxo.png',fullPage:true});
+     await pg.click('[data-cxatab=auditoria]');await pg.waitForTimeout(900);const na=await pg.$$eval('#cxaAud tr',x=>x.length);if(na<3)errs.push('auditoria vazia '+na);
+     await pg.click('[data-cxast]');await pg.waitForTimeout(300);const ns=await pg.$$eval('#cxaAud tr',x=>x.length);console.log('AUDITORIA linhas',na,'só no extrato',ns);await pg.screenshot({path:OUTD+'/dados-caixa-auditoria.png',fullPage:true});
+     await pg.fill('#cxaBusca','Historico');await pg.waitForTimeout(300);
+     await pg.click('[data-cxatab=conferencia]');await pg.waitForTimeout(700);await pg.click('[data-cxaconta="246|2000-2"]');await pg.waitForTimeout(900);if(await pg.$eval('#cxaConta',e=>e.value)!=='246|2000-2')errs.push('clique na conta não abriu a auditoria');
+     await pg.screenshot({path:OUTD+'/dados-caixa-conta246.png',fullPage:true});
+     await pg.setViewportSize({width:400,height:860});await pg.click('[data-cxatab=resumo]');await pg.waitForTimeout(700);const ov=await pg.evaluate(()=>document.documentElement.scrollWidth-innerWidth);if(ov>0)errs.push('caixa no celular com overflow '+ov);await pg.screenshot({path:OUTD+'/dados-caixa-cel.png',fullPage:true});await pg.setViewportSize({width:1366,height:900})}
     await pg.evaluate(()=>location.hash='lancamentos');await pg.waitForTimeout(700);if(await pg.textContent('#title')!=='Indicadores')errs.push('tela do ERP abriu no Dados: '+await pg.textContent('#title'));
     if(!/Gevans Dados/.test(await pg.textContent('#nav')+await pg.textContent('.brand')))errs.push('marca Gevans Dados fora do menu');
     await ctx.close();empresas.forEach(e=>delete e.produto)}
