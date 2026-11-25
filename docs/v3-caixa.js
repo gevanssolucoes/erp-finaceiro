@@ -6,7 +6,7 @@
 (()=>{
 if(typeof S==='undefined'||typeof ROTAS==='undefined')return;
 IC.caixa='<path d="M3 7h18v12H3z"/><path d="M3 11h18M7 15h3"/><path d="M8 7V4h8v3"/>';
-const X=S.cxa=Object.assign({emp:null,per:null,tab:'visao',conta:null,status:'',q:'',qc:'',fluxo:null,cache:{},f:{reg:'',cid:'',emp:[],obra:''}},S.cxa||{});if(!Array.isArray(X.f.emp))X.f.emp=X.f.emp?[X.f.emp]:[];
+const X=S.cxa=Object.assign({emp:null,per:null,tab:'visao',conta:null,status:'',q:'',qc:'',fluxo:null,cache:{},f:{reg:[],cid:[],emp:[],obra:[]}},S.cxa||{});for(const k_ of ['reg','cid','emp','obra'])if(!Array.isArray(X.f[k_]))X.f[k_]=X.f[k_]?[X.f[k_]]:[];
 
 const css=document.createElement('style');css.textContent=`
 .cxa-k .v.pos{color:var(--good)}.cxa-k .v.neg{color:var(--bad)}
@@ -48,7 +48,10 @@ const css=document.createElement('style');css.textContent=`
 .cxa-q{color:var(--ink-3)}.cxa-dt{font-variant-numeric:tabular-nums;color:var(--ink-3);margin-right:8px}.cxa-ok{color:var(--good);font-size:11px}.cxa-mais2{color:var(--accent,var(--ink));font-weight:600}
 .cxa-dw{max-height:75vh}
 .cxa-aud td{white-space:normal;font-size:12.5px}.cxa-aud td.n{white-space:nowrap}.cxa-aud td.det{min-width:140px}
-.cxa-af{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end}.cxa-af select{min-width:170px;max-width:300px}
+.cxa-af,.cxa-fg{display:flex;flex-direction:column;gap:10px}.cxa-fgr{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end}.cxa-af select{min-width:150px;max-width:260px}
+.cxa-ms .v3-sel{min-width:170px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;list-style:none}.cxa-ms summary::-webkit-details-marker{display:none}.cxa-ms summary::after{content:"▾";float:right;margin-left:8px;color:var(--ink-3)}
+.cxa-ms.on summary{border-color:var(--accent,#0d5f73);box-shadow:inset 0 0 0 1px var(--accent,#0d5f73);font-weight:600}.cxa-msn{display:inline-block;min-width:18px;padding:0 6px;border-radius:9px;background:var(--accent,#0d5f73);color:#fff;font-size:11px;font-weight:700;text-align:center}
+.cxa-chs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-top:1px dashed var(--line);padding-top:8px}.cxa-ch{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--surface-2);border-radius:14px;padding:3px 9px;cursor:pointer;color:var(--ink)}.cxa-ch:hover{border-color:var(--bad,#b3261e)}.cxa-ch span{color:var(--ink-3);margin-left:2px}.cxa-ch.more{cursor:default;background:none}.cxa-chs .btn{padding:3px 10px;font-size:12px}
 .cxa-ak .cxa-kb{font:inherit;text-align:left;cursor:pointer;color:var(--ink)}.cxa-ak .cxa-kb[disabled]{cursor:default}.cxa-ak .cxa-kb[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .cxa-ct{max-height:560px;overflow:auto}.cxa-ct thead th{position:sticky;top:0;background:var(--surface);z-index:1}.cxa-ct td{font-size:12px;padding-left:6px;padding-right:6px}.cxa-ct td.det{white-space:normal;max-width:170px;min-width:0;font-size:11.5px;color:var(--ink-2)}.cxa-ct th{padding-left:6px;padding-right:6px}.cxa-ct td small{display:block;font-size:11px}.cxa-ct tr.sel td{background:color-mix(in srgb,var(--accent,#0d5f73) 10%,var(--surface))}.cxa-ct tr.tot td{position:static}
 .cxa-pg{display:flex;gap:10px;align-items:center;justify-content:flex-end;font-size:12.5px;color:var(--ink-2);margin-top:6px}.cxa-pg .btn{padding:5px 12px}
@@ -60,8 +63,8 @@ const css=document.createElement('style');css.textContent=`
 .cxa-mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.cxa-mini div{background:var(--surface-2);border-radius:9px;padding:8px 10px;font-size:11.5px;color:var(--ink-2)}.cxa-mini b{display:block;font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums;margin-top:2px}.cxa-mini b.neg{color:var(--bad)}
 .cxa-st{display:flex;flex-wrap:wrap;gap:6px}.cxa-st button{padding:0;border:0;background:none;border-radius:20px;box-shadow:none;display:inline-flex}.cxa-st button[aria-pressed="true"] .chip{outline:2px solid var(--ink);outline-offset:1px}
 @media print{.cxa-aud{grid-template-columns:1fr!important}.cxa-accs{display:none}.cxa .tbl-wrap,.cxa-dw{max-height:none!important;overflow:visible!important}.cxa-g2,.cxa-g3{grid-template-columns:1fr 1fr!important}}
-.cxa-fg{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
-.cxa-ms{position:relative}.cxa-ms summary{list-style:none;cursor:pointer;min-width:260px;max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cxa-ms summary::after{content:" ▾";float:right}
+.cxa-fg{display:flex;flex-direction:column;gap:8px}
+.cxa-ms{position:relative}.cxa-ms summary{list-style:none;cursor:pointer;min-width:180px;max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cxa-ms summary::after{content:" ▾";float:right}
 .cxa-msb{position:absolute;z-index:20;top:calc(100% + 4px);left:0;width:min(420px,88vw);background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.14);padding:10px;display:flex;flex-direction:column;gap:8px}
 .cxa-msb input[type=search]{width:100%}.cxa-msa{display:flex;flex-wrap:wrap;gap:6px}.cxa-msa .btn{padding:4px 10px;font-size:12px}
 .cxa-msl{max-height:340px;overflow:auto;display:flex;flex-direction:column}.cxa-msl label{display:grid;grid-template-columns:18px 1fr auto;gap:8px;align-items:center;padding:5px 4px;border-radius:6px;font-size:12.5px;color:var(--ink);cursor:pointer}.cxa-msl label:hover{background:var(--surface-2)}.cxa-msl label[hidden]{display:none}.cxa-msl small{color:var(--ink-3);font-variant-numeric:tabular-nums}.cxa-fg select{min-width:150px;max-width:260px}.cxa-fg .chip{cursor:pointer}
@@ -94,8 +97,8 @@ function aplicaDP(o,DP){for(const x of o.mov){const d=x.chave&&DP.get(x.chave);i
 // ---------- grupo: filtros Regional › Cidade › Empresa › Obra (o painel traz várias empresas no mesmo cadastro)
 const FIL=[['reg','Regional','regional'],['cid','Cidade','cidade'],['emp','Empresa','empresa'],['obra','Obra','centro_custo']];
 // empresa é seleção múltipla (todas, uma ou várias); os outros filtros são um valor só
-const ativo=k_=>k_==='emp'?X.f.emp.length>0:!!X.f[k_];
-const casa=(k_,v)=>k_==='emp'?!X.f.emp.length||X.f.emp.includes(v):!X.f[k_]||v===X.f[k_];
+const ativo=k_=>X.f[k_].length>0;
+const casa=(k_,v)=>!X.f[k_].length||X.f[k_].includes(v);
 const nomeE=v=>String(v||'').replace(/^(\d+)\s*-\s*/,'');const codE=v=>(String(v||'').match(/^(\d+)\s*-/)||[])[1]||'';
 function opcoes(o){const f=X.f,r={};for(const [k,,c] of FIL)r[k]=new Map();
   for(const x of o.mov){const ok=i=>FIL.slice(0,i).every(([k,,c])=>casa(k,x[c]));
@@ -105,28 +108,38 @@ function vista(o){if(!o.grupo)return o;const f=X.f,key=FIL.map(([k])=>String(f[k
   if(!FIL.some(([k])=>ativo(k)))return o._v[key]=Object.assign(Object.create(o),{_arv:null});
   const pm=x=>FIL.every(([k,,c])=>casa(k,x[c]));
   const mov=o.mov.filter(pm),emps=new Set(mov.map(x=>x.empresa));f.emp.forEach(e=>emps.add(e));
-  const porEmp=x=>emps.has(x.empresa)&&(!f.reg||!x.regional||x.regional===f.reg||f.emp.length);
+  const porEmp=x=>emps.has(x.empresa)&&(!f.reg.length||!x.regional||f.reg.includes(x.regional)||f.emp.length);
   const conc=(o.res.conciliacao||[]).filter(porEmp),contas=new Set(conc.map(c=>c.conta_bancaria));
   const fc=o.res.forecast?{...o.res.forecast,linhas:o.res.forecast.linhas.filter(l=>!l.empresa||emps.has(l.empresa))}:null;
   const ab={};for(const a of (o.res.abas||[]).filter(a=>!a.empresa||emps.has(a.empresa))){const t=ab[a.aba]||(ab[a.aba]={...a,linhas:0,no_extrato:0,total:0,sem_par:0,base_real:a.base_real==null?null:0});t.linhas+=a.linhas;t.no_extrato+=a.no_extrato;t.total+=a.total;t.sem_par+=a.sem_par||0;if(t.base_real!=null)t.base_real+=+a.base_real||0}
   const res={...o.res,conciliacao:conc,forecast:fc,abas:Object.values(ab),fluxo_v07:(o.res.fluxo_v07||[]).filter(r=>!r.empresa||emps.has(r.empresa)),divergencias:(o.res.divergencias||[]).filter(d=>!d.empresa||emps.has(d.empresa))};
   const aud=o.aud.filter(a=>a.empresa?emps.has(a.empresa)||contas.has(a.conta_bancaria)&&!f.emp.length:contas.has(a.conta_bancaria));
   // com cidade/obra o saldo do banco continua sendo o da empresa inteira; o que ficou fora do filtro entra numa linha própria para a ponte fechar no saldo real
-  const parcial=!!(f.cid||f.obra),semAdm=x=>x.grupo!=='Taxa ADM';
+  const parcial=!!(f.cid.length||f.obra.length),semAdm=x=>x.grupo!=='Taxa ADM';
   const fora=parcial?sum(o.mov.filter(x=>emps.has(x.empresa)&&semAdm(x)).map(x=>x.valor))-sum(mov.filter(semAdm).map(x=>x.valor)):0;
   return o._v[key]=Object.assign(Object.create(o),{mov,aud,res,_arv:null,parcial,fora})}
+// ---------- seleção múltipla com pesquisa (todos os filtros de texto da tela): <details> com busca, marcar/desmarcar e contagem
+const LBL={reg:v=>v,cid:v=>v,emp:v=>nomeE(v),obra:v=>nm(v)||v,bco:v=>v,conta:v=>banco(v)};
+function msel(k,t,it,sel,o={}){const q=norm((X.msQ||{})[k]||''),um=o.um,tp=um?'radio':'checkbox',L=o.lbl||LBL[k]||(v=>v);
+  const rot=sel.length?(sel.length===1?L(sel[0]):sel.length+' '+(o.plural||'marcadas')):(o.todas||'Todas')+` (${it.length})`;
+  return `<div class="hint cxa-ms ${sel.length&&!um?'on':''}">${t}${sel.length&&!um?` <span class="cxa-msn">${sel.length}</span>`:''}<br><details class="cxa-msd" data-ms="${k}" ${o.id?`id="${o.id}"`:''} ${X.msOpen===k?'open':''}><summary class="v3-sel" title="${esc(sel.map(L).join(', '))}">${esc(rot)}</summary><div class="cxa-msb">
+   <input class="v3-sel" type="search" data-msq="${k}" placeholder="pesquisar ${esc(t.toLowerCase())}" value="${esc((X.msQ||{})[k]||'')}">
+   ${um?'':`<div class="cxa-msa"><button type="button" class="btn ghost" data-msa="todas" data-ms="${k}">Todas</button><button type="button" class="btn ghost" data-msa="busca" data-ms="${k}">Marcar as da pesquisa</button>${sel.length?`<button type="button" class="btn ghost" data-msa="limpa" data-ms="${k}">Desmarcar (${sel.length})</button>`:''}</div>`}
+   <div class="cxa-msl">${it.map(([v,sub])=>`<label ${q&&!norm(v+' '+L(v)).includes(q)?'hidden':''}><input type="${tp}" name="ms-${k}" data-msv="${k}" ${k==='emp'?`data-cxamsv="${esc(v)}"`:''} value="${esc(v)}" ${sel.includes(v)?'checked':''}><span>${esc(L(v))}</span><small>${esc(sub??'')}</small></label>`).join('')||'<p class="cxa-q">Nada para escolher.</p>'}</div></div></details></div>`}
+// etiquetas do que está selecionado, com × para tirar
+function chipsSel(ks){const on=ks.filter(([k,,arr])=>arr.length);if(!on.length)return '';
+  return `<div class="cxa-chs" data-nao-imprime><span class="hint">Selecionado:</span>${on.map(([k,t,arr])=>arr.slice(0,6).map(v=>`<button type="button" class="cxa-ch" data-mschip="${k}" data-v="${esc(v)}" title="Tirar do filtro">${esc(t)}: <b>${esc((LBL[k]||(x=>x))(v))}</b> <span aria-hidden="true">×</span></button>`).join('')+(arr.length>6?`<span class="cxa-ch more">+${arr.length-6} ${esc(t.toLowerCase())}</span>`:'')).join('')}<button type="button" class="btn ghost" data-mslimpa="${ks.map(x=>x[0]).join(',')}">Limpar tudo</button></div>`}
+function setMS(k,arr){if(k==='bco'){(X.au=X.au||{}).bco=arr;X.au.pg=0;return}if(k==='conta'){X.conta=arr[0]||null;X.status='';X.lpg=0;return}
+  const i=FIL.findIndex(f=>f[0]===k);if(i<0)return;X.f[k]=arr;const o0=X.p&&X.p[X.per];
+  for(const [k2] of FIL.slice(i+1)){const op=o0?opcoes(o0)[k2]:new Map();X.f[k2]=X.f[k2].filter(v=>op.has(v))}
+  X.dAb=null;X.conta=null}
+const getMS=k=>k==='bco'?((X.au||{}).bco||[]):k==='conta'?(X.conta?[X.conta]:[]):X.f[k]||[];
 function barraFiltros(o){if(!o.grupo)return '';const op=opcoes(o),nE=new Set(o.mov.map(x=>x.empresa)).size;
-  const sel=([k,t])=>{if(k==='emp')return selEmpG(op.emp);const it=[...op[k].entries()].sort((a,b)=>k==='obra'?b[1]-a[1]:a[0].localeCompare(b[0],'pt-BR',{numeric:true}));
-    return `<label class="hint">${t}<br><select class="v3-sel" data-cxaf="${k}"><option value="">Todas (${it.length})</option>${it.map(([v])=>`<option value="${esc(v)}" ${X.f[k]===v?'selected':''}>${esc(k==='emp'||k==='obra'?nm(v)||v:v)}</option>`).join('')}</select></label>`};
+  const sel=([k,t])=>{const it=[...op[k].entries()].sort((a,b)=>k==='obra'?b[1]-a[1]:k==='emp'?nomeE(a[0]).localeCompare(nomeE(b[0]),'pt-BR'):a[0].localeCompare(b[0],'pt-BR',{numeric:true})).map(([v])=>[v,k==='emp'?codE(v):'']);
+    return msel(k,t==='Empresa'?'Empresas':t,it,X.f[k],{id:k==='emp'?'cxaMs':'',todas:k==='emp'?'Todas as empresas':'Todas',plural:k==='emp'?'empresas marcadas':'marcadas'})};
   const on=FIL.filter(([k])=>ativo(k));
-  return `<div class="panel cxa-fg" data-nao-imprime><span class="hint" style="align-self:center;max-width:220px"><b>Grupo · ${nE} empresas</b><br>Filtre para ver uma regional, cidade, empresa ou obra.</span>${FIL.map(sel).join('')}${on.length?`<button type="button" class="btn ghost" data-cxaflimpa="1">Limpar filtros</button>`:''}</div>`}
-function filtroTxt(){return FIL.filter(([k])=>ativo(k)).map(([k,t])=>k==='emp'?(X.f.emp.length===1?'Empresa: '+nomeE(X.f.emp[0]):X.f.emp.length<=3?'Empresas: '+X.f.emp.map(nomeE).join(', '):X.f.emp.length+' empresas'):t+': '+(k==='obra'?nm(X.f[k]):X.f[k])).join(' · ')}
-function selEmpG(mp){const it=[...mp.keys()].sort((a,b)=>nomeE(a).localeCompare(nomeE(b),'pt-BR')),sel=X.f.emp,q=norm(X.empQ||'');
-  const rot=sel.length?(sel.length===1?nomeE(sel[0]):sel.length+' empresas marcadas'):`Todas as empresas (${it.length})`;
-  return `<div class="hint cxa-ms">Empresas<br><details id="cxaMs" ${X.msOpen?'open':''}><summary class="v3-sel">${esc(rot)}</summary><div class="cxa-msb">
-   <input id="cxaMsQ" class="v3-sel" type="search" placeholder="buscar pelo nome ou código" value="${esc(X.empQ||'')}">
-   <div class="cxa-msa"><button type="button" class="btn ghost" data-cxams="todas">Todas</button><button type="button" class="btn ghost" data-cxams="busca">Marcar as da busca</button>${sel.length?`<button type="button" class="btn ghost" data-cxams="limpa">Desmarcar</button>`:''}</div>
-   <div class="cxa-msl">${it.map(v=>`<label ${q&&!norm(v).includes(q)?'hidden':''}><input type="checkbox" data-cxamsv="${esc(v)}" ${sel.includes(v)?'checked':''}><span>${esc(nomeE(v))}</span><small>${esc(codE(v))}</small></label>`).join('')}</div></div></details></div>`}
+  return `<div class="panel cxa-fg" data-nao-imprime><div class="cxa-fgr"><span class="hint" style="align-self:center;max-width:220px"><b>Grupo · ${nE} empresas</b><br>Pesquise e marque uma ou várias opções em cada filtro.</span>${FIL.map(sel).join('')}${on.length?`<button type="button" class="btn ghost" data-cxaflimpa="1">Limpar filtros</button>`:''}</div>${chipsSel(FIL.map(([k,t])=>[k,t,X.f[k]]))}</div>`}
+function filtroTxt(){return FIL.filter(([k])=>ativo(k)).map(([k,t])=>{const a=X.f[k],L=LBL[k];return (a.length>1?t+'s':t).replace('Cidades','Cidades').replace('Regionals','Regionais')+': '+(a.length<=3?a.map(L).join(', '):a.length+' marcadas')}).join(' · ')}
 
 // ---------- formatos: real e orçado sempre em reais inteiros; nomes sem os códigos do plano
 const I0=v=>{const r=Math.round(+v||0);return (r<0?'−':'')+Math.abs(r).toLocaleString('pt-BR')};
@@ -255,20 +268,21 @@ const PEND=/^Só no extrato|^Só nas abas/;
 function audContas(o){const c=(o.res.conciliacao||[]).filter(r=>Math.abs(r.entradas_extrato)+Math.abs(r.saidas_extrato)+Math.abs(r.entradas_base)+Math.abs(r.saidas_base)>0.5);
   const pend=new Map();for(const a of o.aud)if(PEND.test(a.status||''))pend.set(a.conta_bancaria,(pend.get(a.conta_bancaria)||0)+1);
   return c.map(r=>({...r,bco:bcoNome(r),pend:pend.get(r.conta_bancaria)||0,ok:Math.abs(r.diferenca||0)<1}))}
-function telaAud(o){if(!o)return '';const A=X.au||(X.au={bco:'',sit:'',qc:'',pg:0});const all=audContas(o);
-  const bcos=[...new Set(all.map(r=>r.bco))].sort((a,b)=>a.localeCompare(b,'pt-BR'));if(A.bco&&!bcos.includes(A.bco))A.bco='';
+function telaAud(o){if(!o)return '';const A=X.au||(X.au={bco:[],sit:'',qc:'',pg:0});if(!Array.isArray(A.bco))A.bco=A.bco?[A.bco]:[];const all=audContas(o);
+  const bcos=[...new Set(all.map(r=>r.bco))].sort((a,b)=>a.localeCompare(b,'pt-BR'));A.bco=A.bco.filter(b=>bcos.includes(b));
   const qc=norm(A.qc||'');
-  const cv=all.filter(r=>(!A.bco||r.bco===A.bco)&&(!A.sit||(A.sit==='dif'?!r.ok:A.sit==='pend'?r.pend>0:r.ok))&&(!qc||norm([banco(r.conta_bancaria),r.bco,r.empresa,r.descricao_conta].join(' ')).includes(qc)))
+  const cv=all.filter(r=>(!A.bco.length||A.bco.includes(r.bco))&&(!A.sit||(A.sit==='dif'?!r.ok:A.sit==='pend'?r.pend>0:r.ok))&&(!qc||norm([banco(r.conta_bancaria),r.bco,r.empresa,r.descricao_conta].join(' ')).includes(qc)))
     .sort((a,b)=>a.bco.localeCompare(b.bco,'pt-BR')||(Math.abs(b.entradas_extrato)+Math.abs(b.saidas_extrato))-(Math.abs(a.entradas_extrato)+Math.abs(a.saidas_extrato)));
   if(!cv.some(r=>r.conta_bancaria===X.conta))X.conta=(cv.find(r=>!r.ok)||cv[0]||{}).conta_bancaria||null;
   const nDif=all.filter(r=>!r.ok).length,nPend=all.filter(r=>r.pend>0).length,tDif=sum(all.map(r=>Math.abs(r.diferenca||0)));
   const kp=(t,v,d,c,sit)=>`<button type="button" class="v3-k cxa-k cxa-kb" ${sit!=null?`data-cxaau="sit" data-v="${sit}" aria-pressed="${A.sit===sit}"`:'disabled'}><span class="t">${t}</span><span class="v ${c||''}">${v}</span><span class="d">${d}</span></button>`;
   const kpis=`<div class="v3-cards cxa-cards cxa-ak">${kp('Contas com movimento',num.format(all.length),bcos.length+' bancos','','')}${kp('Batidas',num.format(all.length-nDif),'extrato = planilhas','','ok')}${kp('Com diferença',num.format(nDif),'R$ '+I0(tDif)+' em módulo',nDif?'neg':'','dif')}${kp('Com pendências',num.format(nPend),'linhas só no extrato ou só nas abas',nPend?'neg':'','pend')}</div>`;
-  const fil=`<div class="panel cxa-af" data-nao-imprime><label class="hint">Banco<br><select class="v3-sel" data-cxaau="bco"><option value="">Todos (${bcos.length})</option>${bcos.map(b=>`<option ${A.bco===b?'selected':''}>${esc(b)}</option>`).join('')}</select></label>
-   <label class="hint">Conta<br><select class="v3-sel" data-cxaau="conta">${cv.map(r=>`<option value="${esc(r.conta_bancaria)}" ${r.conta_bancaria===X.conta?'selected':''}>${esc(banco(r.conta_bancaria))}${r.descricao_conta?' · '+esc(nm(r.descricao_conta)).slice(0,28):''}</option>`).join('')||'<option>Nenhuma</option>'}</select></label>
+  const nB={};for(const r of all)nB[r.bco]=(nB[r.bco]||0)+1;
+  const fil=`<div class="panel cxa-af" data-nao-imprime><div class="cxa-fgr">${msel('bco','Banco',bcos.map(b=>[b,nB[b]+' contas']),A.bco,{plural:'bancos marcados',todas:'Todos'})}
+   ${msel('conta','Conta',cv.map(r=>[r.conta_bancaria,nm(r.descricao_conta||'').slice(0,40)+(o.grupo?' · '+nomeE(r.empresa).slice(0,30):'')]),X.conta?[X.conta]:[],{um:1,todas:'Escolha a conta'})}
    <label class="hint">Situação<br><select class="v3-sel" data-cxaau="sit"><option value="">Todas</option><option value="ok" ${A.sit==='ok'?'selected':''}>Batidas</option><option value="dif" ${A.sit==='dif'?'selected':''}>Com diferença</option><option value="pend" ${A.sit==='pend'?'selected':''}>Com pendências</option></select></label>
    <label class="hint" style="flex:1;min-width:200px">Buscar conta<br><input id="cxaBuscaC" class="v3-sel" type="search" value="${esc(A.qc||'')}" placeholder="número, descrição ou empresa" style="width:100%"></label>
-   ${A.bco||A.sit||A.qc?'<button type="button" class="btn ghost" data-cxaau="limpa" data-v="1">Limpar</button>':''}</div>`;
+   ${A.bco.length||A.sit||A.qc?'<button type="button" class="btn ghost" data-cxaau="limpa" data-v="1">Limpar</button>':''}</div>${chipsSel([['bco','Banco',A.bco]])}</div>`;
   // tabela de contas agrupada por banco, paginada
   const PG=40,np=Math.max(1,Math.ceil(cv.length/PG));if(A.pg>=np)A.pg=np-1;const pag=cv.slice(A.pg*PG,A.pg*PG+PG);
   const tb={};for(const r of cv){const t=tb[r.bco]||(tb[r.bco]={n:0,si:0,ee:0,eb:0,se:0,sb:0,d:0,sf:0,p:0});t.n++;t.si+=r.saldo_inicial;t.ee+=r.entradas_extrato;t.eb+=r.entradas_base;t.se+=r.saidas_extrato;t.sb+=r.saidas_base;t.d+=r.diferenca||0;t.sf+=r.saldo_final_extrato;t.p+=r.pend}
@@ -391,7 +405,7 @@ async function vCaixa(){
   const subir=podeEditar(X.emp)?`<label class="btn ghost" style="cursor:pointer">Subir painel<input id="cxaArq" type="file" accept=".json,application/json" hidden></label>`:'';
   const selE=`<label class="hint">${Object.values(p).some(x=>x&&x.grupo)?'Cadastro':'Empresa'}<br><select id="cxaEmp" class="v3-sel">${emps.map(e=>`<option value="${e.id}" ${e.id===X.emp?'selected':''}>${esc(nomeEmp(e))}</option>`).join('')}</select></label>`;
   if(!pers.length)return `<div class="v3"><div class="v3-bar"><span></span><div class="v3-fl">${selE}</div></div>${vazio('Nenhum painel de caixa nesta empresa','<p style="margin:0">Envie as planilhas do mês (receitas, contas pagas, transferências, tarifas e o extrato) para a Gevans montar o caixa e a auditoria por conta. Com o arquivo do painel em mãos (.json), use Subir painel.</p>',subir)}</div>`;
-  if(!pers.includes(X.per))X.per=pers[0];const o0=p[X.per];if(!o0.grupo)X.f={reg:'',cid:'',emp:[],obra:''};const o=X.atual=vista(o0);
+  if(!pers.includes(X.per))X.per=pers[0];const o0=p[X.per];if(!o0.grupo)X.f={reg:[],cid:[],emp:[],obra:[]};const o=X.atual=vista(o0);
   const tabs=[['visao','Visão geral'],['drill','Fluxo de caixa (drill)'],['auditoria','Auditoria por conta'],['confronto','Confronto planilhas × FLUXO'],['aplic','Aplicações'],['depara','De-para']];
   if(!tabs.some(t=>t[0]===X.tab))X.tab='visao';
   const corpo=!o.mov.length&&o0.grupo?'':X.tab==='drill'?telaDrill(o):X.tab==='auditoria'?telaAud(o):X.tab==='confronto'?telaConfronto(o):X.tab==='aplic'?telaAplic(p,o):X.tab==='depara'?telaDepara(o):telaVisao(o);
@@ -404,7 +418,7 @@ async function vCaixa(){
    <p class="cxa-mais">Fonte: ${esc(o.res.fonte||o.resumo?.fonte||'planilhas do cliente')}. Atualizado em ${dt((o.resumo?.atualizado_em||'').slice(0,10))}.</p></div>`}
 
 document.addEventListener('click',ev=>{const u=ev.target.closest('button[data-cxaau],[data-cxalpg]');if(u&&document.querySelector('.cxa')){if(u.dataset.cxalpg!=null){X.lpg=+u.dataset.cxalpg;pintarAud();document.getElementById('cxaDet')?.scrollIntoView({block:'start'});return}
-    const A=X.au=X.au||{},k_=u.dataset.cxaau;if(k_==='limpa')X.au={bco:'',sit:'',qc:'',pg:0};else if(k_==='pg')A.pg=+u.dataset.v;else if(k_==='sit')A.sit=A.sit===u.dataset.v?'':u.dataset.v,A.pg=0;render(true);return}});
+    const A=X.au=X.au||{},k_=u.dataset.cxaau;if(k_==='limpa')X.au={bco:[],sit:'',qc:'',pg:0};else if(k_==='pg')A.pg=+u.dataset.v;else if(k_==='sit')A.sit=A.sit===u.dataset.v?'':u.dataset.v,A.pg=0;render(true);return}});
 document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],[data-cxast],[data-cxaconta],[data-cxadr],[data-cxadn],[data-cxadrill],[data-cxatodos],[data-cxaexp],[data-cxafset],[data-cxaflimpa],[data-cxams],[data-cxaap],[data-cxaapall],[data-cxadpok],[data-cxadpall],[data-cxadpxls]');if(!t||!document.querySelector('.cxa'))return;
   if(t.dataset.cxaap){X.apAb=X.apAb===t.dataset.cxaap?null:t.dataset.cxaap;render(true);return}
   if(t.dataset.cxaapall){X.apAll=1;render(true);return}
@@ -412,9 +426,8 @@ document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],
   if(t.dataset.cxadpall){const ls=linhasDP().slice(0,150).map(c=>c.chave);if(confirm('Validar '+ls.length+' chaves com a classificação mostrada?'))gravarDP(ls).catch(e=>toast(traduz(e)));return}
   if(t.dataset.cxadpxls){const DP=X.p._dp;const ls=chavesDP(X.atual).map(c=>{const d=DP.get(c.chave)||c.pre;return {Chave:c.chave,Regional:c.regional,Empresa:c.empresa,Obra:c.obra,Produto:c.produto,'Serviço':c.servico,Insumo:c.insumo,Fluxo_Tipo:d.fluxo_tipo,Fluxo_Conta:d.fluxo_conta,Fluxo_SubConta:d.fluxo_subconta,Fluxo_Descricao:d.fluxo_descricao,'Base Apresentação':d.base_apresentacao,'RESUMO - SERVIÇO':d.resumo_servico,'Serviço - Resumo':d.servico_resumo,Status:DPST[stDP(c)][0],'Valor no mês':Math.round(c.valor*100)/100}});
     if(window.XLSX){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(ls),'De-para');XLSX.writeFile(wb,'de-para-'+X.per+'.xlsx')}else toast('Recarregue a página para exportar.');return}
-  if(t.dataset.cxaflimpa){X.f={reg:'',cid:'',emp:[],obra:''};X.dAb=null;X.conta=null;render(true);return}
-  if(t.dataset.cxams){const it=[...document.querySelectorAll('[data-cxamsv]')];X.f.emp=t.dataset.cxams==='busca'?it.filter(i=>!i.closest('label').hidden).map(i=>i.dataset.cxamsv):[];X.f.obra='';X.msOpen=true;X.dAb=null;X.conta=null;render(true);return}
-  if(t.dataset.cxafset){const k0=t.dataset.cxafset;X.f[k0]=k0==='emp'?[t.dataset.v]:t.dataset.v;if(k0==='reg'){X.f.cid='';X.f.emp=[];X.f.obra=''}else X.f.obra='';X.dAb=null;X.conta=null;render(true);return}
+  if(t.dataset.cxaflimpa){X.f={reg:[],cid:[],emp:[],obra:[]};X.dAb=null;X.conta=null;render(true);return}
+  if(t.dataset.cxafset){const k0=t.dataset.cxafset;X.f[k0]=[t.dataset.v];if(k0==='reg'){X.f.cid=[];X.f.emp=[];X.f.obra=[]}else X.f.obra=[];X.dAb=null;X.conta=null;render(true);return}
   if(t.dataset.cxaexp){const nomes={visao:'Visão geral',drill:'Fluxo de caixa (drill)',auditoria:'Auditoria por conta',confronto:'Confronto planilhas × FLUXO',aplic:'Aplicações',depara:'De-para'};
     const sub=(nomes[X.tab]||'')+' · '+MES(X.per)+(filtroTxt()?' · '+filtroTxt():'')+(X.tab==='auditoria'&&X.conta?' · '+banco(X.conta)+(X.status?' · '+(STN[X.status]||X.status):''):'');
     const adm=admTot(X.atual?.mov||[]);const sub2=sub+(adm.pg||adm.rc?' · Taxa ADM de 4% é gerencial e não altera o saldo das contas':'');
@@ -426,13 +439,10 @@ document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],
   else if(t.dataset.cxatodos){X.dTodos=t.dataset.cxatodos;render(true)}
   else if(t.dataset.cxadrill){const c=t.dataset.cxadrill,tipo=c.startsWith('1')?'1. ENTRADAS (+)':'2. SAÍDAS (-)';X.dNivel=1;X.dAb=null;X.dFoco=tipo+'›'+c;X.tab='drill';render(true)}
   else if(t.dataset.cxaconta){const ja=X.tab==='auditoria';X.conta=t.dataset.cxaconta;X.status='';X.lpg=0;X.tab='auditoria';render(true);if(ja)setTimeout(()=>document.getElementById('cxaDet')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}});
-document.addEventListener('change',ev=>{const t=ev.target;if(t.dataset&&t.dataset.cxaau&&t.tagName==='SELECT'){const k_=t.dataset.cxaau,A=X.au=X.au||{};if(k_==='conta'){X.conta=t.value;X.status='';X.lpg=0}else{A[k_]=t.value;A.pg=0}render(true);return}if(t.dataset&&t.dataset.cxamsv!=null){const v=t.dataset.cxamsv,e=X.f.emp;X.f.emp=t.checked?[...new Set([...e,v])]:e.filter(x=>x!==v);X.f.obra='';X.msOpen=true;X.dAb=null;X.conta=null;const sc=document.querySelector('.cxa-msl')?.scrollTop||0;render(true);setTimeout(()=>{const l=document.querySelector('.cxa-msl');if(l)l.scrollTop=sc},0);return}
-  if(t.dataset&&t.dataset.cxaf){const k_=t.dataset.cxaf,i=FIL.findIndex(f=>f[0]===k_);X.f[k_]=t.value;
-    // mantém os filtros seguintes que ainda existem no novo recorte (ex.: empresa escolhida antes da cidade)
-    const o0=X.p&&X.p[X.per];for(const [k2] of FIL.slice(i+1)){const op=o0?opcoes(o0)[k2]:new Map();if(k2==='emp')X.f.emp=X.f.emp.filter(v=>op.has(v));else if(X.f[k2]&&!op.has(X.f[k2]))X.f[k2]=''}
-    X.dAb=null;X.conta=null;render(true);return}
+document.addEventListener('change',ev=>{const t=ev.target;if(t.dataset&&t.dataset.cxaau&&t.tagName==='SELECT'){const k_=t.dataset.cxaau,A=X.au=X.au||{};if(k_==='conta'){X.conta=t.value;X.status='';X.lpg=0}else{A[k_]=t.value;A.pg=0}render(true);return}if(t.dataset&&t.dataset.msv){const k_=t.dataset.msv,cur=getMS(k_),v=t.value;setMS(k_,t.type==='radio'?[v]:t.checked?[...new Set([...cur,v])]:cur.filter(x=>x!==v));X.msOpen=t.type==='radio'?null:k_;const sc=document.querySelector(`[data-ms="${k_}"] .cxa-msl`)?.scrollTop||0;render(true);setTimeout(()=>{const l=document.querySelector(`[data-ms="${k_}"] .cxa-msl`);if(l)l.scrollTop=sc},0);return}
+
   if(t.id==='cxaDpSt'){X.dpSt=t.value;pintarDP();return}
-  if(t.id==='cxaEmp'){X.emp=t.value;X.per=null;X.dAb=null;X.f={reg:'',cid:'',emp:[],obra:''};render(true)}else if(t.id==='cxaPer'){X.per=t.value;X.dAb=null;render(true)}});
+  if(t.id==='cxaEmp'){X.emp=t.value;X.per=null;X.dAb=null;X.f={reg:[],cid:[],emp:[],obra:[]};render(true)}else if(t.id==='cxaPer'){X.per=t.value;X.dAb=null;render(true)}});
 // arquivo do painel: {periodo:'AAAA-MM', fonte, resumo, movimentos, auditoria} montado pela Gevans a partir das planilhas
 async function subirPainel(f){try{const j=JSON.parse(await f.text());
   if(!/^\d{4}-\d{2}$/.test(j.periodo||'')||!j.resumo||!j.movimentos?.rows||!j.auditoria?.rows)throw new Error('Arquivo não é um painel de caixa da Gevans.');
@@ -442,10 +452,14 @@ async function subirPainel(f){try{const j=JSON.parse(await f.text());
   delete X.cache[X.emp];X.per=j.periodo;toast('Painel de '+MES(j.periodo)+' carregado.');render(true)}
  catch(e){console.warn(e);toast(traduz(e))}}
 document.addEventListener('change',ev=>{if(ev.target.id==='cxaArq'&&ev.target.files[0])subirPainel(ev.target.files[0])});
-document.addEventListener('toggle',ev=>{if(ev.target.id==='cxaMs')X.msOpen=ev.target.open},true);
-document.addEventListener('click',ev=>{const d=document.getElementById('cxaMs');if(d&&d.open&&!d.contains(ev.target)){d.open=false;X.msOpen=false}});
+document.addEventListener('toggle',ev=>{const d=ev.target;if(d.dataset&&d.dataset.ms){if(d.open){X.msOpen=d.dataset.ms;document.querySelectorAll('details.cxa-msd[open]').forEach(o=>{if(o!==d)o.open=false});setTimeout(()=>d.querySelector('[data-msq]')?.focus(),0)}else if(X.msOpen===d.dataset.ms)X.msOpen=null}},true);
+document.addEventListener('click',ev=>{document.querySelectorAll('details.cxa-msd[open]').forEach(d=>{if(!d.contains(ev.target)){d.open=false;X.msOpen=null}});
+  const b=ev.target.closest('[data-msa],[data-mschip],[data-mslimpa]');if(!b||!document.querySelector('.cxa'))return;
+  if(b.dataset.mslimpa){for(const k_ of b.dataset.mslimpa.split(','))setMS(k_,[]);X.msOpen=null;render(true);return}
+  if(b.dataset.mschip){const k_=b.dataset.mschip;setMS(k_,getMS(k_).filter(v=>v!==b.dataset.v));render(true);return}
+  const k_=b.dataset.ms,its=[...document.querySelectorAll(`[data-ms="${k_}"] [data-msv]`)];setMS(k_,b.dataset.msa==='limpa'?[]:b.dataset.msa==='busca'?its.filter(i=>!i.closest('label').hidden).map(i=>i.value):[]);X.msOpen=k_;render(true)});
 document.addEventListener('input',ev=>{if(ev.target.id==='cxaBusca'){X.q=ev.target.value;X.lpg=0;pintarAud()}
-  else if(ev.target.id==='cxaMsQ'){X.empQ=ev.target.value;const q=norm(X.empQ);document.querySelectorAll('.cxa-msl label').forEach(l=>{l.hidden=!!q&&!norm(l.querySelector('input').dataset.cxamsv).includes(q)})}
+  else if(ev.target.dataset&&ev.target.dataset.msq){const k_=ev.target.dataset.msq;(X.msQ=X.msQ||{})[k_]=ev.target.value;const q=norm(ev.target.value);ev.target.closest('.cxa-msb').querySelectorAll('.cxa-msl label').forEach(l=>{l.hidden=!!q&&!norm(l.textContent+' '+l.querySelector('input').value).includes(q)})}
   else if(ev.target.id==='cxaDpQ'){X.dpQ=ev.target.value;clearTimeout(X._tq2);X._tq2=setTimeout(pintarDP,250)}
   else if(ev.target.id==='cxaBuscaC'){(X.au=X.au||{}).qc=ev.target.value;X.au.pg=0;clearTimeout(X._tq);X._tq=setTimeout(()=>{render(true);setTimeout(()=>{const i=document.getElementById('cxaBuscaC');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)},350)}});
 
