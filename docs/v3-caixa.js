@@ -434,7 +434,8 @@ function hbar(items,lab,val,cor,fmt){const m=Math.max(1,...items.map(x=>Math.abs
 async function vPerguntas(){const emps=S.empresas;if(!emps.length)return semEmpresa();
   if(!emps.some(e=>e.id===X.emp)){X.emp=null;for(const e of [...selEmp(),...emps]){const r=await carregar(e.id);if(Object.keys(r).some(k_=>k_[0]!=='_')){X.emp=e.id;break}}X.emp=X.emp||(selEmp()[0]||emps[0]).id}
   const p=X.p=await carregar(X.emp);const pers=Object.keys(p).filter(k_=>k_[0]!=='_').sort().reverse();const pq=pers.map(k_=>p[k_].perguntas?.conteudo).find(Boolean);
-  if(!pq)return `<div class="v3">${vazio('Perguntas do negócio ainda sem base','<p style="margin:0">Esta tela usa o real, o orçado e o forecast do FLUXO do cliente. Envie o arquivo do FLUXO para a Gevans montar as respostas.</p>')}</div>`;
+  const subirPQ=podeEditar(X.emp)?`<label class="btn ghost" style="cursor:pointer">Subir base<input id="pqArq" type="file" accept=".json,application/json" hidden></label>`:'';
+  if(!pq)return `<div class="v3 cxa"><div class="v3-bar"><span></span><div class="v3-fl">${subirPQ}</div></div>${vazio('Perguntas do negócio ainda sem base','<p style="margin:0">Esta tela usa o real, o orçado e o forecast do FLUXO do cliente. Use <b>Subir base</b> com o arquivo de perguntas que a Gevans monta a partir do FLUXO.</p>')}</div>`;
   const f=pqF(),L=pq.linhas.map(l=>({r:l[0],c:l[1],e:l[2],k:l[3],real:l[4],orc:l[5],fc:l[6]}));
   const op={};for(const [k,,i] of PQF){op[k]=new Map();const col=['r','c','e'][i];for(const l of L)if(PQF.every(([k2,,i2])=>k2===k||!f[k2].length||f[k2].includes(l[['r','c','e'][i2]])))op[k].set(l[col],(op[k].get(l[col])||0)+1)}
   const it=k=>[...op[k].keys()].sort((a,b)=>String(LBL[k](a)).localeCompare(String(LBL[k](b)),'pt-BR')).map(v=>[v,'']);
@@ -479,7 +480,7 @@ async function vPerguntas(){const emps=S.empresas;if(!emps.length)return semEmpr
    ['Qual o melhor custo-benefício por cidade?',cbs[0]?`<b>${esc(cbs[0].c)}</b>: R$ ${cb2(cbs[0].br)} recebidos para cada R$ 1 gasto`:'—',
     'Recebido ÷ gasto (custos, despesas e obra):'+`<table class="pq-t"><tr><th>Cidade</th><th>Real</th><th>Orçado</th><th>Forecast</th></tr>${cbs.slice(0,8).map(x=>`<tr><td>${esc(x.c)}</td><td><b>${cb2(x.br)}</b></td><td>${cb2(x.bo)}</td><td>${cb2(x.bf)}</td></tr>`).join('')}</table>`,'Real · Orçado · Forecast','área vendável e lotes por cidade, para custo por m² e por lote']];
   return `<div class="v3 cxa pq"><p class="cxa-lead">Respostas diretas com o real (jan–out/26), o orçado e o forecast do FLUXO até dez/28. Cada pergunta mostra de onde vem o número e o que falta para ficar completa. Valores em R$.</p>
-   <div class="panel cxa-af" data-nao-imprime><div class="cxa-fgr">${PQF.map(([k,t])=>msel(k,t,it(k),f[k],{plural:'marcadas'})).join('')}<span class="v3-acts"><button class="btn ghost" type="button" onclick="window.print()">Imprimir / PDF</button></span></div>${chipsSel(PQF.map(([k,t])=>[k,t,f[k]]))}</div>
+   <div class="panel cxa-af" data-nao-imprime><div class="cxa-fgr">${PQF.map(([k,t])=>msel(k,t,it(k),f[k],{plural:'marcadas'})).join('')}<span class="v3-acts"><button class="btn ghost" type="button" onclick="window.print()">Imprimir / PDF</button>${subirPQ}</span></div>${chipsSel(PQF.map(([k,t])=>[k,t,f[k]]))}</div>
    <div class="pq-g">${Q.map(([t,a,b,base,falta,larga],i)=>`<section class="panel pq-q ${larga?'w':''}"><div class="pq-h"><span>${i+1}</span><h3>${t}</h3></div><div class="pq-a">${a}</div><div class="pq-b">${b}</div><div class="pq-f"><span class="ok">✓ Base: ${base}</span><span class="fa">Para ficar completo: ${falta}</span></div></section>`).join('')}</div>
    <p class="cxa-mais">Fonte: ${esc(pq.fonte||'')}. ${empsF.size} empresas no filtro.</p></div>`}
 const cssPQ=document.createElement('style');cssPQ.textContent=`.pq-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}@media(max-width:900px){.pq-g{grid-template-columns:1fr}}.pq-q{display:flex;flex-direction:column;gap:8px}.pq-q.w{grid-column:1/-1}
@@ -547,6 +548,12 @@ document.addEventListener('change',ev=>{const t=ev.target;if(t.dataset&&t.datase
   if(t.id==='cxaDpArq'&&t.files[0]){subirDP(t.files[0]).catch(e=>toast(traduz(e)));t.value='';return}
   if(t.id==='cxaEmp'){X.emp=t.value;X.per=null;X.dAb=null;X.f={reg:[],cid:[],emp:[],obra:[]};render(true)}else if(t.id==='cxaPer'){X.per=t.value;X.dAb=null;render(true)}});
 // arquivo do painel: {periodo:'AAAA-MM', fonte, resumo, movimentos, auditoria} montado pela Gevans a partir das planilhas
+async function subirPQ(f){try{const j=JSON.parse(await f.text());
+  if(!Array.isArray(j.linhas)||!j.saldo_out26||!/^\d{4}-\d{2}$/.test(j.periodo||''))throw new Error('Arquivo não é uma base de Perguntas do negócio da Gevans.');
+  toast('Subindo a base das perguntas…');const {error}=await sb.from('dados_paineis').upsert([{empresa_id:X.emp,periodo:j.periodo,parte:'perguntas',titulo:'Perguntas do negócio',fonte:j.fonte||f.name,conteudo:j,atualizado_em:new Date().toISOString()}],{onConflict:'empresa_id,periodo,parte'});if(error)throw error;
+  delete X.cache[X.emp];toast('Base das perguntas carregada.');render(true)}
+ catch(e){console.warn(e);toast(traduz(e))}}
+document.addEventListener('change',ev=>{if(ev.target.id==='pqArq'&&ev.target.files[0])subirPQ(ev.target.files[0])});
 async function subirPainel(f){try{const j=JSON.parse(await f.text());
   if(!/^\d{4}-\d{2}$/.test(j.periodo||'')||!j.resumo||!j.movimentos?.rows||!j.auditoria?.rows)throw new Error('Arquivo não é um painel de caixa da Gevans.');
   if(j.empresa&&!confirm(`Subir o painel de ${MES(j.periodo)} (${j.empresa}) em ${nomeEmp(empresa(X.emp))}? Se o mês já existir, ele é substituído.`))return;
