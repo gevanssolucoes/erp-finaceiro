@@ -26,7 +26,10 @@ const css=document.createElement('style');css.textContent=`
 .cxa .tbl-wrap{max-height:70vh;overflow:auto}
 .cxa-fc td:first-child,.cxa-fc th:first-child{position:sticky;left:0;background:var(--surface);z-index:1;min-width:260px;white-space:normal}
 .cxa-fc tr.tot td:first-child{background:var(--surface-2)}
-.cxa-fc thead th{z-index:2}.cxa-fc thead th:first-child{z-index:3}
+.cxa-fc thead th{z-index:2}
+.cxa-tg{display:inline-block;width:16px;color:var(--ink-2)}
+.cxa-fc tr.cxa-lanc td{font-size:12px;color:var(--ink-2)}
+.cxa-fc tr.l2 td:first-child{padding-left:28px}.cxa-fc thead th:first-child{z-index:3}
 `;document.head.appendChild(css);
 
 const R=v=>v==null||v===''?'':brl2.format(+v);
@@ -104,29 +107,39 @@ function telaForecast(o){const F=o.res.forecast;if(!F)return vazio('Sem fluxo pr
     if(m<=MR){C.push({m,k:'P',t:'Prev '+M});if(temA(m))C.push({m,k:'A',t:'Atual '+M});C.push({m,k:'R',t:'Real '+M});C.push({m,k:'V',t:M+' Var%'});if(temA(m))C.push({m,k:'VA',t:M+' Var% Atual'})}
     else{C.push({m,k:'P',t:'Prev '+M});C.push({m,k:'A',t:'Atual '+M});C.push({m,k:'VF',t:M+' Var%'})}}
   if(!X.fcMes){C.push({m:0,k:'TP',t:'Total '+F.ano});C.push({m:0,k:'TA',t:'Atual total '+F.ano});C.push({m:0,k:'TV',t:F.ano+' Var%'})}
+  const pc=(a,b)=>b?(a-b)/b:null;
   const v=(L,c)=>{const P=L.P[c.m-1],A=L.A[c.m-1],R=L.R[c.m-1];
-    const pc=(a,b)=>b?(a-b)/b:null;
     switch(c.k){case 'P':return P;case 'A':return A;case 'R':return R;case 'V':return pc(R,P);case 'VA':return pc(R,A);case 'VF':return pc(A,P);
-      case 'TP':return sum(L.P);case 'TA':return sum(L.R.slice(0,MR))+sum(L.A.slice(MR));case 'TV':{const a=sum(L.R.slice(0,MR))+sum(L.A.slice(MR)),b=sum(L.P);return pc(a,b)}}};
-  const soma=ls=>({P:[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>sum(ls.map(l=>l.P[i]))),A:[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>sum(ls.map(l=>l.A[i]))),R:[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>sum(ls.map(l=>l.R[i])))});
+      case 'TP':return sum(L.P);case 'TA':return sum(L.R.slice(0,MR))+sum(L.A.slice(MR));case 'TV':return pc(sum(L.R.slice(0,MR))+sum(L.A.slice(MR)),sum(L.P))}};
+  const z=()=>({P:Array(12).fill(0),A:Array(12).fill(0),R:Array(12).fill(0)});
+  const add=(t,l)=>{for(let i=0;i<12;i++){t.P[i]+=l.P[i];t.A[i]+=l.A[i];t.R[i]+=l.R[i]}};
+  // árvore igual à matriz do BI: Tipo › Conta › Descrição › Obra › Lançamento (obra e lançamento: mês real, das planilhas)
+  const raiz=[],ix={};const no=(pai,key,label,nivel)=>{if(!ix[key]){ix[key]=Object.assign(z(),{key,label,nivel,kids:[]});(pai?pai.kids:raiz).push(ix[key])}return ix[key]};
+  for(const l of F.linhas){if(l.conta.startsWith('3.'))continue;const t=no(null,l.tipo,l.tipo,0),c=no(t,l.tipo+'›'+l.conta,l.conta,1),d=no(c,c.key+'›'+l.descricao,l.descricao,2);[t,c,d].forEach(n=>add(n,l))}
+  const porDesc={};for(const m of o.mov)if(m.fluxo_descricao)(porDesc[m.fluxo_descricao]=porDesc[m.fluxo_descricao]||[]).push(m);
+  for(const d of Object.values(ix).filter(n=>n.nivel===2)){const ms=porDesc[d.label]||[];const ob={};
+    for(const m of ms){const k_=m.centro_custo||'Sem obra';(ob[k_]=ob[k_]||[]).push(m)}
+    for(const [obra,ls] of Object.entries(ob).sort((a,b)=>sum(a[1].map(x=>x.valor))-sum(b[1].map(x=>x.valor)))){const n=no(d,d.key+'›'+obra,obra,3);n.R[MR-1]=sum(ls.map(x=>x.valor));
+      ls.slice().sort((a,b)=>a.data.localeCompare(b.data)||a.valor-b.valor).forEach((m,i)=>{const f=no(n,n.key+'›'+i,dt(m.data)+' · '+(m.descricao||m.categoria||'')+' · '+m.conta_bancaria,4);f.R[MR-1]=m.valor;f.lanc=m})}}
+  const ab=X.fcAb=X.fcAb||new Set(Object.values(ix).filter(n=>n.nivel<(X.fcNivel??1)).map(n=>n.key));
   const cel=(x,c)=>/V/.test(c.k)?`<td class="n">${x==null||!isFinite(x)?'':pct(x)}</td>`:`<td class="n ${x<-0.004?'neg':''}">${Math.abs(x)<0.005?'–':k(x)}</td>`;
-  const linha=(nome,L,cls,attr)=>`<tr class="${cls||''}"${attr||''}><td>${esc(nome)}</td>${C.map(c=>cel(v(L,c),c)).join('')}</tr>`;
-  const ab=X.fcAb=X.fcAb||new Set();let corpo='';const grupos={};
-  for(const l of F.linhas){const g=l.conta.startsWith('1.')?'1':l.conta.startsWith('2.')?'2':'3';((grupos[g]=grupos[g]||{})[l.conta]=grupos[g][l.conta]||[]).push(l)}
-  const bloco=(g,tit)=>{const cs=grupos[g]||{};let h=`<tr class="l1"><td colspan="${C.length+1}">${tit}</td></tr>`;const todas=[];
-    for(const [conta,ls] of Object.entries(cs)){todas.push(...ls);const T=soma(ls);const aberto=ab.has(conta);
-      h+=linha((ls.length>1||ls[0].descricao!==conta?(aberto?'▾ ':'▸ '):'')+conta,T,'l2 click',` data-cxafc="${esc(conta)}"`);
-      if(aberto)for(const l of ls)h+=linha(l.descricao,l,'l3')}
-    const T=soma(todas);h+=linha(tit+' Total',T,'tot');return {h,T}};
-  const E=bloco('1','1. ENTRADAS (+)'),S=bloco('2','2. SAÍDAS (-)');corpo=E.h+S.h;
-  const res={P:E.T.P.map((x,i)=>x+S.T.P[i]),A:E.T.A.map((x,i)=>x+S.T.A[i]),R:E.T.R.map((x,i)=>x+S.T.R[i])};
-  const so=F.saldo_out||{},z=()=>({P:Array(12).fill(0),A:Array(12).fill(0),R:Array(12).fill(0)});
-  const sl=nome=>{const L=z();if(so[nome]!=null)L.R[MR-1]=so[nome];return L};
-  corpo+=`<tr class="l1"><td colspan="${C.length+1}">3. SALDO (+)</td></tr>`+linha('3.1 SALDO INICIAL',sl('3.1 SALDO INICIAL'),'l2')+linha('3.2 RESULTADO DO PERIODO',res,'l2')+linha('3.3 ATUALIZAÇÃO S/ APLICAÇÃO FINANCEIRAS',sl('3.3 ATUALIZAÇÃO S/  APLICAÇÃO FINANCEIRAS'),'l2')+linha('3.4 TRANSFERENCIAS ENTRE EMPRESAS',sl('3.4 TRANSFERENCIAS ENTRE EMPRESAS'),'l2')+linha('3.5 SALDO FINAL',sl('3.5 SALDO FINAL'),'tot')+(grupos['3']?Object.entries(grupos['3']).map(([c,ls])=>linha(c,soma(ls),'l2')).join(''):'');
-  return `<div class="panel cxa-sec"><div class="v3-bar"><div><h3>Fluxo de caixa ${F.ano} · previsto, atual e real</h3><p style="margin:4px 0 0;font-size:12.5px;color:var(--ink-2);max-width:80ch">Mesmo desenho da aba FORECAST_FLUXO do cliente: Prev é o orçado, Atual é a revisão do mês e Real é o realizado da base. Var% = (Real − Prev) ÷ Prev. Saldos da seção 3 vêm do extrato e das transferências do mês ${MES(F.ano+'-'+String(MR).padStart(2,'0'))}. Clique numa conta para abrir as linhas.</p></div>
-   <label class="hint">Meses<br><select id="cxaFcMes" class="v3-sel"><option value="">Ano todo</option>${[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`<option value="${m}" ${String(m)===String(X.fcMes||'')?'selected':''}>${MESES[m-1]}/${F.ano}</option>`).join('')}</select></label></div>
-   <div class="tbl-wrap"><table class="cxa-fc"><thead><tr><th>Rótulos de linha</th>${C.map(c=>`<th class="n">${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${corpo}</tbody></table></div></div>`}
-
+  const linha=(nome,L,cls,attr,pad)=>`<tr class="${cls||''}"${attr||''}><td style="padding-left:${10+(pad||0)*18}px">${nome}</td>${C.map(c=>cel(v(L,c),c)).join('')}</tr>`;
+  let corpo='';const pinta=n=>{const tem=n.kids.length>0,aberto=ab.has(n.key);
+    const rot=(tem?`<span class="cxa-tg">${aberto?'⊟':'⊞'}</span>`:'<span class="cxa-tg"></span>')+esc(n.label)+(n.nivel===3?' <small class="cxa-mais">obra · '+MESES[MR-1]+'</small>':'');
+    corpo+=linha(rot,n,(n.nivel===0?'tot ':n.nivel===1?'l2 ':n.nivel===4?'cxa-lanc ':'')+(tem?'click':''),tem?` data-cxafc="${esc(n.key)}"`:'',n.nivel);
+    if(tem&&aberto)n.kids.forEach(pinta)};
+  raiz.forEach(pinta);
+  const E=raiz.find(n=>n.label.startsWith('1.'))||z(),S_=raiz.find(n=>n.label.startsWith('2.'))||z();
+  const res=z();add(res,E);add(res,S_);
+  const so=F.saldo_out||{},sl=nome=>{const L=z();if(so[nome]!=null)L.R[MR-1]=so[nome];return L};
+  corpo+=`<tr class="l1"><td colspan="${C.length+1}">3. SALDO (+)</td></tr>`+linha('3.1 SALDO INICIAL',sl('3.1 SALDO INICIAL'),'l2','',1)+linha('3.2 RESULTADO DO PERIODO',res,'l2','',1)+linha('3.3 ATUALIZAÇÃO S/ APLICAÇÃO FINANCEIRAS',sl('3.3 ATUALIZAÇÃO S/  APLICAÇÃO FINANCEIRAS'),'l2','',1)+linha('3.4 TRANSFERENCIAS ENTRE EMPRESAS',sl('3.4 TRANSFERENCIAS ENTRE EMPRESAS'),'l2','',1)+linha('3.5 SALDO FINAL',sl('3.5 SALDO FINAL'),'tot','',1)
+    +F.linhas.filter(l=>l.conta.startsWith('3.')).map(l=>linha(esc(l.conta),l,'l2','',1)).join('');
+  const niveis=[['0','⊟ Recolher tudo'],['1','Conta'],['2','Descrição'],['3','Obra'],['4','⊞ Expandir tudo']];
+  return `<div class="panel cxa-sec"><div class="v3-bar"><div><h3>Fluxo de caixa ${F.ano} · previsto, atual e real</h3><p style="margin:4px 0 0;font-size:12.5px;color:var(--ink-2);max-width:80ch">Mesmo desenho da aba FORECAST_FLUXO do cliente: Prev é o orçado, Atual é a revisão do mês e Real é o realizado da base. Var% = (Real − Prev) ÷ Prev. Abra cada nível como no BI: Tipo › Conta › Descrição › Obra › Lançamento (obra e lançamentos do mês ${MES(F.ano+'-'+String(MR).padStart(2,'0'))}, das planilhas).</p></div>
+   <div class="v3-fl"><div class="v3-seg" role="group" aria-label="Abrir níveis">${niveis.map(([n,t])=>`<button type="button" data-cxanivel="${n}" aria-pressed="${String(X.fcNivel??1)===n}">${t}</button>`).join('')}</div>
+   <label class="hint">Meses<br><select id="cxaFcMes" class="v3-sel"><option value="">Ano todo</option>${[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`<option value="${m}" ${String(m)===String(X.fcMes||'')?'selected':''}>${MESES[m-1]}/${F.ano}</option>`).join('')}</select></label></div></div>
+   <div class="tbl-wrap"><table class="cxa-fc"><thead><tr><th>Rótulos de linha</th>${C.map(c=>`<th class="n">${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${corpo}</tbody></table></div></div>`;
+  }
 function telaConf(o){const c=o.res.conciliacao||[],d=o.res.divergencias||[];
   const sit=v=>Math.abs(v)<0.5?chip('Bate','good'):Math.abs(v)<1500?chip('Centavos e cheques','warn'):chip('Verificar','bad');
   const ab=o.res.abas||[];
@@ -160,10 +173,11 @@ async function vCaixa(){
    ${corpo}
    <p class="cxa-mais">Fonte: ${esc(o.res.fonte||o.resumo?.fonte||'planilhas do cliente')}. Atualizado em ${dt((o.resumo?.atualizado_em||'').slice(0,10))}.</p></div>`}
 
-document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],[data-cxast],[data-cxafluxo],[data-cxaconta],[data-cxafc]');if(!t||!document.querySelector('.cxa'))return;
+document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],[data-cxast],[data-cxafluxo],[data-cxaconta],[data-cxafc],[data-cxanivel]');if(!t||!document.querySelector('.cxa'))return;
   if(t.dataset.cxatab){X.tab=t.dataset.cxatab;render(true)}
   else if(t.dataset.cxast!=null){X.status=X.status===t.dataset.cxast?'':t.dataset.cxast;pintarAud()}
   else if(t.dataset.cxafluxo!=null){X.fluxo=X.fluxo===t.dataset.cxafluxo?null:t.dataset.cxafluxo;render(true)}
+  else if(t.dataset.cxanivel!=null){X.fcNivel=+t.dataset.cxanivel;X.fcAb=null;render(true)}
   else if(t.dataset.cxafc){const a=X.fcAb=X.fcAb||new Set();a.has(t.dataset.cxafc)?a.delete(t.dataset.cxafc):a.add(t.dataset.cxafc);render(true)}
   else if(t.dataset.cxaconta){X.conta=t.dataset.cxaconta;X.status='';X.tab='auditoria';render(true)}});
 document.addEventListener('change',ev=>{const t=ev.target;if(t.id==='cxaEmp'){X.emp=t.value;X.per=null;X.fluxo=null;render(true)}else if(t.id==='cxaPer'){X.per=t.value;render(true)}else if(t.id==='cxaFcMes'){X.fcMes=t.value;render(true)}else if(t.id==='cxaConta'){X.conta=t.value;X.status='';pintarAud()}});
