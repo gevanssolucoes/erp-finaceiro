@@ -23,7 +23,8 @@ function detectar(cab){const m={};const usado=new Set();
 function data(v){
   if(v==null||v==='')return null;
   if(typeof v==='number'&&v>20000&&v<80000){const d=new Date(Date.UTC(1899,11,30)+v*864e5);return d.toISOString().slice(0,10)}
-  if(v instanceof Date&&!isNaN(v))return new Date(Date.UTC(v.getFullYear(),v.getMonth(),v.getDate())).toISOString().slice(0,10);
+  // datas lidas do CSV/Excel podem chegar como meia-noite UTC (no Brasil vira 21h do dia anterior): +12h acerta os dois casos
+  if(v instanceof Date&&!isNaN(v)){const w=new Date(v.getTime()+432e5);return new Date(Date.UTC(w.getFullYear(),w.getMonth(),w.getDate())).toISOString().slice(0,10)}
   const t=norm(v);let m;
   if((m=t.match(/^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?/)))return `${m[1]}-${m[2].padStart(2,'0')}-${(m[3]||'1').padStart(2,'0')}`;
   if((m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/)))return `${m[3].length===2?'20'+m[3]:m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
