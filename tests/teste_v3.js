@@ -162,7 +162,7 @@ eval(base+`
      await pg.click('[data-cxatab=auditoria]');await pg.waitForTimeout(900);const na=await pg.$$eval('#cxaAud tr',x=>x.length);if(na<3)errs.push('auditoria vazia '+na);
      await pg.click('#cxaSt [data-cxast]');await pg.waitForTimeout(300);const ns=await pg.$$eval('#cxaAud tr',x=>x.length);console.log('AUDITORIA linhas',na,'status',ns);await pg.screenshot({path:OUTD+'/dados-caixa-auditoria.png',fullPage:true});
      await pg.fill('#cxaBusca','Historico');await pg.waitForTimeout(300);
-     await pg.click('.cxa-acc[data-cxaconta="246|2000-2"]');await pg.waitForTimeout(900);if(await pg.evaluate(()=>S.cxa.conta)!=='246|2000-2')errs.push('clique na conta não trocou a auditoria');await pg.screenshot({path:OUTD+'/dados-caixa-conta246.png',fullPage:true});
+     await pg.click('tr[data-cxaconta="246|2000-2"]');await pg.waitForTimeout(900);if(await pg.evaluate(()=>S.cxa.conta)!=='246|2000-2')errs.push('clique na conta não trocou a auditoria');await pg.screenshot({path:OUTD+'/dados-caixa-conta246.png',fullPage:true});
      await pg.click('[data-cxatab=confronto]');await pg.waitForTimeout(700);{const t2=await pg.textContent('#view');if(!/Conferência de cada aba/.test(t2)||!/Descrições que batem/.test(t2))errs.push('confronto incompleto')}await pg.screenshot({path:OUTD+'/dados-caixa-conf.png',fullPage:true});
      await pg.click('.cxa-dv summary');await pg.waitForTimeout(300);
      await pg.evaluate(()=>{window._printou=0;});await pg.click('[data-cxaexp=pdf]');await pg.waitForTimeout(1500);
