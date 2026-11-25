@@ -186,17 +186,21 @@ function telaVisao(o){const T=totais(o),O=orcado(o),m=o.mov;
    <div class="panel cxa-sec"><h3>Movimento por conta bancária</h3><p>Tarifas pagas já estão dentro das saídas. Clique para auditar a conta.</p><div class="tbl-wrap"><table class="cxa-bk"><thead><tr><th>Conta</th><th class="n">Entradas</th><th class="n">Saídas</th><th class="n">Tarifas pagas</th><th class="n">Líquido</th></tr></thead><tbody>
     ${bks.map(([c,b])=>`<tr class="click" data-cxaconta="${esc(c)}"><td style="white-space:nowrap">${esc(banco(c))}</td><td class="n pos">${I0(b.e)}</td><td class="n neg">${I0(b.s)}</td><td class="n neg">${I0(b.t)}</td><td class="n"><b>${I0(b.e+b.s)}</b></td></tr>`).join('')}</tbody></table></div></div></div>
    <div class="panel cxa-sec"><h3>Pagamentos por centro de custo (obra) › produto</h3><p>Total R$ ${I0(T.pag)} · % do produto dentro da obra${o.grupo&&Object.keys(ob).length>12?` · ${Object.keys(ob).length} obras, mostrando as 12 maiores`:''}</p>${arv}</div></div>${rk}`}
+// Taxa ADM: só gerencial, nunca entra no saldo das contas (nem de quem paga, nem da empresa 3 que recebe)
+function admTot(m){let pg=0,rc=0;for(const x of m)if(x.grupo==='Taxa ADM'){if(x.valor<0)pg+=x.valor;else rc+=x.valor}return {pg,rc}}
+function avisoADM(o){const {pg,rc}=admTot(o.mov);if(!pg&&!rc)return '';
+  return `<div class="panel cxa-alerta cxa-adm" role="note"><b>Taxa ADM de 4% não mexe no saldo das contas.</b> <span>É um valor calculado (gerencial): ${[pg?'paga R$ '+I0(-pg):'',rc?'recebida R$ '+I0(rc):''].filter(Boolean).join(' · ')}. Saldo inicial, saldo final e auditoria por conta são só o que passou no banco.</span></div>`}
 // por regional › empresa (grupo): clique filtra
-function ranking(o){const g={};for(const x of o.mov){if(x.grupo==='Transferências entre contas')continue;const r=g[x.regional]||(g[x.regional]={e:{},t:{rec:0,pag:0,out:0}});const e=r.e[x.empresa]||(r.e[x.empresa]={rec:0,pag:0,out:0});
-    const c=x.grupo==='Receitas'?'rec':x.grupo==='Pagamentos'?'pag':'out';e[c]+=x.valor;r.t[c]+=x.valor}
+function ranking(o){const g={};for(const x of o.mov){if(x.grupo==='Transferências entre contas')continue;const r=g[x.regional]||(g[x.regional]={e:{},t:{rec:0,pag:0,out:0,adm:0}});const e=r.e[x.empresa]||(r.e[x.empresa]={rec:0,pag:0,out:0,adm:0});
+    const c=x.grupo==='Receitas'?'rec':x.grupo==='Pagamentos'?'pag':x.grupo==='Taxa ADM'?'adm':'out';e[c]+=x.valor;r.t[c]+=x.valor}
   const sc=new Map();for(const c of o.res.conciliacao||[])sc.set(c.empresa,(sc.get(c.empresa)||0)+c.saldo_final_extrato);
   const rs=Object.entries(g).sort((a,b)=>b[1].t.rec-a[1].t.rec);const um=rs.length===1;
-  const lin=(n,t,cls,attr)=>`<tr class="${cls} click" ${attr}><td>${esc(n)}</td><td class="n pos">${I0(t.rec)}</td><td class="n neg">${I0(t.pag)}</td><td class="n">${I0(t.out)}</td><td class="n"><b>${I0(t.rec+t.pag+t.out)}</b></td>${t.sf==null?'<td></td>':`<td class="n">${I0(t.sf)}</td>`}</tr>`;
+  const lin=(n,t,cls,attr)=>`<tr class="${cls} click" ${attr}><td>${esc(n)}</td><td class="n pos">${I0(t.rec)}</td><td class="n neg">${I0(t.pag)}</td><td class="n">${I0(t.out)}</td><td class="n"><b>${I0(t.rec+t.pag+t.out)}</b></td><td class="n cxa-q">${I0(t.adm)}</td>${t.sf==null?'<td></td>':`<td class="n">${I0(t.sf)}</td>`}</tr>`;
   let h='';for(const [r,v] of rs){const es=Object.entries(v.e).sort((a,b)=>b[1].rec-a[1].rec);v.t.sf=sum(es.map(([e])=>sc.get(e)||0));
     if(!um)h+=lin(r,v.t,'tot',`data-cxafset="reg" data-v="${esc(r)}"`);
-    h+=es.slice(0,um?60:8).map(([e,t])=>lin(nomeE(e)||e,{...t,sf:sc.get(e)||0},'l2',`data-cxafset="emp" data-v="${esc(e)}"`)).join('')+(es.length>(um?60:8)?`<tr class="l2"><td colspan="6" class="cxa-q">+ ${es.length-(um?60:8)} empresas · filtre a regional para ver todas</td></tr>`:'')}
-  return `<div class="panel cxa-sec"><h3>${um?'Empresas':'Regionais › empresas'} no mês</h3><p>Recebimentos, pagamentos e o resto (tarifas, aportes, distribuições, taxa ADM). Saldo final pelo extrato das contas da empresa. Clique para filtrar.</p>
-   <div class="tbl-wrap"><table class="cxa-rk"><thead><tr><th>${um?'Empresa':'Regional / empresa'}</th><th class="n">Recebimentos</th><th class="n">Pagamentos</th><th class="n">Outros</th><th class="n">Resultado</th><th class="n">Saldo final</th></tr></thead><tbody>${h}</tbody></table></div></div>`}
+    h+=es.slice(0,um?60:8).map(([e,t])=>lin(nomeE(e)||e,{...t,sf:sc.get(e)||0},'l2',`data-cxafset="emp" data-v="${esc(e)}"`)).join('')+(es.length>(um?60:8)?`<tr class="l2"><td colspan="7" class="cxa-q">+ ${es.length-(um?60:8)} empresas · filtre a regional para ver todas</td></tr>`:'')}
+  return `<div class="panel cxa-sec"><h3>${um?'Empresas':'Regionais › empresas'} no mês</h3><p>Recebimentos, pagamentos e o resto (tarifas, aportes, distribuições). Resultado e saldo final são do banco; a Taxa ADM fica numa coluna à parte e não entra no saldo. Clique para filtrar.</p>
+   <div class="tbl-wrap"><table class="cxa-rk"><thead><tr><th>${um?'Empresa':'Regional / empresa'}</th><th class="n">Recebimentos</th><th class="n">Pagamentos</th><th class="n">Outros</th><th class="n">Resultado</th><th class="n">Taxa ADM (fora do saldo)</th><th class="n">Saldo final</th></tr></thead><tbody>${h}</tbody></table></div></div>`}
 
 // ---------- 2. Fluxo de caixa com drill nos níveis do Excel do cliente
 const NIV=['Tipo','Conta','Sub conta','Descrição','Resumo','Obra','Lançamento'];
@@ -230,7 +234,7 @@ function telaDrill(o){const A=arvore(o);const nivelMax=X.dNivel??2;
   h+=`<tr class="tot"><td>Resultado do mês (entradas − saídas)</td><td></td><td class="n">${I0(E.o+S_.o)}</td><td class="n"><b>${I0(E.r+S_.r)}</b></td><td colspan="3"></td></tr>
    <tr class="l1"><td colspan="7">Saldo</td></tr><tr><td style="padding-left:26px">Saldo inicial</td><td></td><td></td><td class="n">${I0(T.ini)}</td><td colspan="3"></td></tr>
    <tr><td style="padding-left:26px">Rendimentos, tarifas e ajustes bancários</td><td></td><td></td><td class="n">${I0(T.tar)}</td><td colspan="3"></td></tr>
-   ${Math.abs(T.adm)>0.5?`<tr><td style="padding-left:26px">Taxa ADM calculada (fora do banco, volta para o saldo)</td><td></td><td></td><td class="n">${I0(-T.adm)}</td><td colspan="3"></td></tr>`:''}
+   ${Math.abs(T.adm)>0.5?`<tr><td style="padding-left:26px">Taxa ADM calculada (não mexe no saldo das contas)</td><td></td><td></td><td class="n">${I0(-T.adm)}</td><td colspan="3"></td></tr>`:''}
    ${Math.abs(T.apo+T.dis)>0.5&&o.grupo?`<tr><td style="padding-left:26px">Aportes e distribuições já estão nas entradas e saídas</td><td></td><td></td><td class="n">${I0(0)}</td><td colspan="3"></td></tr>`:''}
    ${Math.abs(T.tr)>0.5?`<tr><td style="padding-left:26px">Transferências entre contas</td><td></td><td></td><td class="n">${I0(T.tr)}</td><td colspan="3"></td></tr>`:''}
    <tr class="tot"><td>Saldo final</td><td></td><td></td><td class="n"><b>${I0(T.fim)}</b></td><td colspan="3"></td></tr>`;
@@ -369,7 +373,7 @@ async function vCaixa(){
   if(X.tab==='auditoria')setTimeout(pintarAud,0);
   return `<div class="v3 cxa"><div class="v3-bar"><div class="v3-seg" role="tablist">${tabs.map(([k_,n])=>`<button type="button" aria-pressed="${X.tab===k_}" data-cxatab="${k_}">${n}</button>`).join('')}</div>
    <div class="v3-fl">${emps.length>1?selE:''}<span class="v3-acts" data-nao-imprime><button class="btn ghost" type="button" data-cxaexp="pdf">Exportar PDF</button><button class="btn ghost" type="button" data-cxaexp="excel">Excel</button></span>${subir}<label class="hint">Mês<br><select id="cxaPer" class="v3-sel">${pers.map(x=>`<option value="${x}" ${x===X.per?'selected':''}>${MES(x)}</option>`).join('')}</select></label></div></div>
-   ${alerta}${barraFiltros(o0)}${o0.grupo&&!o.mov.length?vazio('Nada com esse filtro','<p style="margin:0">Troque ou limpe os filtros.</p>'):corpo}
+   ${alerta}${barraFiltros(o0)}${['visao','drill','auditoria','confronto'].includes(X.tab)?avisoADM(o):''}${o0.grupo&&!o.mov.length?vazio('Nada com esse filtro','<p style="margin:0">Troque ou limpe os filtros.</p>'):corpo}
    <p class="cxa-mais">Fonte: ${esc(o.res.fonte||o.resumo?.fonte||'planilhas do cliente')}. Atualizado em ${dt((o.resumo?.atualizado_em||'').slice(0,10))}.</p></div>`}
 
 document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],[data-cxast],[data-cxaconta],[data-cxadr],[data-cxadn],[data-cxadrill],[data-cxatodos],[data-cxaexp],[data-cxafset],[data-cxaflimpa],[data-cxams],[data-cxaap],[data-cxaapall],[data-cxadpok],[data-cxadpall],[data-cxadpxls]');if(!t||!document.querySelector('.cxa'))return;
@@ -384,7 +388,8 @@ document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],
   if(t.dataset.cxafset){const k0=t.dataset.cxafset;X.f[k0]=k0==='emp'?[t.dataset.v]:t.dataset.v;if(k0==='reg'){X.f.cid='';X.f.emp=[];X.f.obra=''}else X.f.obra='';X.dAb=null;X.conta=null;render(true);return}
   if(t.dataset.cxaexp){const nomes={visao:'Visão geral',drill:'Fluxo de caixa (drill)',auditoria:'Auditoria por conta',confronto:'Confronto planilhas × FLUXO',aplic:'Aplicações',depara:'De-para'};
     const sub=(nomes[X.tab]||'')+' · '+MES(X.per)+(filtroTxt()?' · '+filtroTxt():'')+(X.tab==='auditoria'&&X.conta?' · '+banco(X.conta)+(X.status?' · '+(STN[X.status]||X.status):''):'');
-    const f=t.dataset.cxaexp==='pdf'?window.relatorioPDF:window.relatorioExcel;if(f)f({sub});else toast('Recarregue a página para exportar.');return}
+    const adm=admTot(X.atual?.mov||[]);const sub2=sub+(adm.pg||adm.rc?' · Taxa ADM de 4% é gerencial e não altera o saldo das contas':'');
+    const f=t.dataset.cxaexp==='pdf'?window.relatorioPDF:window.relatorioExcel;if(f)f({sub:sub2});else toast('Recarregue a página para exportar.');return}
   if(t.dataset.cxatab){X.tab=t.dataset.cxatab;render(true)}
   else if(t.dataset.cxast!=null){X.status=X.status===t.dataset.cxast?'':t.dataset.cxast;pintarAud()}
   else if(t.dataset.cxadn!=null){X.dNivel=+t.dataset.cxadn;X.dAb=null;X.dFoco=null;render(true)}
