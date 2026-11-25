@@ -132,13 +132,18 @@ eval(base+`
     await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x12345678');await pg.click('form[data-form=login] button');await pg.waitForTimeout(2000);
     const en=await pg.$('[data-entra="*"]');if(en){await en.click();await pg.waitForTimeout(800)}
     await pg.waitForTimeout(800);const links=await pg.$$eval('#nav a',a=>a.map(x=>x.getAttribute('href')));
-    if(links.some(h=>!['#indicadores','#caixa','#conexoes','#cadastros','#plano','#usuarios'].includes(h)))errs.push('menu do Dados com telas do ERP: '+links.join(','));
+    if(links.some(h=>!['#indicadores','#perguntas','#caixa','#depara','#usuarios'].includes(h)))errs.push('menu do Dados com telas do ERP: '+links.join(','));
     if(!(await pg.evaluate(()=>location.hash)).includes('indicadores'))errs.push('Dados não abriu em Indicadores: '+await pg.evaluate(()=>location.hash));
     if(await pg.$('#indEmp')){await pg.selectOption('#indEmp',e0d);await pg.waitForTimeout(900)}
     const tv=await pg.textContent('#view');if(!/Receita/.test(tv))errs.push('Indicadores sem receita');await pg.screenshot({path:OUTD+'/dados-indicadores.png',fullPage:true});
     await pg.click('[data-indtab="fluxo-bi"]');await pg.waitForTimeout(600);if(!/Matriz/.test(await pg.textContent('#view')))errs.push('aba Fluxo BI não abriu');
-    for(const r of ['cadastros','plano']){await pg.evaluate(h=>location.hash=h,r);await pg.waitForTimeout(800);if(!(await pg.evaluate(()=>location.hash)).includes(r))errs.push('Dados sem a tela '+r);await pg.screenshot({path:OUTD+'/dados-'+r+'.png',fullPage:true})}
-    if(!(await pg.$$eval('#nav a',a=>a.map(x=>x.getAttribute('href')))).includes('#cadastros'))errs.push('Dados sem Cadastros no menu');
+    for(const r of ['cadastros','plano']){await pg.evaluate(h=>location.hash=h,r);await pg.waitForTimeout(800);if((await pg.evaluate(()=>location.hash)).includes(r))errs.push('Dados ainda mostra a tela '+r)}
+    {const L=[];const RG=['Norte','Sul'],CD=['Palmas','Belém','Curitiba'];for(let e=1;e<=4;e++)for(const k of ['rec','cus','obra','fin']){const sg=k==='rec'?1:-1;const pre=e===4&&k==='rec'?20:0;L.push([RG[e%2],CD[e%3],e+'-EMPRESA '+e,k,Array.from({length:10},(_,i)=>i<pre?0:sg*(100+e*10+i)),Array.from({length:36},(_,i)=>i<pre?0:sg*(110+e*10)),Array.from({length:36},(_,i)=>i<pre?0:sg*(105+e*12+(k==='obra'?50:0)))])}
+     DB.dados_paineis.push({id:id(),empresa_id:e0d,periodo:'2026-10',parte:'perguntas',conteudo:{unid:'mil',saldo_out26:{'1':500,'2':300,'3':200,'4':100},linhas:L,fonte:'teste'},atualizado_em:'2026-11-25T10:00:00Z'})}
+    await pg.evaluate(()=>location.hash='perguntas');await pg.waitForTimeout(1500);{const t=await pg.textContent('#view');for(const w of ['caixa vai acabar','tempo de retorno','mais me dão lucro','obra em aberto','começar a receber','5 anos','custo-benefício'])if(!t.includes(w))errs.push('Perguntas sem: '+w);
+     await pg.screenshot({path:OUTD+'/dados-perguntas.png',fullPage:true});await pg.click('#ms-pqreg summary, [data-ms=pqreg] summary').catch(()=>{});await pg.waitForTimeout(300);const cb=await pg.$('[data-msv=pqreg]');if(cb){await cb.click();await pg.waitForTimeout(900);if(!/1 regional|Regional:/i.test(await pg.textContent('#view'))&&!(await pg.evaluate(()=>S.cxa.pqf.pqreg.length)))errs.push('filtro de regional nas perguntas não marcou')}else errs.push('Perguntas sem filtro de regional');
+     const ov=await pg.evaluate(()=>document.documentElement.scrollWidth-innerWidth);if(ov>0)errs.push('perguntas com overflow '+ov);DB.dados_paineis.splice(DB.dados_paineis.findIndex(x=>x.parte==='perguntas'),1);await pg.evaluate(()=>{S.cxa.p=null;S.cxa.emp=null;S.cxa.cache&&(S.cxa.cache={})})}
+    if(!(await pg.$$eval('#nav a',a=>a.map(x=>x.getAttribute('href')))).includes('#depara'))errs.push('Dados sem De-para no menu');
     // Caixa e auditoria: painel pronto de outubro (arquivos de exemplo em tests/fixtures/painel_*.json)
     {const pj={periodo:'2026-10',empresa:'Empresa Exemplo',fonte:'planilhas de teste'};for(const pt of ['resumo','movimentos','auditoria'])pj[pt]=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/painel_'+pt+'.json'),'utf8'));
      fs.writeFileSync(OUTD+'/painel_teste.json',JSON.stringify(pj))}
@@ -179,13 +184,17 @@ eval(base+`
       const n1=await pg.evaluate(()=>S.cxa.atual.mov.length);console.log('GRUPO filtro empresa',n0,n1);if(!(n1>0&&n1<n0))errs.push('filtro de empresa não filtrou');
       await pg.check('[data-cxamsv="1 - EMPRESA A"]');await pg.waitForTimeout(800);const n2=await pg.evaluate(()=>S.cxa.atual.mov.length);console.log('GRUPO duas empresas',n2);if(n2!==n0)errs.push('duas empresas marcadas não somaram');
       await pg.uncheck('[data-cxamsv="1 - EMPRESA A"]');await pg.waitForTimeout(800);await pg.click('.cxa-lead');await pg.waitForTimeout(300);if(await pg.evaluate(()=>document.getElementById('cxaMs')?.open))errs.push('lista de empresas não fechou ao clicar fora');
-      for(const tb of ['drill','auditoria','confronto','aplic','depara']){await pg.click('[data-cxatab='+tb+']');await pg.waitForTimeout(600)}
-      {const t=await pg.textContent('#view');if(!/Chaves no mês/.test(t))errs.push('de-para sem resumo');await pg.selectOption('#cxaDpSt','');await pg.waitForTimeout(400);
+      for(const tb of ['drill','auditoria','confronto','aplic']){await pg.click('[data-cxatab='+tb+']');await pg.waitForTimeout(600)}
+      await pg.evaluate(()=>location.hash='depara');await pg.waitForTimeout(1200);if(await pg.$('[data-cxatab]'))errs.push('de-para com abas do caixa');
+      {const t=await pg.textContent('#view');if(!/A validar/.test(t))errs.push('de-para sem resumo');await pg.click('[data-dpst=""]');await pg.waitForTimeout(400);
        const nl=await pg.$$eval('#cxaDp tr[data-ch]',x=>x.length);console.log('DE-PARA linhas',nl);if(!nl)errs.push('de-para vazio');
        const ch=await pg.$eval('#cxaDp tr[data-ch]',x=>x.dataset.ch);const sv=await pg.$$eval('#cxaDp select option',o=>o.map(x=>x.value).filter(Boolean));await pg.selectOption('#cxaDp select',sv[0]);
        await pg.click('[data-cxadpok]');await pg.waitForTimeout(900);if(!DB.dados_depara.some(d=>d.chave===ch))errs.push('de-para não gravou');
+       {const ch2=await pg.$$eval('#cxaDp tr[data-ch]',x=>x.map(r=>r.dataset.ch));const alvo=ch2.filter(c=>c!==ch).slice(0,2);for(const c of alvo)await pg.check('[data-dpsel="'+c+'"]');await pg.waitForTimeout(200);
+        if(alvo.length){if(!await pg.isVisible('#cxaDpLote'))errs.push('barra de lote não apareceu');const sv2=await pg.$$eval('#cxaDpLoteF option',o=>o.map(x=>x.value).filter(Boolean));await pg.selectOption('#cxaDpLoteF',sv2[0]);await pg.click('[data-dplote=como]');await pg.waitForTimeout(900);
+        if(!alvo.every(c=>DB.dados_depara.some(d=>d.chave===c)))errs.push('lote do de-para não gravou');console.log('DE-PARA lote',alvo.length)}}
        const cl=await pg.evaluate(c=>S.cxa.atual.mov.filter(x=>x.chave===c).map(x=>x.classificacao),ch);console.log('DE-PARA aplicado',cl.slice(0,2));if(!cl.length||cl.some(x=>x!=='de-para'))errs.push('de-para não aplicado nos movimentos');
-       await pg.screenshot({path:OUTD+'/dados-caixa-depara.png',fullPage:true});await pg.click('[data-cxatab=aplic]');await pg.waitForTimeout(500);{const a=await pg.$('[data-cxaap]');if(a){await a.click();await pg.waitForTimeout(500);if(!/Por obra/.test(await pg.textContent('#view')))errs.push('aplicações sem nível obra')}}await pg.screenshot({path:OUTD+'/dados-caixa-aplic.png',fullPage:true})}
+       await pg.screenshot({path:OUTD+'/dados-caixa-depara.png',fullPage:true});await pg.evaluate(()=>location.hash='caixa');await pg.waitForTimeout(1200);await pg.click('[data-cxatab=aplic]');await pg.waitForTimeout(500);{const a=await pg.$('[data-cxaap]');if(a){await a.click();await pg.waitForTimeout(500);if(!/Por obra/.test(await pg.textContent('#view')))errs.push('aplicações sem nível obra')}}await pg.screenshot({path:OUTD+'/dados-caixa-aplic.png',fullPage:true})}
       await pg.click('[data-cxaflimpa]');await pg.waitForTimeout(600);if(await pg.evaluate(()=>S.cxa.atual.mov.length)!==n0)errs.push('limpar filtros não voltou');
       await pg.selectOption('#cxaPer','2026-10');await pg.waitForTimeout(800)}
      for(const tb of ['visao','drill','auditoria','confronto']){await pg.setViewportSize({width:400,height:860});await pg.click('[data-cxatab='+tb+']');await pg.waitForTimeout(700);const ov=await pg.evaluate(()=>document.documentElement.scrollWidth-innerWidth);if(ov>0)errs.push('caixa '+tb+' no celular com overflow '+ov)}
