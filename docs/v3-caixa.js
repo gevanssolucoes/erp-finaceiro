@@ -130,11 +130,11 @@ function msel(k,t,it,sel,o={}){const q=norm((X.msQ||{})[k]||''),um=o.um,tp=um?'r
 // etiquetas do que está selecionado, com × para tirar
 function chipsSel(ks){const on=ks.filter(([k,,arr])=>arr.length);if(!on.length)return '';
   return `<div class="cxa-chs" data-nao-imprime><span class="hint">Selecionado:</span>${on.map(([k,t,arr])=>arr.slice(0,6).map(v=>`<button type="button" class="cxa-ch" data-mschip="${k}" data-v="${esc(v)}" title="Tirar do filtro">${esc(t)}: <b>${esc((LBL[k]||(x=>x))(v))}</b> <span aria-hidden="true">×</span></button>`).join('')+(arr.length>6?`<span class="cxa-ch more">+${arr.length-6} ${esc(t.toLowerCase())}</span>`:'')).join('')}<button type="button" class="btn ghost" data-mslimpa="${ks.map(x=>x[0]).join(',')}">Limpar tudo</button></div>`}
-function setMS(k,arr){if(k.startsWith('dp')){dpF()[k]=arr;X.dpPg=0;return}if(k==='bco'){(X.au=X.au||{}).bco=arr;X.au.pg=0;return}if(k==='conta'){X.conta=arr[0]||null;X.status='';X.lpg=0;return}
+function setMS(k,arr){if(k.startsWith('pq')){pqF()[k]=arr;return}if(k.startsWith('dp')){dpF()[k]=arr;X.dpPg=0;return}if(k==='bco'){(X.au=X.au||{}).bco=arr;X.au.pg=0;return}if(k==='conta'){X.conta=arr[0]||null;X.status='';X.lpg=0;return}
   const i=FIL.findIndex(f=>f[0]===k);if(i<0)return;X.f[k]=arr;const o0=X.p&&X.p[X.per];
   for(const [k2] of FIL.slice(i+1)){const op=o0?opcoes(o0)[k2]:new Map();X.f[k2]=X.f[k2].filter(v=>op.has(v))}
   X.dAb=null;X.conta=null}
-const getMS=k=>k.startsWith('dp')?dpF()[k]:k==='bco'?((X.au||{}).bco||[]):k==='conta'?(X.conta?[X.conta]:[]):X.f[k]||[];
+const getMS=k=>k.startsWith('pq')?pqF()[k]:k.startsWith('dp')?dpF()[k]:k==='bco'?((X.au||{}).bco||[]):k==='conta'?(X.conta?[X.conta]:[]):X.f[k]||[];
 function barraFiltros(o){if(!o.grupo)return '';const op=opcoes(o),nE=new Set(o.mov.map(x=>x.empresa)).size;
   const sel=([k,t])=>{const it=[...op[k].entries()].sort((a,b)=>k==='obra'?b[1]-a[1]:k==='emp'?nomeE(a[0]).localeCompare(nomeE(b[0]),'pt-BR'):a[0].localeCompare(b[0],'pt-BR',{numeric:true})).map(([v])=>[v,k==='emp'?codE(v):'']);
     return msel(k,t==='Empresa'?'Empresas':t,it,X.f[k],{id:k==='emp'?'cxaMs':'',todas:k==='emp'?'Todas as empresas':'Todas',plural:k==='emp'?'empresas marcadas':'marcadas'})};
@@ -422,7 +422,74 @@ async function subirDP(f){const wb=XLSX.read(await f.arrayBuffer());const ls=XLS
     if(fd&&!op.has(fd)){ruim++;continue}ed[ch]={...(fd?{fluxo_descricao:fd}:{}),servico_resumo:String(l['Serviço - Resumo']||''),resumo_servico:String(l['RESUMO - SERVIÇO']||''),base_apresentacao:String(l['Base Apresentação']||'')};ok++}
   X.dpSel=new Set(Object.keys(ed));X.dpSt='';toast(`${ok} chaves lidas do Excel${ruim?`, ${ruim} com Fluxo_Descricao que não existe no fluxo`:''}. Confira e clique em "Aceitar" no lote para gravar.`);render(true)}
 
-async function vCaixa(){
+// ---------- Perguntas do negócio: respostas diretas com real, orçado e forecast (parte "perguntas" do painel)
+const MESN=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const mesI=(i)=>MESN[i%12]+'/'+String(26+Math.floor(i/12));
+const MI=v=>{const a=Math.abs(v)/1000;return (v<0?'−':'')+(a>=1?a.toLocaleString('pt-BR',{maximumFractionDigits:1,minimumFractionDigits:1})+' mi':Math.round(Math.abs(v)).toLocaleString('pt-BR')+' mil')};
+const PQF=[['pqreg','Regional',0],['pqcid','Cidade',1],['pqemp','Empresa',2]];
+Object.assign(LBL,{pqreg:v=>v,pqcid:v=>v,pqemp:v=>String(v).replace(/^\d+-/,'')});
+const pqF=()=>X.pqf||(X.pqf={pqreg:[],pqcid:[],pqemp:[]});
+const somar=(a,b)=>{for(let i=0;i<b.length;i++)a[i]=(a[i]||0)+b[i];return a};
+function hbar(items,lab,val,cor,fmt){const m=Math.max(1,...items.map(x=>Math.abs(val(x))));return items.map(x=>`<div class="pq-hb"><span title="${esc(lab(x))}">${esc(lab(x))}</span><i><b class="${cor||''}" style="width:${Math.abs(val(x))/m*100}%"></b></i><em>${(fmt||MI)(val(x))}</em></div>`).join('')}
+async function vPerguntas(){const emps=S.empresas;if(!emps.length)return semEmpresa();
+  if(!emps.some(e=>e.id===X.emp)){X.emp=null;for(const e of [...selEmp(),...emps]){const r=await carregar(e.id);if(Object.keys(r).some(k_=>k_[0]!=='_')){X.emp=e.id;break}}X.emp=X.emp||(selEmp()[0]||emps[0]).id}
+  const p=X.p=await carregar(X.emp);const pers=Object.keys(p).filter(k_=>k_[0]!=='_').sort().reverse();const pq=pers.map(k_=>p[k_].perguntas?.conteudo).find(Boolean);
+  if(!pq)return `<div class="v3">${vazio('Perguntas do negócio ainda sem base','<p style="margin:0">Esta tela usa o real, o orçado e o forecast do FLUXO do cliente. Envie o arquivo do FLUXO para a Gevans montar as respostas.</p>')}</div>`;
+  const f=pqF(),L=pq.linhas.map(l=>({r:l[0],c:l[1],e:l[2],k:l[3],real:l[4],orc:l[5],fc:l[6]}));
+  const op={};for(const [k,,i] of PQF){op[k]=new Map();const col=['r','c','e'][i];for(const l of L)if(PQF.every(([k2,,i2])=>k2===k||!f[k2].length||f[k2].includes(l[['r','c','e'][i2]])))op[k].set(l[col],(op[k].get(l[col])||0)+1)}
+  const it=k=>[...op[k].keys()].sort((a,b)=>String(LBL[k](a)).localeCompare(String(LBL[k](b)),'pt-BR')).map(v=>[v,'']);
+  const ls=L.filter(l=>PQF.every(([k,,i])=>!f[k].length||f[k].includes(l[['r','c','e'][i]])));
+  const empsF=new Set(ls.map(l=>l.e)),cod=e=>String(e).split('-')[0];
+  const saldo=[...empsF].reduce((a,e)=>a+(pq.saldo_out26[cod(e)]||0),0);
+  const agr=(key,ser,cls,ms)=>{const m=new Map();for(const l of ls){if(cls&&!cls.includes(l.k))continue;const a=l[ser];let v=0;for(const i of ms)v+=a[i]||0;const kk=key(l);m.set(kk,(m.get(kk)||0)+v)}return m};
+  const R10=[...Array(10).keys()],F24=[...Array(24).keys()],FUT=[...Array(26).keys()].map(i=>i+10),OP=['rec','cus','obra'];
+  // 1 caixa
+  const net={fc:Array(36).fill(0),orc:Array(36).fill(0)};for(const l of ls){somar(net.fc,l.fc);somar(net.orc,l.orc)}
+  const traj=k=>{let s_=saldo;return FUT.map(i=>(s_+=net[k][i],s_))},tf=traj('fc'),to=traj('orc');const acaba=tf.findIndex(v=>v<0),acabaO=to.findIndex(v=>v<0);
+  const W=1000,H=140,mx=Math.max(1,...tf.map(Math.abs),...to.map(Math.abs)),yy=v=>H/2-v/mx*(H/2-8),pts=a=>a.map((v,i)=>`${(i*W/(a.length-1)).toFixed(0)},${yy(v).toFixed(0)}`).join(' ');
+  const spark=`<svg viewBox="0 0 ${W} ${H+18}" width="100%" class="pq-sp"><line x1="0" x2="${W}" y1="${H/2}" y2="${H/2}" class="z"/><polyline points="${pts(to)}" class="o"/><polyline points="${pts(tf)}" class="f"/>${FUT.filter((_,j)=>j%3===0).map(i=>`<text x="${((i-10)*W/25).toFixed(0)}" y="${H+14}" ${i===10?'style="text-anchor:start"':''}>${mesI(i)}</text>`).join('')}</svg>`;
+  // 2 retorno e 5 custo até receber, por empresa
+  const pe=new Map();for(const l of ls){if(!OP.includes(l.k))continue;const t=pe.get(l.e)||{rec:Array(36).fill(0),cus:Array(36).fill(0)};somar(l.k==='rec'?t.rec:t.cus,l.fc);pe.set(l.e,t)}
+  const EM=[...pe.entries()].map(([e,t])=>{const pc=t.cus.findIndex(v=>v<-1),pr=t.rec.findIndex(v=>v>1);let acc=0,neg=false,pb=-1;for(let i=0;i<36;i++){acc+=t.rec[i]+t.cus[i];if(acc<-1)neg=true;if(neg&&acc>=0&&pb<0)pb=i}return {e,pc,pr,gap:pc>=0&&pr>pc?pr-pc:null,pb,neg,acc}});
+  const pb=EM.filter(x=>x.pb>=0).sort((a,b)=>a.pb-b.pb),nunca=EM.filter(x=>x.neg&&x.pb<0),gap=EM.filter(x=>x.gap).sort((a,b)=>b.gap-a.gap);
+  // 3 lucro e 7 custo-benefício por cidade
+  const cid=new Map();for(const [ser,ms] of [['real',R10],['orc',R10],['fc',F24]])for(const l of ls){if(!OP.includes(l.k))continue;const t=cid.get(l.c)||{};const o=t[ser]||(t[ser]={rec:0,cus:0});let v=0;for(const i of ms)v+=l[ser][i]||0;if(l.k==='rec')o.rec+=v;else o.cus+=v;cid.set(l.c,t)}
+  const C_=[...cid.entries()].map(([c,t])=>{const lu=s_=>t[s_]?t[s_].rec+t[s_].cus:0,cb=s_=>t[s_]&&t[s_].cus<-1?t[s_].rec/-t[s_].cus:null;return {c,lr:lu('real'),lo:lu('orc'),lf:lu('fc'),br:cb('real'),bo:cb('orc'),bf:cb('fc'),rec:t.real?.rec||0}});
+  const luc=C_.slice().sort((a,b)=>b.lr-a.lr),cbs=C_.filter(x=>x.br!=null&&x.rec>Math.max(1000,0.002*Math.max(...C_.map(y=>y.rec)))).sort((a,b)=>b.br-a.br);
+  // 4 obra em aberto
+  const ob=[...agr(l=>l.c,'fc',['obra'],FUT).entries()].map(([c,v])=>({c,v:-v})).filter(x=>x.v>1).sort((a,b)=>b.v-a.v);
+  // 6 regional 5 anos
+  const ry=new Map();for(const l of ls){if(l.k!=='rec')continue;const t=ry.get(l.r)||[0,0,0];for(let y=0;y<3;y++)for(let m=0;m<12;m++)t[y]+=l.fc[y*12+m]||0;ry.set(l.r,t)}
+  const RG=[...ry.entries()].map(([r,t])=>({r,t,p:Math.max(0,t[2]+1.5*(t[2]-t[0]))})).sort((a,b)=>b.p-a.p);
+  const cb2=v=>v==null?'—':v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const nomeEm=e=>String(e).replace(/^\d+-/,'').toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase()).slice(0,34);
+  const Q=[
+   ['Quando meu caixa vai acabar?',acaba>=0?`<b>${mesI(acaba+10)}</b> pelo forecast, se nada mudar${acabaO>=0?` · pelo orçado: ${mesI(acabaO+10)}`:' · pelo orçado não acaba até dez/28'}`:`Não acaba até dez/28 pelo forecast · menor saldo ${MI(Math.min(...tf))}`,
+    `Saldo dos bancos em out/26: <b>${MI(saldo)}</b>. Linhas: saldo projetado mês a mês. <span class="pq-lg"><i class="f"></i>Forecast</span><span class="pq-lg"><i class="o"></i>Orçado</span>${spark}`,'Extrato out/26 + Forecast e Orçado da V07','saldo dos bancos de jan a set/26 e separar aplicações do caixa livre',1],
+   ['Qual o tempo de retorno?',pb.length?`<b>${pb.length}</b> empresa${pb.length>1?'s':''} volta${pb.length>1?'m':''} a ficar positiva${pb.length>1?'s':''} até dez/28${nunca.length?` · <b>${nunca.length}</b> ainda não`:''}`:'Nenhuma empresa fecha o retorno até dez/28',
+    'Mês em que o acumulado (recebimentos − custos e despesas) volta a ficar positivo, contando de jan/26:'+(pb.length?'':'<p class="hint">Nenhuma empresa no filtro recupera o que gastou até dez/28.</p>')+hbar(pb.slice(0,8),x=>nomeEm(x.e),x=>x.pb+1,'',v=>mesI(v-1)),'Real jan–out/26 + Forecast','investimento feito antes de 2026 (terreno, obra anterior); sem ele o retorno sai mais curto'],
+   ['Quais cidades mais me dão lucro?',luc[0]?`<b>${esc(luc[0].c)}</b>${luc[1]?` e <b>${esc(luc[1].c)}</b>`:''}`:'—',
+    'Lucro operacional jan–out/26 (recebimentos − custos e despesas, sem empréstimos e dividendos):'+`<table class="pq-t"><tr><th>Cidade</th><th>Real</th><th>Orçado</th><th>Forecast 26+27</th></tr>${luc.slice(0,8).map(x=>`<tr><td>${esc(x.c)}</td><td class="${x.lr<0?'neg':''}"><b>${MI(x.lr)}</b></td><td>${MI(x.lo)}</td><td>${MI(x.lf)}</td></tr>`).join('')}</table>`,'Real · Orçado · Forecast','rateio das despesas da Matriz por cidade (hoje ficam na cidade da holding)'],
+   ['Quais cidades têm mais custo de obra em aberto?',ob[0]?`<b>${esc(ob[0].c)}</b> (${MI(ob[0].v)})${ob[1]?` e <b>${esc(ob[1].c)}</b>`:''}`:'Sem custo de obra a pagar no filtro',
+    'Custo de obra ainda a pagar de nov/26 a dez/28:'+hbar(ob.slice(0,8),x=>x.c,x=>x.v,'r'),'Forecast V07','contratos de obra assinados e % executado, para separar o que está contratado do que é só orçado'],
+   ['Quanto tempo cada empresa gera custo até começar a receber?',gap.length?`<b>${gap.length}</b> empresa${gap.length>1?'s':''} começa${gap.length>1?'m':''} a receber depois de 2026 · maior espera: <b>${gap[0].gap} meses</b>`:'Todas já recebiam em jan/26',
+    'Meses entre o primeiro custo e o primeiro recebimento:'+hbar(gap.slice(0,8),x=>nomeEm(x.e),x=>x.gap,'',v=>v+' meses'),'Real + Forecast','data de início de cada empreendimento (quem já vendia antes de 2026 não aparece aqui)'],
+   ['Qual regional vai trazer mais receita daqui a 5 anos?',RG[0]?`<b>${esc(RG[0].r)}</b>`:'—',
+    'Receita projetada para 2031 seguindo a tendência 2026→2028:'+`<table class="pq-t"><tr><th>Regional</th><th>2026</th><th>2028</th><th>2031 (projeção)</th></tr>${RG.slice(0,8).map(x=>`<tr><td>${esc(x.r)}</td><td>${MI(x.t[0])}</td><td>${MI(x.t[2])}</td><td><b>${MI(x.p)}</b></td></tr>`).join('')}</table>`,'Orçado + Forecast até 2028 · projeção','premissas de 2029 a 2031 (lançamentos e vendas previstas); a V07 vai só até dez/28'],
+   ['Qual o melhor custo-benefício por cidade?',cbs[0]?`<b>${esc(cbs[0].c)}</b>: R$ ${cb2(cbs[0].br)} recebidos para cada R$ 1 gasto`:'—',
+    'Recebido ÷ gasto (custos, despesas e obra):'+`<table class="pq-t"><tr><th>Cidade</th><th>Real</th><th>Orçado</th><th>Forecast</th></tr>${cbs.slice(0,8).map(x=>`<tr><td>${esc(x.c)}</td><td><b>${cb2(x.br)}</b></td><td>${cb2(x.bo)}</td><td>${cb2(x.bf)}</td></tr>`).join('')}</table>`,'Real · Orçado · Forecast','área vendável e lotes por cidade, para custo por m² e por lote']];
+  return `<div class="v3 cxa pq"><p class="cxa-lead">Respostas diretas com o real (jan–out/26), o orçado e o forecast do FLUXO até dez/28. Cada pergunta mostra de onde vem o número e o que falta para ficar completa. Valores em R$.</p>
+   <div class="panel cxa-af" data-nao-imprime><div class="cxa-fgr">${PQF.map(([k,t])=>msel(k,t,it(k),f[k],{plural:'marcadas'})).join('')}<span class="v3-acts"><button class="btn ghost" type="button" onclick="window.print()">Imprimir / PDF</button></span></div>${chipsSel(PQF.map(([k,t])=>[k,t,f[k]]))}</div>
+   <div class="pq-g">${Q.map(([t,a,b,base,falta,larga],i)=>`<section class="panel pq-q ${larga?'w':''}"><div class="pq-h"><span>${i+1}</span><h3>${t}</h3></div><div class="pq-a">${a}</div><div class="pq-b">${b}</div><div class="pq-f"><span class="ok">✓ Base: ${base}</span><span class="fa">Para ficar completo: ${falta}</span></div></section>`).join('')}</div>
+   <p class="cxa-mais">Fonte: ${esc(pq.fonte||'')}. ${empsF.size} empresas no filtro.</p></div>`}
+const cssPQ=document.createElement('style');cssPQ.textContent=`.pq-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}@media(max-width:900px){.pq-g{grid-template-columns:1fr}}.pq-q{display:flex;flex-direction:column;gap:8px}.pq-q.w{grid-column:1/-1}
+.pq-h{display:flex;gap:10px;align-items:center}.pq-h span{width:24px;height:24px;border-radius:50%;background:var(--accent,#0d5f73);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}.pq-h h3{margin:0;font-size:15px}
+.pq-a{font-size:17px}.pq-a b{color:var(--accent,#0d5f73)}.pq-b{font-size:12.5px;color:var(--ink-2)}.pq-hb{display:grid;grid-template-columns:minmax(120px,210px) 1fr 84px;gap:8px;align-items:center;margin:5px 0}.pq-hb span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}.pq-hb i{background:var(--surface-2);border-radius:4px;height:10px}.pq-hb i b{display:block;height:10px;border-radius:4px;background:var(--good,#1f8a5b)}.pq-hb i b.r{background:var(--bad,#c0392b)}.pq-hb em{font-style:normal;font-variant-numeric:tabular-nums;text-align:right;color:var(--ink)}
+.pq-t{width:100%;border-collapse:collapse;margin-top:6px}.pq-t th,.pq-t td{text-align:right;padding:4px 6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;font-size:12px}.pq-t th:first-child,.pq-t td:first-child{text-align:left}.pq-t th{color:var(--ink-3);font-weight:600;font-size:11px}.pq-t td.neg{color:var(--bad)}
+.pq-f{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;border-top:1px dashed var(--line);padding-top:8px;margin-top:auto}.pq-f .ok{color:var(--good,#1f7a4f)}.pq-f .fa{color:#a66300}
+.pq-sp line.z{stroke:var(--line);stroke-dasharray:3 3}.pq-sp polyline{fill:none;stroke-width:2.5}.pq-sp .f{stroke:var(--accent,#0d5f73)}.pq-sp .o{stroke:var(--ink-3);stroke-dasharray:5 4;stroke-width:1.8}.pq-sp{max-height:190px}.pq-sp text{font-size:12px;fill:var(--ink-3);text-anchor:middle}.pq-lg{display:inline-flex;align-items:center;gap:4px;margin-left:10px}.pq-lg i{width:14px;height:3px;background:var(--accent,#0d5f73);display:inline-block}.pq-lg i.o{background:var(--ink-3)}`;document.head.appendChild(cssPQ);
+
+async function vCaixa(){const modo=rota()==='depara'?'depara':'caixa';
   const emps=S.empresas;if(!emps.length)return semEmpresa();
   let p;try{
     if(!emps.some(e=>e.id===X.emp)){X.emp=null;for(const e of [...selEmp(),...emps]){const r=await carregar(e.id);if(Object.keys(r).some(k_=>k_[0]!=='_')){X.emp=e.id;break}}X.emp=X.emp||(selEmp()[0]||emps[0]).id}
@@ -432,16 +499,16 @@ async function vCaixa(){
   const subir=podeEditar(X.emp)?`<label class="btn ghost" style="cursor:pointer">Subir painel<input id="cxaArq" type="file" accept=".json,application/json" hidden></label>`:'';
   const selE=`<label class="hint">${Object.values(p).some(x=>x&&x.grupo)?'Cadastro':'Empresa'}<br><select id="cxaEmp" class="v3-sel">${emps.map(e=>`<option value="${e.id}" ${e.id===X.emp?'selected':''}>${esc(nomeEmp(e))}</option>`).join('')}</select></label>`;
   if(!pers.length)return `<div class="v3"><div class="v3-bar"><span></span><div class="v3-fl">${selE}</div></div>${vazio('Nenhum painel de caixa nesta empresa','<p style="margin:0">Envie as planilhas do mês (receitas, contas pagas, transferências, tarifas e o extrato) para a Gevans montar o caixa e a auditoria por conta. Com o arquivo do painel em mãos (.json), use Subir painel.</p>',subir)}</div>`;
-  if(!pers.includes(X.per))X.per=pers[0];const o0=p[X.per];if(!o0.grupo)X.f={reg:[],cid:[],emp:[],obra:[]};const o=X.atual=vista(o0);
-  const tabs=[['visao','Visão geral'],['drill','Fluxo de caixa (drill)'],['auditoria','Auditoria por conta'],['confronto','Confronto planilhas × FLUXO'],['aplic','Aplicações'],['depara','De-para']];
-  if(!tabs.some(t=>t[0]===X.tab))X.tab='visao';
-  const corpo=!o.mov.length&&o0.grupo?'':X.tab==='drill'?telaDrill(o):X.tab==='auditoria'?telaAud(o):X.tab==='confronto'?telaConfronto(o):X.tab==='aplic'?telaAplic(p,o):X.tab==='depara'?telaDepara(o):telaVisao(o);
-  if(X.tab==='depara')setTimeout(pintarDP,0);
-  const nDP=pendDP(o0).length,alerta=nDP&&X.tab!=='depara'?`<div class="panel cxa-alerta" role="status"><b>⚠ ${num.format(nDP)} chave${nDP>1?'s':''} sem classificação validada</b> no de-para (itens novos ou pré-classificados). Já vêm pré-preenchidas, só falta validar. <button type="button" class="btn ghost" data-cxatab="depara">Abrir de-para</button></div>`:'';
-  if(X.tab==='auditoria')setTimeout(pintarAud,0);
+  if(!pers.includes(X.per))X.per=pers[0];const o0=p[X.per];if(!o0.grupo)X.f={reg:[],cid:[],emp:[],obra:[]};const o=X.atual=modo==='depara'?o0:vista(o0);
+  const tabs=modo==='depara'?[]:[['visao','Visão geral'],['drill','Fluxo de caixa (drill)'],['auditoria','Auditoria por conta'],['confronto','Confronto planilhas × FLUXO'],['aplic','Aplicações']];
+  if(modo==='caixa'&&!tabs.some(t=>t[0]===X.tab))X.tab='visao';const TAB=modo==='depara'?'depara':X.tab;
+  const corpo=!o.mov.length&&o0.grupo?'':TAB==='drill'?telaDrill(o):TAB==='auditoria'?telaAud(o):TAB==='confronto'?telaConfronto(o):TAB==='aplic'?telaAplic(p,o):TAB==='depara'?telaDepara(o):telaVisao(o);
+  if(TAB==='depara')setTimeout(pintarDP,0);
+  const nDP=pendDP(o0).length,alerta=nDP&&TAB!=='depara'?`<div class="panel cxa-alerta" role="status"><b>⚠ ${num.format(nDP)} chave${nDP>1?'s':''} sem classificação validada</b> no de-para (itens novos ou pré-classificados). Já vêm pré-preenchidas, só falta validar. <a class="btn ghost" href="#depara">Abrir de-para</a></div>`:'';
+  if(TAB==='auditoria')setTimeout(pintarAud,0);
   return `<div class="v3 cxa"><div class="v3-bar"><div class="v3-seg" role="tablist">${tabs.map(([k_,n])=>`<button type="button" aria-pressed="${X.tab===k_}" data-cxatab="${k_}">${n}</button>`).join('')}</div>
    <div class="v3-fl">${emps.length>1?selE:''}<span class="v3-acts" data-nao-imprime><button class="btn ghost" type="button" data-cxaexp="pdf">Exportar PDF</button><button class="btn ghost" type="button" data-cxaexp="excel">Excel</button></span>${subir}<label class="hint">Mês<br><select id="cxaPer" class="v3-sel">${pers.map(x=>`<option value="${x}" ${x===X.per?'selected':''}>${MES(x)}</option>`).join('')}</select></label></div></div>
-   ${alerta}${barraFiltros(o0)}${['visao','drill','auditoria','confronto'].includes(X.tab)?avisoADM(o):''}${o0.grupo&&!o.mov.length?vazio('Nada com esse filtro','<p style="margin:0">Troque ou limpe os filtros.</p>'):corpo}
+   ${alerta}${modo==='depara'?'':barraFiltros(o0)}${['visao','drill','auditoria','confronto'].includes(TAB)?avisoADM(o):''}${o0.grupo&&!o.mov.length?vazio('Nada com esse filtro','<p style="margin:0">Troque ou limpe os filtros.</p>'):corpo}
    <p class="cxa-mais">Fonte: ${esc(o.res.fonte||o.resumo?.fonte||'planilhas do cliente')}. Atualizado em ${dt((o.resumo?.atualizado_em||'').slice(0,10))}.</p></div>`}
 
 document.addEventListener('click',ev=>{const b=ev.target.closest('[data-dpst],[data-dppg],[data-dplote]');if(!b||!document.querySelector('.cxa'))return;
@@ -500,5 +567,8 @@ document.addEventListener('input',ev=>{if(ev.target.id==='cxaBusca'){X.q=ev.targ
   else if(ev.target.id==='cxaBuscaC'){(X.au=X.au||{}).qc=ev.target.value;X.au.pg=0;clearTimeout(X._tq);X._tq=setTimeout(()=>{render(true);setTimeout(()=>{const i=document.getElementById('cxaBuscaC');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)},350)}});
 
 if(!ROTAS.some(x=>x[0]==='caixa'))ROTAS.push(['caixa','Caixa e auditoria']);
-TITULOS.caixa='Caixa e auditoria';VIEWS.caixa=vCaixa;
+if(!ROTAS.some(x=>x[0]==='depara'))ROTAS.push(['depara','De-para']);
+if(!ROTAS.some(x=>x[0]==='perguntas'))ROTAS.push(['perguntas','Perguntas do negócio']);
+IC.depara='<path d="M4 7h11l-3-3M20 17H9l3 3"/>';IC.perguntas='<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/>';
+TITULOS.caixa='Caixa e auditoria';VIEWS.caixa=vCaixa;TITULOS.depara='De-para do fluxo';VIEWS.depara=vCaixa;TITULOS.perguntas='Perguntas do negócio';VIEWS.perguntas=vPerguntas;
 })();
