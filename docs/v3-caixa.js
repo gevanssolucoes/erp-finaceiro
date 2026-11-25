@@ -24,6 +24,9 @@ const css=document.createElement('style');css.textContent=`
 .cxa .cxa-mais{font-size:12px;color:var(--ink-2);margin:8px 2px 0}
 .cxa input.v3-sel{min-width:220px}
 .cxa .tbl-wrap{max-height:70vh;overflow:auto}
+.cxa-fc td:first-child,.cxa-fc th:first-child{position:sticky;left:0;background:var(--surface);z-index:1;min-width:260px;white-space:normal}
+.cxa-fc tr.tot td:first-child{background:var(--surface-2)}
+.cxa-fc thead th{z-index:2}.cxa-fc thead th:first-child{z-index:3}
 `;document.head.appendChild(css);
 
 const R=v=>v==null||v===''?'':brl2.format(+v);
@@ -93,9 +96,44 @@ function pintarAud(){const o=X.atual;const tb=document.getElementById('cxaAud');
   tb.innerHTML=rows.length?rows.map(a=>`<tr><td>${dt(a.data)}</td><td>${esc(a.documento)}</td><td class="txt">${esc(a.historico_extrato)}</td><td class="n ${a.valor_extrato<0?'neg':''}">${R(a.valor_extrato)}</td><td class="det">${esc(a.lancamentos_base)}${a.qtd_lancamentos>1?` (${a.qtd_lancamentos} lançamentos)`:''}</td><td class="n ${a.valor_base<0?'neg':''}">${R(a.valor_base)}</td><td>${chip(a.status,STC[a.status])}</td></tr>`).join(''):'<tr><td colspan="7">Nada nesta conta com esse filtro.</td></tr>';
   document.getElementById('cxaMais').textContent=tot>400?`Mostrando 400 de ${num.format(tot)} linhas. Use a busca ou clique num quadro para filtrar.`:`${num.format(tot)} linha${tot===1?'':'s'}.`}
 
+// ---------- Fluxo no formato da planilha de forecast do cliente (Prev × Atual × Real por mês, Var%)
+function telaForecast(o){const F=o.res.forecast;if(!F)return vazio('Sem fluxo previsto neste painel','<p style="margin:0">Este painel não trouxe o previsto e o realizado por mês.</p>');
+  const MR=F.mes_real||12,temA=m=>F.linhas.some(l=>Math.abs(l.A[m-1])>0.004);
+  const meses=X.fcMes?[+X.fcMes]:[1,2,3,4,5,6,7,8,9,10,11,12];const C=[];
+  for(const m of meses){const M=MESES[m-1];
+    if(m<=MR){C.push({m,k:'P',t:'Prev '+M});if(temA(m))C.push({m,k:'A',t:'Atual '+M});C.push({m,k:'R',t:'Real '+M});C.push({m,k:'V',t:M+' Var%'});if(temA(m))C.push({m,k:'VA',t:M+' Var% Atual'})}
+    else{C.push({m,k:'P',t:'Prev '+M});C.push({m,k:'A',t:'Atual '+M});C.push({m,k:'VF',t:M+' Var%'})}}
+  if(!X.fcMes){C.push({m:0,k:'TP',t:'Total '+F.ano});C.push({m:0,k:'TA',t:'Atual total '+F.ano});C.push({m:0,k:'TV',t:F.ano+' Var%'})}
+  const v=(L,c)=>{const P=L.P[c.m-1],A=L.A[c.m-1],R=L.R[c.m-1];
+    const pc=(a,b)=>b?(a-b)/b:null;
+    switch(c.k){case 'P':return P;case 'A':return A;case 'R':return R;case 'V':return pc(R,P);case 'VA':return pc(R,A);case 'VF':return pc(A,P);
+      case 'TP':return sum(L.P);case 'TA':return sum(L.R.slice(0,MR))+sum(L.A.slice(MR));case 'TV':{const a=sum(L.R.slice(0,MR))+sum(L.A.slice(MR)),b=sum(L.P);return pc(a,b)}}};
+  const soma=ls=>({P:[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>sum(ls.map(l=>l.P[i]))),A:[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>sum(ls.map(l=>l.A[i]))),R:[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>sum(ls.map(l=>l.R[i])))});
+  const cel=(x,c)=>/V/.test(c.k)?`<td class="n">${x==null||!isFinite(x)?'':pct(x)}</td>`:`<td class="n ${x<-0.004?'neg':''}">${Math.abs(x)<0.005?'–':k(x)}</td>`;
+  const linha=(nome,L,cls,attr)=>`<tr class="${cls||''}"${attr||''}><td>${esc(nome)}</td>${C.map(c=>cel(v(L,c),c)).join('')}</tr>`;
+  const ab=X.fcAb=X.fcAb||new Set();let corpo='';const grupos={};
+  for(const l of F.linhas){const g=l.conta.startsWith('1.')?'1':l.conta.startsWith('2.')?'2':'3';((grupos[g]=grupos[g]||{})[l.conta]=grupos[g][l.conta]||[]).push(l)}
+  const bloco=(g,tit)=>{const cs=grupos[g]||{};let h=`<tr class="l1"><td colspan="${C.length+1}">${tit}</td></tr>`;const todas=[];
+    for(const [conta,ls] of Object.entries(cs)){todas.push(...ls);const T=soma(ls);const aberto=ab.has(conta);
+      h+=linha((ls.length>1||ls[0].descricao!==conta?(aberto?'▾ ':'▸ '):'')+conta,T,'l2 click',` data-cxafc="${esc(conta)}"`);
+      if(aberto)for(const l of ls)h+=linha(l.descricao,l,'l3')}
+    const T=soma(todas);h+=linha(tit+' Total',T,'tot');return {h,T}};
+  const E=bloco('1','1. ENTRADAS (+)'),S=bloco('2','2. SAÍDAS (-)');corpo=E.h+S.h;
+  const res={P:E.T.P.map((x,i)=>x+S.T.P[i]),A:E.T.A.map((x,i)=>x+S.T.A[i]),R:E.T.R.map((x,i)=>x+S.T.R[i])};
+  const so=F.saldo_out||{},z=()=>({P:Array(12).fill(0),A:Array(12).fill(0),R:Array(12).fill(0)});
+  const sl=nome=>{const L=z();if(so[nome]!=null)L.R[MR-1]=so[nome];return L};
+  corpo+=`<tr class="l1"><td colspan="${C.length+1}">3. SALDO (+)</td></tr>`+linha('3.1 SALDO INICIAL',sl('3.1 SALDO INICIAL'),'l2')+linha('3.2 RESULTADO DO PERIODO',res,'l2')+linha('3.3 ATUALIZAÇÃO S/ APLICAÇÃO FINANCEIRAS',sl('3.3 ATUALIZAÇÃO S/  APLICAÇÃO FINANCEIRAS'),'l2')+linha('3.4 TRANSFERENCIAS ENTRE EMPRESAS',sl('3.4 TRANSFERENCIAS ENTRE EMPRESAS'),'l2')+linha('3.5 SALDO FINAL',sl('3.5 SALDO FINAL'),'tot')+(grupos['3']?Object.entries(grupos['3']).map(([c,ls])=>linha(c,soma(ls),'l2')).join(''):'');
+  return `<div class="panel cxa-sec"><div class="v3-bar"><div><h3>Fluxo de caixa ${F.ano} · previsto, atual e real</h3><p style="margin:4px 0 0;font-size:12.5px;color:var(--ink-2);max-width:80ch">Mesmo desenho da aba FORECAST_FLUXO do cliente: Prev é o orçado, Atual é a revisão do mês e Real é o realizado da base. Var% = (Real − Prev) ÷ Prev. Saldos da seção 3 vêm do extrato e das transferências do mês ${MES(F.ano+'-'+String(MR).padStart(2,'0'))}. Clique numa conta para abrir as linhas.</p></div>
+   <label class="hint">Meses<br><select id="cxaFcMes" class="v3-sel"><option value="">Ano todo</option>${[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`<option value="${m}" ${String(m)===String(X.fcMes||'')?'selected':''}>${MESES[m-1]}/${F.ano}</option>`).join('')}</select></label></div>
+   <div class="tbl-wrap"><table class="cxa-fc"><thead><tr><th>Rótulos de linha</th>${C.map(c=>`<th class="n">${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${corpo}</tbody></table></div></div>`}
+
 function telaConf(o){const c=o.res.conciliacao||[],d=o.res.divergencias||[];
   const sit=v=>Math.abs(v)<0.5?chip('Bate','good'):Math.abs(v)<1500?chip('Centavos e cheques','warn'):chip('Verificar','bad');
-  return `<div class="panel cxa-sec"><h3>Conferência com o banco, conta a conta</h3><p>Diferença é o movimento do extrato menos o das planilhas. Linhas repetidas do extrato contam uma vez.</p><div class="tbl-wrap"><table><thead><tr><th>Banco | conta</th><th class="n">Saldo inicial</th><th class="n">Entradas</th><th class="n">Saídas</th><th class="n">Saldo final</th><th class="n">Diferença</th><th>Situação</th></tr></thead><tbody>
+  const ab=o.res.abas||[];
+  const abas=ab.length?`<div class="panel cxa-sec"><h3>Conferência por aba da planilha</h3><p>Cada aba conferida duas vezes: contra o extrato (aba Banco) e contra o realizado da base de fluxo do mês.</p><div class="tbl-wrap"><table><thead><tr><th>Aba</th><th class="n">Linhas</th><th class="n">Achadas no extrato</th><th class="n">Total da aba</th><th class="n">Realizado na base</th><th class="n">Diferença</th><th>Situação</th><th>Como foi conferido</th></tr></thead><tbody>
+   ${ab.map(a=>{const d=a.base_real==null?null:a.total-a.base_real;return `<tr><td><b>${esc(a.aba)}</b></td><td class="n">${num.format(a.linhas)}</td><td class="n">${num.format(a.no_extrato)}${a.sem_par?` <span class="chip warn">${R(a.sem_par)} sem par</span>`:''}</td><td class="n">${R(a.total)}</td><td class="n">${a.base_real==null?'não tem na base':R(a.base_real)}</td><td class="n ${d&&Math.abs(d)>0.05?'neg':''}">${d==null?'':R(d)}</td><td>${a.no_extrato===a.linhas&&(d==null||Math.abs(d)<0.05)?chip('Bate','good'):chip('Ver observação','warn')}</td><td class="det">${esc(a.obs)}</td></tr>`}).join('')}
+  </tbody></table></div></div>`:'';
+  return abas+`<div class="panel cxa-sec"><h3>Conferência com o banco, conta a conta</h3><p>Diferença é o movimento do extrato menos o das planilhas. Linhas repetidas do extrato contam uma vez.</p><div class="tbl-wrap"><table><thead><tr><th>Banco | conta</th><th class="n">Saldo inicial</th><th class="n">Entradas</th><th class="n">Saídas</th><th class="n">Saldo final</th><th class="n">Diferença</th><th>Situação</th></tr></thead><tbody>
    ${c.map(r=>`<tr class="click" data-cxaconta="${esc(r.conta_bancaria)}"><td>${esc(r.conta_bancaria)}</td><td class="n">${R(r.saldo_inicial)}</td><td class="n">${R(r.entradas_extrato)}</td><td class="n">${R(-r.saidas_extrato)}</td><td class="n">${R(r.saldo_final_extrato)}</td><td class="n">${R(r.diferenca)}</td><td>${sit(r.diferenca)}</td></tr>`).join('')}
    <tr class="tot"><td>Total</td><td class="n">${R(sum(c.map(r=>r.saldo_inicial)))}</td><td class="n">${R(sum(c.map(r=>r.entradas_extrato)))}</td><td class="n">${R(-sum(c.map(r=>r.saidas_extrato)))}</td><td class="n">${R(sum(c.map(r=>r.saldo_final_extrato)))}</td><td class="n">${R(sum(c.map(r=>r.diferenca)))}</td><td></td></tr>
   </tbody></table></div></div>
@@ -114,20 +152,21 @@ async function vCaixa(){
   const selE=`<label class="hint">Empresa<br><select id="cxaEmp" class="v3-sel">${emps.map(e=>`<option value="${e.id}" ${e.id===X.emp?'selected':''}>${esc(nomeEmp(e))}</option>`).join('')}</select></label>`;
   if(!pers.length)return `<div class="v3"><div class="v3-bar"><span></span><div class="v3-fl">${selE}</div></div>${vazio('Nenhum painel de caixa nesta empresa','<p style="margin:0">Envie as planilhas do mês (receitas, contas pagas, transferências, tarifas e o extrato) para a Gevans montar o caixa e a auditoria por conta. Com o arquivo do painel em mãos (.json), use Subir painel.</p>',subir)}</div>`;
   if(!pers.includes(X.per))X.per=pers[0];const o=X.atual=p[X.per];
-  const tabs=[['resumo','Caixa do mês'],['fluxo','Fluxo na estrutura do cliente'],['auditoria','Auditoria por conta'],['conferencia','Conferência e divergências']];
-  const corpo=X.tab==='fluxo'?telaFluxo(o):X.tab==='auditoria'?telaAud(o):X.tab==='conferencia'?telaConf(o):telaResumo(o);
+  const tabs=[['resumo','Caixa do mês'],['forecast','Fluxo previsto × real'],['fluxo','Fluxo na estrutura do cliente'],['auditoria','Auditoria por conta'],['conferencia','Conferência e divergências']];
+  const corpo=X.tab==='forecast'?telaForecast(o):X.tab==='fluxo'?telaFluxo(o):X.tab==='auditoria'?telaAud(o):X.tab==='conferencia'?telaConf(o):telaResumo(o);
   if(X.tab==='auditoria')setTimeout(pintarAud,0);
   return `<div class="v3 cxa"><div class="v3-bar"><div class="v3-seg" role="tablist">${tabs.map(([k_,n])=>`<button type="button" aria-pressed="${X.tab===k_}" data-cxatab="${k_}">${n}</button>`).join('')}</div>
    <div class="v3-fl">${emps.length>1?selE:''}${subir}<label class="hint">Mês<br><select id="cxaPer" class="v3-sel">${pers.map(x=>`<option value="${x}" ${x===X.per?'selected':''}>${MES(x)}</option>`).join('')}</select></label></div></div>
    ${corpo}
    <p class="cxa-mais">Fonte: ${esc(o.res.fonte||o.resumo?.fonte||'planilhas do cliente')}. Atualizado em ${dt((o.resumo?.atualizado_em||'').slice(0,10))}.</p></div>`}
 
-document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],[data-cxast],[data-cxafluxo],[data-cxaconta]');if(!t||!document.querySelector('.cxa'))return;
+document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],[data-cxast],[data-cxafluxo],[data-cxaconta],[data-cxafc]');if(!t||!document.querySelector('.cxa'))return;
   if(t.dataset.cxatab){X.tab=t.dataset.cxatab;render(true)}
   else if(t.dataset.cxast!=null){X.status=X.status===t.dataset.cxast?'':t.dataset.cxast;pintarAud()}
   else if(t.dataset.cxafluxo!=null){X.fluxo=X.fluxo===t.dataset.cxafluxo?null:t.dataset.cxafluxo;render(true)}
+  else if(t.dataset.cxafc){const a=X.fcAb=X.fcAb||new Set();a.has(t.dataset.cxafc)?a.delete(t.dataset.cxafc):a.add(t.dataset.cxafc);render(true)}
   else if(t.dataset.cxaconta){X.conta=t.dataset.cxaconta;X.status='';X.tab='auditoria';render(true)}});
-document.addEventListener('change',ev=>{const t=ev.target;if(t.id==='cxaEmp'){X.emp=t.value;X.per=null;X.fluxo=null;render(true)}else if(t.id==='cxaPer'){X.per=t.value;render(true)}else if(t.id==='cxaConta'){X.conta=t.value;X.status='';pintarAud()}});
+document.addEventListener('change',ev=>{const t=ev.target;if(t.id==='cxaEmp'){X.emp=t.value;X.per=null;X.fluxo=null;render(true)}else if(t.id==='cxaPer'){X.per=t.value;render(true)}else if(t.id==='cxaFcMes'){X.fcMes=t.value;render(true)}else if(t.id==='cxaConta'){X.conta=t.value;X.status='';pintarAud()}});
 // arquivo do painel: {periodo:'AAAA-MM', fonte, resumo, movimentos, auditoria} montado pela Gevans a partir das planilhas
 async function subirPainel(f){try{const j=JSON.parse(await f.text());
   if(!/^\d{4}-\d{2}$/.test(j.periodo||'')||!j.resumo||!j.movimentos?.rows||!j.auditoria?.rows)throw new Error('Arquivo não é um painel de caixa da Gevans.');
