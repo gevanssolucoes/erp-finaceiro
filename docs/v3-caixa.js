@@ -106,7 +106,10 @@ function vista(o){if(!o.grupo)return o;const f=X.f,key=FIL.map(([k])=>String(f[k
   const ab={};for(const a of (o.res.abas||[]).filter(a=>!a.empresa||emps.has(a.empresa))){const t=ab[a.aba]||(ab[a.aba]={...a,linhas:0,no_extrato:0,total:0,sem_par:0,base_real:a.base_real==null?null:0});t.linhas+=a.linhas;t.no_extrato+=a.no_extrato;t.total+=a.total;t.sem_par+=a.sem_par||0;if(t.base_real!=null)t.base_real+=+a.base_real||0}
   const res={...o.res,conciliacao:conc,forecast:fc,abas:Object.values(ab),fluxo_v07:(o.res.fluxo_v07||[]).filter(r=>!r.empresa||emps.has(r.empresa)),divergencias:(o.res.divergencias||[]).filter(d=>!d.empresa||emps.has(d.empresa))};
   const aud=o.aud.filter(a=>a.empresa?emps.has(a.empresa)||contas.has(a.conta_bancaria)&&!f.emp.length:contas.has(a.conta_bancaria));
-  return o._v[key]=Object.assign(Object.create(o),{mov,aud,res,_arv:null,parcial:!!(f.cid||f.obra)})}
+  // com cidade/obra o saldo do banco continua sendo o da empresa inteira; o que ficou fora do filtro entra numa linha própria para a ponte fechar no saldo real
+  const parcial=!!(f.cid||f.obra),semAdm=x=>x.grupo!=='Taxa ADM';
+  const fora=parcial?sum(o.mov.filter(x=>emps.has(x.empresa)&&semAdm(x)).map(x=>x.valor))-sum(mov.filter(semAdm).map(x=>x.valor)):0;
+  return o._v[key]=Object.assign(Object.create(o),{mov,aud,res,_arv:null,parcial,fora})}
 function barraFiltros(o){if(!o.grupo)return '';const op=opcoes(o),nE=new Set(o.mov.map(x=>x.empresa)).size;
   const sel=([k,t])=>{if(k==='emp')return selEmpG(op.emp);const it=[...op[k].entries()].sort((a,b)=>k==='obra'?b[1]-a[1]:a[0].localeCompare(b[0],'pt-BR',{numeric:true}));
     return `<label class="hint">${t}<br><select class="v3-sel" data-cxaf="${k}"><option value="">Todas (${it.length})</option>${it.map(([v])=>`<option value="${esc(v)}" ${X.f[k]===v?'selected':''}>${esc(k==='emp'||k==='obra'?nm(v)||v:v)}</option>`).join('')}</select></label>`};
@@ -137,10 +140,10 @@ function orcado(o){const F=o.res.forecast;const r={};if(!F)return r;const i=mesN
 function totais(o){const m=o.mov,s=f=>sum(m.filter(f).map(x=>x.valor));const c=o.res.conciliacao||[];
   const ini=sum(c.map(x=>x.saldo_inicial)),rec=s(x=>x.grupo==='Receitas'),pag=s(x=>x.grupo==='Pagamentos'),tar=s(x=>x.grupo==='Tarifas e ajustes bancários'),
     apo=s(x=>x.grupo==='Aportes'),dis=s(x=>x.grupo==='Distribuições'),tr=s(x=>x.grupo==='Transferências entre contas'),adm=s(x=>x.grupo==='Taxa ADM');
-  return {ini,rec,pag,tar,apo,dis,tr,adm,fim:ini+rec+pag+tar+apo+dis+tr}}
+  const fora=o.fora||0;return {ini,rec,pag,tar,apo,dis,tr,adm,fora,parcial:!!o.parcial,fim:ini+rec+pag+tar+apo+dis+tr+fora}}
 
 // ---------- 1. Visão geral
-function ponte(T){const st=[['Saldo inicial',T.ini,1],['Recebimentos',T.rec],['Pagamentos',T.pag],['Tarifas e ajustes',T.tar],['Aportes',T.apo],['Distribuições',T.dis],['Saldo final',T.fim,1]];
+function ponte(T){const st=[['Saldo inicial',T.ini,1],['Recebimentos',T.rec],['Pagamentos',T.pag],['Tarifas e ajustes',T.tar],['Aportes',T.apo],['Distribuições',T.dis],...(T.parcial?[['Fora do filtro',T.fora]]:[]),['Saldo final',T.fim,1]];
   let run=0,lo=Infinity,hi=-Infinity;for(const [,v,t] of st){if(t){run=v;lo=Math.min(lo,v);hi=Math.max(hi,v)}else{const a=run;run+=v;lo=Math.min(lo,a,run);hi=Math.max(hi,a,run)}}
   const span=(hi-lo)||1;lo-=span*.9;hi+=span*.12;
   const W=700,H=300,pb=40,y=v=>16+(hi-v)/(hi-lo)*(H-pb-16),bw=W/st.length;run=0;let sv='';
@@ -174,10 +177,10 @@ function telaVisao(o){const T=totais(o),O=orcado(o),m=o.mov;
   const rk=o.grupo?ranking(o):'';
   const conf=m.filter(x=>x.conferido_no_banco==='sim').length;
   const nl=sum(m.map(x=>x.qtd||1));
-  return `<p class="cxa-lead">Realizado 100% das planilhas do cliente: <b>${num.format(nl)}</b> lançamentos de ${MES(X.per)}${o.grupo?` em <b>${new Set(m.map(x=>x.empresa)).size}</b> empresas`:''}, <b>${num.format(sum(m.filter(x=>x.conferido_no_banco==='sim').map(x=>x.qtd||1)))}</b> conferidos no extrato do banco. Orçado do FLUXO do cliente. Valores em R$, sem centavos.${m.some(x=>x.grupo==='Taxa ADM')?` Taxa ADM de 4% calculada (R$ ${I0(sum(m.filter(x=>x.grupo==='Taxa ADM'&&x.valor<0).map(x=>x.valor)))}) aparece no fluxo, fora do saldo do banco${Math.abs(T.adm)<1?'; no grupo ela soma zero':''}.`:''}${o.parcial?' Com filtro de cidade ou obra, saldo inicial e orçado são os das empresas filtradas.':''}</p>
-  <div class="v3-cards cxa-cards">${card('Saldo inicial',T.ini,'dia 1 · soma das contas')}${card('Recebimentos',T.rec,'orçado R$ '+I0(oRec),vs(T.rec,oRec))}${card('Pagamentos',T.pag,'orçado R$ '+I0(oPag),vs(T.pag,oPag))}${card('Geração operacional',T.rec+T.pag+T.tar,'recebimentos − pagamentos − tarifas')}${card('Aportes − distribuições',T.apo+T.dis,'aportes '+I0(T.apo)+' · distrib. '+I0(T.dis))}${card('Saldo final',T.fim,'variação no mês R$ '+I0(T.fim-T.ini))}</div>
+  return `<p class="cxa-lead">Realizado 100% das planilhas do cliente: <b>${num.format(nl)}</b> lançamentos de ${MES(X.per)}${o.grupo?` em <b>${new Set(m.map(x=>x.empresa)).size}</b> empresas`:''}, <b>${num.format(sum(m.filter(x=>x.conferido_no_banco==='sim').map(x=>x.qtd||1)))}</b> conferidos no extrato do banco. Orçado do FLUXO do cliente. Valores em R$, sem centavos.${m.some(x=>x.grupo==='Taxa ADM')?` Taxa ADM de 4% calculada${(()=>{const pg=sum(m.filter(x=>x.grupo==='Taxa ADM'&&x.valor<0).map(x=>x.valor)),rc=sum(m.filter(x=>x.grupo==='Taxa ADM'&&x.valor>0).map(x=>x.valor));return [pg?' paga R$ '+I0(-pg):'',rc?' recebida R$ '+I0(rc):''].filter(Boolean).join(' e')})()} aparece no fluxo, fora do saldo do banco${Math.abs(T.adm)<1&&!o.parcial&&!X.f.emp.length?'; no grupo ela soma zero':''}.`:''}${o.parcial?` <b>Filtro de cidade ou obra:</b> o saldo do banco é da empresa inteira (conta bancária não se divide por cidade/obra). Os cards mostram só o movimento do filtro; o que é das outras cidades/obras da mesma empresa aparece em "Fora do filtro" (R$ ${I0(T.fora)}) para o saldo final bater com o extrato.`:''}</p>
+  <div class="v3-cards cxa-cards">${card('Saldo inicial',T.ini,T.parcial?'dia 1 · empresa inteira':'dia 1 · soma das contas')}${card('Recebimentos',T.rec,(T.parcial?'orçado da empresa R$ ':'orçado R$ ')+I0(oRec),T.parcial?'':vs(T.rec,oRec))}${card('Pagamentos',T.pag,(T.parcial?'orçado da empresa R$ ':'orçado R$ ')+I0(oPag),T.parcial?'':vs(T.pag,oPag))}${card('Geração operacional',T.rec+T.pag+T.tar,'recebimentos − pagamentos − tarifas')}${card('Aportes − distribuições',T.apo+T.dis,'aportes '+I0(T.apo)+' · distrib. '+I0(T.dis))}${card('Saldo final',T.fim,T.parcial?'extrato da empresa · fora do filtro R$ '+I0(T.fora):'variação no mês R$ '+I0(T.fim-T.ini))}</div>
   <div class="cxa-g2"><div class="panel cxa-sec"><h3>Ponte do caixa no mês</h3><p>Do saldo inicial ao final. Verde entra, vermelho sai.</p>${ponte(T)}</div>
-   <div class="panel cxa-sec"><h3>Orçado × realizado por conta do fluxo</h3><p><span class="cxa-lg"><i class="o"></i>Orçado</span><span class="cxa-lg"><i class="e"></i>Realizado entrada</span><span class="cxa-lg"><i class="s"></i>Realizado saída</span> · clique para abrir no fluxo</p>
+   <div class="panel cxa-sec"><h3>Orçado × realizado por conta do fluxo</h3><p>${o.parcial?'<b>Orçado é da empresa inteira</b> (o FLUXO não vem por cidade/obra) · ':''}<span class="cxa-lg"><i class="o"></i>Orçado</span><span class="cxa-lg"><i class="e"></i>Realizado entrada</span><span class="cxa-lg"><i class="s"></i>Realizado saída</span> · clique para abrir no fluxo</p>
     <div class="tbl-wrap"><table class="cxa-or"><thead><tr><th>Conta</th><th></th><th class="n">Orçado</th><th class="n">Realizado</th><th class="n">Diferença</th></tr></thead><tbody>${linhasOR}</tbody></table></div></div></div>
   <div class="cxa-g2"><div class="cxa-sec" style="gap:14px"><div class="panel cxa-sec"><h3>Recebimentos por tipo de parcela</h3><p>Total R$ ${I0(T.rec)}</p>${barras(tp,'e')}</div>
    <div class="panel cxa-sec"><h3>Movimento por conta bancária</h3><p>Tarifas pagas já estão dentro das saídas. Clique para auditar a conta.</p><div class="tbl-wrap"><table class="cxa-bk"><thead><tr><th>Conta</th><th class="n">Entradas</th><th class="n">Saídas</th><th class="n">Tarifas pagas</th><th class="n">Líquido</th></tr></thead><tbody>
@@ -390,7 +393,10 @@ document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],
   else if(t.dataset.cxadrill){const c=t.dataset.cxadrill,tipo=c.startsWith('1')?'1. ENTRADAS (+)':'2. SAÍDAS (-)';X.dNivel=1;X.dAb=null;X.dFoco=tipo+'›'+c;X.tab='drill';render(true)}
   else if(t.dataset.cxaconta){X.conta=t.dataset.cxaconta;X.status='';X.tab='auditoria';render(true)}});
 document.addEventListener('change',ev=>{const t=ev.target;if(t.dataset&&t.dataset.cxamsv!=null){const v=t.dataset.cxamsv,e=X.f.emp;X.f.emp=t.checked?[...new Set([...e,v])]:e.filter(x=>x!==v);X.f.obra='';X.msOpen=true;X.dAb=null;X.conta=null;const sc=document.querySelector('.cxa-msl')?.scrollTop||0;render(true);setTimeout(()=>{const l=document.querySelector('.cxa-msl');if(l)l.scrollTop=sc},0);return}
-  if(t.dataset&&t.dataset.cxaf){const k_=t.dataset.cxaf,i=FIL.findIndex(f=>f[0]===k_);X.f[k_]=t.value;FIL.slice(i+1).forEach(([k2])=>X.f[k2]=k2==='emp'?[]:'');X.dAb=null;X.conta=null;render(true);return}
+  if(t.dataset&&t.dataset.cxaf){const k_=t.dataset.cxaf,i=FIL.findIndex(f=>f[0]===k_);X.f[k_]=t.value;
+    // mantém os filtros seguintes que ainda existem no novo recorte (ex.: empresa escolhida antes da cidade)
+    const o0=X.p&&X.p[X.per];for(const [k2] of FIL.slice(i+1)){const op=o0?opcoes(o0)[k2]:new Map();if(k2==='emp')X.f.emp=X.f.emp.filter(v=>op.has(v));else if(X.f[k2]&&!op.has(X.f[k2]))X.f[k2]=''}
+    X.dAb=null;X.conta=null;render(true);return}
   if(t.id==='cxaDpSt'){X.dpSt=t.value;pintarDP();return}
   if(t.id==='cxaEmp'){X.emp=t.value;X.per=null;X.dAb=null;X.f={reg:'',cid:'',emp:[],obra:''};render(true)}else if(t.id==='cxaPer'){X.per=t.value;X.dAb=null;render(true)}});
 // arquivo do painel: {periodo:'AAAA-MM', fonte, resumo, movimentos, auditoria} montado pela Gevans a partir das planilhas
