@@ -54,6 +54,7 @@ const css=document.createElement('style');css.textContent=`
 .cxa-acc .ah{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:13px;margin-bottom:6px}.cxa-acc .ag{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:12px;color:var(--ink-2)}.cxa-acc .n{font-variant-numeric:tabular-nums;text-align:right}
 .cxa-mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.cxa-mini div{background:var(--surface-2);border-radius:9px;padding:8px 10px;font-size:11.5px;color:var(--ink-2)}.cxa-mini b{display:block;font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums;margin-top:2px}.cxa-mini b.neg{color:var(--bad)}
 .cxa-st{display:flex;flex-wrap:wrap;gap:6px}.cxa-st button{padding:0;border:0;background:none;border-radius:20px;box-shadow:none;display:inline-flex}.cxa-st button[aria-pressed="true"] .chip{outline:2px solid var(--ink);outline-offset:1px}
+@media print{.cxa-aud{grid-template-columns:1fr!important}.cxa-accs{display:none}.cxa .tbl-wrap,.cxa-dw{max-height:none!important;overflow:visible!important}.cxa-g2,.cxa-g3{grid-template-columns:1fr 1fr!important}}
 .cxa-dv{border-bottom:1px solid var(--surface-2);padding:6px 0}.cxa-dv summary{cursor:pointer;font-size:12.5px;list-style:none}.cxa-dv .dd{display:block;color:var(--ink-2);font-size:12px;margin-top:3px}
 `;document.head.appendChild(css);
 
@@ -236,11 +237,14 @@ async function vCaixa(){
   const corpo=X.tab==='drill'?telaDrill(o):X.tab==='auditoria'?telaAud(o):X.tab==='confronto'?telaConfronto(o):telaVisao(o);
   if(X.tab==='auditoria')setTimeout(pintarAud,0);
   return `<div class="v3 cxa"><div class="v3-bar"><div class="v3-seg" role="tablist">${tabs.map(([k_,n])=>`<button type="button" aria-pressed="${X.tab===k_}" data-cxatab="${k_}">${n}</button>`).join('')}</div>
-   <div class="v3-fl">${emps.length>1?selE:''}${subir}<label class="hint">Mês<br><select id="cxaPer" class="v3-sel">${pers.map(x=>`<option value="${x}" ${x===X.per?'selected':''}>${MES(x)}</option>`).join('')}</select></label></div></div>
+   <div class="v3-fl">${emps.length>1?selE:''}<span class="v3-acts" data-nao-imprime><button class="btn ghost" type="button" data-cxaexp="pdf">Exportar PDF</button><button class="btn ghost" type="button" data-cxaexp="excel">Excel</button></span>${subir}<label class="hint">Mês<br><select id="cxaPer" class="v3-sel">${pers.map(x=>`<option value="${x}" ${x===X.per?'selected':''}>${MES(x)}</option>`).join('')}</select></label></div></div>
    ${corpo}
    <p class="cxa-mais">Fonte: ${esc(o.res.fonte||o.resumo?.fonte||'planilhas do cliente')}. Atualizado em ${dt((o.resumo?.atualizado_em||'').slice(0,10))}.</p></div>`}
 
-document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],[data-cxast],[data-cxaconta],[data-cxadr],[data-cxadn],[data-cxadrill],[data-cxatodos]');if(!t||!document.querySelector('.cxa'))return;
+document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],[data-cxast],[data-cxaconta],[data-cxadr],[data-cxadn],[data-cxadrill],[data-cxatodos],[data-cxaexp]');if(!t||!document.querySelector('.cxa'))return;
+  if(t.dataset.cxaexp){const nomes={visao:'Visão geral',drill:'Fluxo de caixa (drill)',auditoria:'Auditoria por conta',confronto:'Confronto planilhas × FLUXO'};
+    const sub=(nomes[X.tab]||'')+' · '+MES(X.per)+(X.tab==='auditoria'&&X.conta?' · '+banco(X.conta)+(X.status?' · '+(STN[X.status]||X.status):''):'');
+    const f=t.dataset.cxaexp==='pdf'?window.relatorioPDF:window.relatorioExcel;if(f)f({sub});else toast('Recarregue a página para exportar.');return}
   if(t.dataset.cxatab){X.tab=t.dataset.cxatab;render(true)}
   else if(t.dataset.cxast!=null){X.status=X.status===t.dataset.cxast?'':t.dataset.cxast;pintarAud()}
   else if(t.dataset.cxadn!=null){X.dNivel=+t.dataset.cxadn;X.dAb=null;X.dFoco=null;render(true)}
