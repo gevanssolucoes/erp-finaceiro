@@ -168,6 +168,17 @@ eval(base+`
      await pg.evaluate(()=>{window._printou=0;});await pg.click('[data-cxaexp=pdf]');await pg.waitForTimeout(1500);
      {const fr=await pg.evaluate(()=>{const f=[...document.querySelectorAll('iframe')].pop();const d=f&&f.contentDocument;return d?[d.title,!!d.querySelector('.rel-cab'),/Confronto planilhas/.test(d.body.textContent),/Divergências encontradas/.test(d.body.textContent),d.querySelectorAll('button').length]:null});console.log('PDF',JSON.stringify(fr));if(!fr||!fr[1]||!fr[2]||!fr[3]||fr[4])errs.push('PDF do caixa incompleto '+JSON.stringify(fr))}
      {const [dl]=await Promise.all([pg.waitForEvent('download',{timeout:8000}).catch(()=>null),pg.click('[data-cxaexp=excel]')]);console.log('EXCEL caixa',dl&&dl.suggestedFilename());if(!dl)errs.push('Excel do caixa não baixou')}
+     // grupo: o mesmo painel com duas empresas (colunas empresa/regional/cidade) ganha filtros e o ranking
+     {const pj=JSON.parse(fs.readFileSync(OUTD+'/painel_teste.json','utf8'));pj.periodo='2026-09';const M=pj.movimentos;
+      for(const [c,vs] of [['empresa',['1 - EMPRESA A','2 - EMPRESA B']],['regional',['REGIONAL NORTE','REGIONAL SUL']],['cidade',['Belém','Curitiba']]]){M.cols.push(c);M.dic[c]=vs;M.rows.forEach((r,i)=>r.push(i%2))}
+      pj.resumo.conciliacao=(pj.resumo.conciliacao||[]).map((c,i)=>({...c,empresa:i%2?'2 - EMPRESA B':'1 - EMPRESA A'}));fs.writeFileSync(OUTD+'/painel_grupo.json',JSON.stringify(pj));
+      await pg.setInputFiles('#cxaArq',OUTD+'/painel_grupo.json');await pg.waitForTimeout(1500);await pg.click('[data-cxatab=visao]');await pg.waitForTimeout(800);
+      if(!(await pg.$('.cxa-fg')))errs.push('grupo sem filtros');if(!/Regionais › empresas/.test(await pg.textContent('#view')))errs.push('grupo sem ranking por regional');
+      const n0=await pg.evaluate(()=>S.cxa.atual.mov.length);await pg.selectOption('[data-cxaf=emp]','2 - EMPRESA B');await pg.waitForTimeout(800);
+      const n1=await pg.evaluate(()=>S.cxa.atual.mov.length);console.log('GRUPO filtro empresa',n0,n1);if(!(n1>0&&n1<n0))errs.push('filtro de empresa não filtrou');
+      for(const tb of ['drill','auditoria','confronto']){await pg.click('[data-cxatab='+tb+']');await pg.waitForTimeout(600)}
+      await pg.click('[data-cxaflimpa]');await pg.waitForTimeout(600);if(await pg.evaluate(()=>S.cxa.atual.mov.length)!==n0)errs.push('limpar filtros não voltou');
+      await pg.selectOption('#cxaPer','2026-10');await pg.waitForTimeout(800)}
      for(const tb of ['visao','drill','auditoria','confronto']){await pg.setViewportSize({width:400,height:860});await pg.click('[data-cxatab='+tb+']');await pg.waitForTimeout(700);const ov=await pg.evaluate(()=>document.documentElement.scrollWidth-innerWidth);if(ov>0)errs.push('caixa '+tb+' no celular com overflow '+ov)}
      await pg.screenshot({path:OUTD+'/dados-caixa-cel.png',fullPage:true});await pg.setViewportSize({width:1366,height:900})}
     await pg.evaluate(()=>location.hash='lancamentos');await pg.waitForTimeout(700);if(await pg.textContent('#title')!=='Indicadores')errs.push('tela do ERP abriu no Dados: '+await pg.textContent('#title'));
