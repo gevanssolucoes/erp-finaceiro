@@ -22,12 +22,12 @@ const rf0=renderFiltros;
 renderFiltros=function(r){rf0(r);const w=document.getElementById('relWrap');if(w)w.hidden=!TELAS_REL.has(r)||!S.empresas.length;fecharMenu()};
 
 function empresaDoRelatorio(){
-  const r=rota();const porTela={plano:S.planoEmp,bancos:S.bancoEmp,auditoria:S.ext?.emp}[r];
+  const r=rota();const porTela={plano:S.planoEmp,bancos:S.bancoEmp,auditoria:S.ext?.emp,caixa:S.cxa?.emp}[r];
   if(porTela)return empresa(porTela);
   const es=selEmp();return es.length===1?es[0]:null}
 function cabecalho(){
   const e=empresaDoRelatorio(),r=rota();const agora=new Date();
-  const sub=document.getElementById('subtitle')?.textContent||'';
+  const sub=window._relSub||document.getElementById('subtitle')?.textContent||'';
   const doc=e?.cnpj?(String(e.cnpj).replace(/\D/g,'').length===11?'CPF ':'CNPJ ')+(typeof fmtCnpj==='function'?fmtCnpj(e.cnpj):e.cnpj):'';
   return {e,tela:TITULOS[r]||'Relatório',sub,doc,quem:S.perfil?.nome||S.user?.email||'',
     quando:agora.toLocaleDateString('pt-BR')+' '+agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
@@ -39,6 +39,7 @@ function conteudoLimpo(){
   const v=document.getElementById('view').cloneNode(true);
   v.querySelectorAll('button,input,select,textarea,.ctrls,.plano-busca,.sel-busca,[data-nao-imprime],.fab,.tabs-acoes,label.btn').forEach(x=>x.remove());
   v.querySelectorAll('[hidden]').forEach(x=>x.remove());
+  v.querySelectorAll('details').forEach(x=>x.setAttribute('open',''));
   v.querySelectorAll('a').forEach(a=>a.replaceWith(...a.childNodes));
   return v.innerHTML}
 
@@ -47,7 +48,7 @@ function pdf(){
   const fontes=[...document.querySelectorAll('link[rel=stylesheet]')].map(l=>l.outerHTML).join('');
   const selo=c.e?seloEmp(c.e,44):`<span class="selo" style="width:44px;height:44px;background:#0d5f73;font-size:17px">G</span>`;
   const html=`<!doctype html><html lang="pt-BR" data-theme="light"><head><meta charset="utf-8"><title>${esc(c.tela)} · ${esc(c.nome)}</title>${fontes}${estilos}
-  <style>@page{size:A4 ${['dre','fluxo','lancamentos','contas','orcamento','historico','fluxo-bi','gestao'].includes(rota())?'landscape':'portrait'};margin:12mm}
+  <style>@page{size:A4 ${['dre','fluxo','lancamentos','contas','orcamento','historico','fluxo-bi','gestao','caixa'].includes(rota())?'landscape':'portrait'};margin:12mm}
   html,body{background:#fff!important;height:auto}body{padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .rel-cab{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid var(--emp,#0d5f73);padding-bottom:10px;margin-bottom:14px}
   .rel-cab .esq{display:flex;gap:12px;align-items:center}.rel-cab h1{font-size:18px;margin:0}.rel-cab .s{color:#55656d;font-size:12px}
@@ -95,5 +96,5 @@ document.addEventListener('click',ev=>{
     b.setAttribute('aria-expanded','true');return}
   const o=ev.target.closest('[data-rel]');if(o){ev.stopPropagation();fecharMenu();(o.dataset.rel==='pdf'?pdf:excel)();return}
   if(!ev.target.closest('#relMenu'))fecharMenu()},true);
-window.relatorioPDF=pdf;window.relatorioExcel=excel;
+window.relatorioPDF=(o)=>{window._relSub=o?.sub||'';try{pdf()}finally{window._relSub=''}};window.relatorioExcel=(o)=>{window._relSub=o?.sub||'';try{excel()}finally{window._relSub=''}};
 })();
