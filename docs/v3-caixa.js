@@ -47,8 +47,13 @@ const css=document.createElement('style');css.textContent=`
 .cxa-nv{font-size:10.5px!important;color:var(--ink-3)!important;text-transform:uppercase;letter-spacing:.03em;font-weight:600!important}
 .cxa-q{color:var(--ink-3)}.cxa-dt{font-variant-numeric:tabular-nums;color:var(--ink-3);margin-right:8px}.cxa-ok{color:var(--good);font-size:11px}.cxa-mais2{color:var(--accent,var(--ink));font-weight:600}
 .cxa-dw{max-height:75vh}
-.cxa-aud td{white-space:normal;font-size:12.5px}.cxa-aud td.n{white-space:nowrap}.cxa-aud td.det{min-width:140px}.cxa-aud{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);gap:14px;align-items:start}
-@media (max-width:820px){.cxa-aud{grid-template-columns:1fr}.cxa-accs{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}}
+.cxa-aud td{white-space:normal;font-size:12.5px}.cxa-aud td.n{white-space:nowrap}.cxa-aud td.det{min-width:140px}
+.cxa-af{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end}.cxa-af select{min-width:170px;max-width:300px}
+.cxa-ak .cxa-kb{font:inherit;text-align:left;cursor:pointer;color:var(--ink)}.cxa-ak .cxa-kb[disabled]{cursor:default}.cxa-ak .cxa-kb[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.cxa-ct{max-height:560px;overflow:auto}.cxa-ct thead th{position:sticky;top:0;background:var(--surface);z-index:1}.cxa-ct td{font-size:12px;padding-left:6px;padding-right:6px}.cxa-ct td.det{white-space:normal;max-width:170px;min-width:0;font-size:11.5px;color:var(--ink-2)}.cxa-ct th{padding-left:6px;padding-right:6px}.cxa-ct td small{display:block;font-size:11px}.cxa-ct tr.sel td{background:color-mix(in srgb,var(--accent,#0d5f73) 10%,var(--surface))}.cxa-ct tr.tot td{position:static}
+.cxa-pg{display:flex;gap:10px;align-items:center;justify-content:flex-end;font-size:12.5px;color:var(--ink-2);margin-top:6px}.cxa-pg .btn{padding:5px 12px}
+.cxa-af2{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;justify-content:space-between}.cxa-af2 .cxa-st{flex:1}
+@media (max-width:820px){.cxa-af select{min-width:0;width:100%}.cxa-af label{flex:1 1 140px}}
 .cxa-acc{font:inherit;text-align:left;width:100%;display:block;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;color:var(--ink)}
 .cxa-acc[aria-pressed="true"]{border:2px solid var(--accent,var(--ink));padding:9px 11px}
 .cxa-acc .ah{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:13px;margin-bottom:6px}.cxa-acc .ag{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:12px;color:var(--ink-2)}.cxa-acc .n{font-variant-numeric:tabular-nums;text-align:right}
@@ -130,7 +135,7 @@ const PC=(r,o)=>o?((Math.abs(r)/Math.abs(o)-1)*100).toFixed(1).replace('.',',').
 const cod=s=>{const m=String(s||'').match(/^[\d.]+/);return m?m[0].replace(/\.$/,''):String(s||'')};
 function nm(s){s=String(s??'').trim().replace(/^[\d.]+\s*(\(\+\)|\(-\))?\s*/,'').replace(/^[A-Z]?\d+\s*-\s*/,'').replace(/^[\s-]+|[\s-]+$/g,'');
   return /[a-zà-ú]/.test(s)?s:s.charAt(0)+s.slice(1).toLowerCase()}
-const BANCOS={'1':'BB','001':'BB','033':'Santander','065':'Andbank','65':'Andbank','104':'Caixa','237':'Bradesco','246':'ABC','341':'Itaú','748':'Sicredi','756':'Sicoob','077':'Inter','260':'Nubank'};
+const BANCOS={'33':'Santander','102':'XP Investimentos','422':'Safra','3':'Banco da Amazônia','212':'Original','336':'C6','1000':'Banco interno','1003':'Banco transitório','-1':'Banco interno','1':'BB','001':'BB','033':'Santander','065':'Andbank','65':'Andbank','104':'Caixa','237':'Bradesco','246':'ABC','341':'Itaú','748':'Sicredi','756':'Sicoob','077':'Inter','260':'Nubank'};
 const banco=c=>{const [b,n]=String(c||'').split('|');return n?(BANCOS[b]||'Banco '+b)+' · '+n:String(c||'')};
 const mesN=()=>+String(X.per||'').slice(5,7)||10;
 function prodDe(o,m){if(m.produto)return m.produto;const p=(m.chave||'').split('-')[2];const mp=o.res.produtos||{};return p&&mp[p]?nm(mp[p]):'Sem produto'}
@@ -243,32 +248,54 @@ function telaDrill(o){const A=arvore(o);const nivelMax=X.dNivel??2;
    <div class="tbl-wrap cxa-dw"><table class="cxa-dr"><thead><tr><th>Estrutura do fluxo</th><th>Nível</th><th class="n">Orçado</th><th class="n">Realizado</th><th class="n">Diferença</th><th class="n">Var. %</th><th class="n">Lanç.</th></tr></thead><tbody>${h}</tbody></table></div></div>`}
 
 // ---------- 3. Auditoria por conta bancária
-function telaAud(o){if(!o)return '';const c=(o.res.conciliacao||[]).filter(r=>Math.abs(r.entradas_extrato)+Math.abs(r.saidas_extrato)+Math.abs(r.entradas_base)+Math.abs(r.saidas_base)>0.5)
-    .sort((a,b)=>(b.entradas_extrato+b.saidas_extrato)-(a.entradas_extrato+a.saidas_extrato));
-  const contas=c.map(r=>r.conta_bancaria);if(!contas.includes(X.conta))X.conta=contas.includes('341|42921-0')?'341|42921-0':contas[0];
-  const qc=norm(X.qc||'');const cv=c.filter(r=>!qc||norm([banco(r.conta_bancaria),r.empresa,r.descricao_conta].join(' ')).includes(qc)),LIM=40;
-  const sel=c.find(r=>r.conta_bancaria===X.conta)||{};
-  const st=d=>Math.abs(d)<1?chip('Batido','good'):chip('Diferença '+I0(d),'warn');
-  const lista=(o.grupo?`<label class="hint" style="display:block;margin-bottom:8px">Buscar conta (${c.length})<br><input id="cxaBuscaC" class="v3-sel" type="search" value="${esc(X.qc||'')}" placeholder="banco, número ou empresa" style="width:100%"></label>`:'')+cv.slice(0,LIM).map(r=>`<button type="button" class="cxa-acc" data-cxaconta="${esc(r.conta_bancaria)}" aria-pressed="${r.conta_bancaria===X.conta}"><span class="ah"><b>${esc(banco(r.conta_bancaria))}</b>${st(r.diferenca)}</span>${r.empresa?`<span class="hint" style="display:block;margin:-2px 0 6px">${esc(nomeE(r.empresa))}</span>`:''}
-    <span class="ag"><span>Saldo inicial</span><span class="n">${I0(r.saldo_inicial)}</span><span>Entradas extrato / planilhas</span><span class="n">${I0(r.entradas_extrato)} / ${I0(r.entradas_base)}</span><span>Saídas extrato / planilhas</span><span class="n">${I0(-r.saidas_extrato)} / ${I0(-r.saidas_base)}</span><span>Saldo final extrato</span><span class="n"><b>${I0(r.saldo_final_extrato)}</b></span></span></button>`).join('')+(cv.length>LIM?`<p class="cxa-mais">Mostrando ${LIM} de ${cv.length} contas, as de maior movimento. Use a busca ou os filtros.</p>`:'');
-  return `<div class="cxa-aud"><div class="cxa-accs">${lista}<p class="cxa-mais">Contas sem movimento no mês ficam fora da lista.</p></div>
-   <div class="panel cxa-sec"><h3>${esc(banco(X.conta))} · conta selecionada${sel.empresa?` <span class="hint">${esc(nomeE(sel.empresa))}</span>`:''}</h3><p>Extrato do mês × lançamentos das planilhas (pagas, recebidas, transferências e tarifas), linha a linha. Clique num status para filtrar.</p>
-    <div class="cxa-mini"><div>Saldo inicial<b>${I0(sel.saldo_inicial)}</b></div><div>Entradas extrato / planilhas<b>${I0(sel.entradas_extrato)}</b>${I0(sel.entradas_base)}</div><div>Saídas extrato / planilhas<b>${I0(-sel.saidas_extrato)}</b>${I0(-sel.saidas_base)}</div><div>Diferença extrato − planilhas<b class="${Math.abs(sel.diferenca||0)<1?'':'neg'}">${I0(sel.diferenca)}</b></div></div>
-    <div class="cxa-st" id="cxaSt"></div>
-    <label class="hint">Buscar<br><input id="cxaBusca" class="v3-sel" type="search" value="${esc(X.q)}" placeholder="histórico, fornecedor, documento"></label>
+// ---------- 3. Auditoria por conta: filtros (banco, conta, situação, busca) › tabela de contas agrupada por banco › detalhe da conta
+const bcoCod=c=>String(c||'').split('|')[0];
+const bcoNome=r=>{const b=bcoCod(r.conta_bancaria);return BANCOS[b]||nm(String(r.banco_nome||'').replace(/^BCO\.?\s*/i,''))||'Banco '+b};
+const PEND=/^Só no extrato|^Só nas abas/;
+function audContas(o){const c=(o.res.conciliacao||[]).filter(r=>Math.abs(r.entradas_extrato)+Math.abs(r.saidas_extrato)+Math.abs(r.entradas_base)+Math.abs(r.saidas_base)>0.5);
+  const pend=new Map();for(const a of o.aud)if(PEND.test(a.status||''))pend.set(a.conta_bancaria,(pend.get(a.conta_bancaria)||0)+1);
+  return c.map(r=>({...r,bco:bcoNome(r),pend:pend.get(r.conta_bancaria)||0,ok:Math.abs(r.diferenca||0)<1}))}
+function telaAud(o){if(!o)return '';const A=X.au||(X.au={bco:'',sit:'',qc:'',pg:0});const all=audContas(o);
+  const bcos=[...new Set(all.map(r=>r.bco))].sort((a,b)=>a.localeCompare(b,'pt-BR'));if(A.bco&&!bcos.includes(A.bco))A.bco='';
+  const qc=norm(A.qc||'');
+  const cv=all.filter(r=>(!A.bco||r.bco===A.bco)&&(!A.sit||(A.sit==='dif'?!r.ok:A.sit==='pend'?r.pend>0:r.ok))&&(!qc||norm([banco(r.conta_bancaria),r.bco,r.empresa,r.descricao_conta].join(' ')).includes(qc)))
+    .sort((a,b)=>a.bco.localeCompare(b.bco,'pt-BR')||(Math.abs(b.entradas_extrato)+Math.abs(b.saidas_extrato))-(Math.abs(a.entradas_extrato)+Math.abs(a.saidas_extrato)));
+  if(!cv.some(r=>r.conta_bancaria===X.conta))X.conta=(cv.find(r=>!r.ok)||cv[0]||{}).conta_bancaria||null;
+  const nDif=all.filter(r=>!r.ok).length,nPend=all.filter(r=>r.pend>0).length,tDif=sum(all.map(r=>Math.abs(r.diferenca||0)));
+  const kp=(t,v,d,c,sit)=>`<button type="button" class="v3-k cxa-k cxa-kb" ${sit!=null?`data-cxaau="sit" data-v="${sit}" aria-pressed="${A.sit===sit}"`:'disabled'}><span class="t">${t}</span><span class="v ${c||''}">${v}</span><span class="d">${d}</span></button>`;
+  const kpis=`<div class="v3-cards cxa-cards cxa-ak">${kp('Contas com movimento',num.format(all.length),bcos.length+' bancos','','')}${kp('Batidas',num.format(all.length-nDif),'extrato = planilhas','','ok')}${kp('Com diferença',num.format(nDif),'R$ '+I0(tDif)+' em módulo',nDif?'neg':'','dif')}${kp('Com pendências',num.format(nPend),'linhas só no extrato ou só nas abas',nPend?'neg':'','pend')}</div>`;
+  const fil=`<div class="panel cxa-af" data-nao-imprime><label class="hint">Banco<br><select class="v3-sel" data-cxaau="bco"><option value="">Todos (${bcos.length})</option>${bcos.map(b=>`<option ${A.bco===b?'selected':''}>${esc(b)}</option>`).join('')}</select></label>
+   <label class="hint">Conta<br><select class="v3-sel" data-cxaau="conta">${cv.map(r=>`<option value="${esc(r.conta_bancaria)}" ${r.conta_bancaria===X.conta?'selected':''}>${esc(banco(r.conta_bancaria))}${r.descricao_conta?' · '+esc(nm(r.descricao_conta)).slice(0,28):''}</option>`).join('')||'<option>Nenhuma</option>'}</select></label>
+   <label class="hint">Situação<br><select class="v3-sel" data-cxaau="sit"><option value="">Todas</option><option value="ok" ${A.sit==='ok'?'selected':''}>Batidas</option><option value="dif" ${A.sit==='dif'?'selected':''}>Com diferença</option><option value="pend" ${A.sit==='pend'?'selected':''}>Com pendências</option></select></label>
+   <label class="hint" style="flex:1;min-width:200px">Buscar conta<br><input id="cxaBuscaC" class="v3-sel" type="search" value="${esc(A.qc||'')}" placeholder="número, descrição ou empresa" style="width:100%"></label>
+   ${A.bco||A.sit||A.qc?'<button type="button" class="btn ghost" data-cxaau="limpa" data-v="1">Limpar</button>':''}</div>`;
+  // tabela de contas agrupada por banco, paginada
+  const PG=40,np=Math.max(1,Math.ceil(cv.length/PG));if(A.pg>=np)A.pg=np-1;const pag=cv.slice(A.pg*PG,A.pg*PG+PG);
+  const tb={};for(const r of cv){const t=tb[r.bco]||(tb[r.bco]={n:0,si:0,ee:0,eb:0,se:0,sb:0,d:0,sf:0,p:0});t.n++;t.si+=r.saldo_inicial;t.ee+=r.entradas_extrato;t.eb+=r.entradas_base;t.se+=r.saidas_extrato;t.sb+=r.saidas_base;t.d+=r.diferenca||0;t.sf+=r.saldo_final_extrato;t.p+=r.pend}
+  let h='',ult='';for(const r of pag){if(r.bco!==ult){ult=r.bco;const t=tb[ult];h+=`<tr class="tot"><td colspan="${o.grupo?3:2}">${esc(ult)} <span class="cxa-q">${t.n} conta${t.n>1?'s':''}</span></td><td class="n">${I0(t.si)}</td><td class="n">${I0(t.ee)}</td><td class="n">${I0(-t.se)}</td><td class="n ${Math.abs(t.d)<1?'':'neg'}">${I0(t.d)}</td><td class="n">${t.p||''}</td><td class="n">${I0(t.sf)}</td></tr>`}
+    h+=`<tr class="click ${r.conta_bancaria===X.conta?'sel':''}" data-cxaconta="${esc(r.conta_bancaria)}"><td style="padding-left:20px;white-space:nowrap">${esc(banco(r.conta_bancaria).split(' · ').pop())}</td><td class="det">${esc(nm(r.descricao_conta)||'')}</td>${o.grupo?`<td class="det">${esc(nomeE(r.empresa))}</td>`:''}<td class="n">${I0(r.saldo_inicial)}</td>
+     <td class="n">${I0(r.entradas_extrato)}${Math.abs(r.entradas_extrato-r.entradas_base)>=1?`<small class="neg">plan. ${I0(r.entradas_base)}</small>`:''}</td><td class="n">${I0(-r.saidas_extrato)}${Math.abs(r.saidas_extrato-r.saidas_base)>=1?`<small class="neg">plan. ${I0(-r.saidas_base)}</small>`:''}</td>
+     <td class="n">${r.ok?chip('Batida','good'):`<b class="neg">${I0(r.diferenca)}</b>`}</td><td class="n">${r.pend?chip(String(r.pend),'bad'):''}</td><td class="n"><b>${I0(r.saldo_final_extrato)}</b></td></tr>`}
+  const nav=np>1?`<div class="cxa-pg" data-nao-imprime><button type="button" class="btn ghost" data-cxaau="pg" data-v="${A.pg-1}" ${A.pg?'':'disabled'}>‹ Anterior</button><span>Página ${A.pg+1} de ${np} · ${num.format(cv.length)} contas</span><button type="button" class="btn ghost" data-cxaau="pg" data-v="${A.pg+1}" ${A.pg<np-1?'':'disabled'}>Próxima ›</button></div>`:`<p class="cxa-mais">${num.format(cv.length)} conta${cv.length===1?'':'s'}. Contas sem movimento no mês ficam fora.</p>`;
+  const sel=cv.find(r=>r.conta_bancaria===X.conta)||{};
+  return `${kpis}${fil}<div class="panel cxa-sec"><h3>Contas por banco</h3><p>Entradas e saídas pelo extrato; quando as planilhas dão outro valor, ele aparece embaixo em vermelho. Clique numa conta para ver as linhas.</p>
+    <div class="tbl-wrap cxa-ct"><table><thead><tr><th>Conta</th><th>Descrição</th>${o.grupo?'<th>Empresa</th>':''}<th class="n">Saldo inicial</th><th class="n">Entradas</th><th class="n">Saídas</th><th class="n">Diferença</th><th class="n">Pend.</th><th class="n">Saldo final</th></tr></thead><tbody>${h||`<tr><td colspan="9">Nenhuma conta com esse filtro.</td></tr>`}</tbody></table></div>${nav}</div>
+   ${X.conta?`<div class="panel cxa-sec cxa-aud" id="cxaDet"><h3>${esc(banco(X.conta))}${sel.descricao_conta?' · '+esc(nm(sel.descricao_conta)):''}${sel.empresa?` <span class="hint">${esc(nomeE(sel.empresa))}</span>`:''}</h3><p>Extrato do mês × lançamentos das planilhas (pagas, recebidas, transferências e tarifas), linha a linha. Clique num status para filtrar.</p>
+    <div class="cxa-mini"><div>Saldo inicial<b>${I0(sel.saldo_inicial)}</b></div><div>Entradas extrato / planilhas<b>${I0(sel.entradas_extrato)}</b>${I0(sel.entradas_base)}</div><div>Saídas extrato / planilhas<b>${I0(-sel.saidas_extrato)}</b>${I0(-sel.saidas_base)}</div><div>Diferença extrato − planilhas<b class="${Math.abs(sel.diferenca||0)<1?'':'neg'}">${I0(sel.diferenca)}</b></div><div>Saldo final extrato<b>${I0(sel.saldo_final_extrato)}</b></div></div>
+    <div class="cxa-af2"><div class="cxa-st" id="cxaSt"></div><label class="hint">Buscar nas linhas<br><input id="cxaBusca" class="v3-sel" type="search" value="${esc(X.q)}" placeholder="histórico, fornecedor, documento"></label></div>
     <div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Histórico no extrato</th><th class="n">Extrato</th><th>Lançamento nas planilhas</th><th class="n">Planilhas</th><th class="n">Diferença</th><th>Status</th></tr></thead><tbody id="cxaAud"></tbody></table></div>
-    <p class="cxa-mais" id="cxaMais"></p></div></div>`}
+    <div id="cxaMais"></div></div>`:''}`}
 const STN={'Depósito de cliente (conferido no total da conta)':'Depósito de cliente','Repetido no extrato (contado uma vez)':'Repetido no extrato','Conferido (vários lançamentos)':'Conferido (vários)','Total de recebimentos da conta':'Total de recebimentos'};
 function pintarAud(){const o=X.atual;const tb=document.getElementById('cxaAud');if(!o||!tb)return;
   const base=o.aud.filter(a=>a.conta_bancaria===X.conta);const st={};for(const a of base){const s=st[a.status]||(st[a.status]={n:0});s.n++}
   document.getElementById('cxaSt').innerHTML=Object.entries(st).sort((a,b)=>b[1].n-a[1].n).map(([s,x])=>`<button type="button" data-cxast="${esc(s)}" aria-pressed="${X.status===s}">${chip((STN[s]||s)+' · '+num.format(x.n),STC[s])}</button>`).join('');
   const q=norm(X.q);let rows=base.filter(a=>(!X.status||a.status===X.status)&&(!q||norm([a.historico_extrato,a.lancamentos_base,a.documento].join(' ')).includes(q)));
-  rows=rows.slice().sort((a,b)=>a.data.localeCompare(b.data));const tot=rows.length;rows=rows.slice(0,400);
+  rows=rows.slice().sort((a,b)=>a.data.localeCompare(b.data));const tot=rows.length,LP=100,npl=Math.max(1,Math.ceil(tot/LP));X.lpg=Math.min(X.lpg||0,npl-1);rows=rows.slice(X.lpg*LP,X.lpg*LP+LP);
   const vext=a=>{if(a.valor_extrato==null&&/^Total de recebimentos/.test(a.status)){const mm=String(a.historico_extrato||'').match(/R\$ ([\d.]+),(\d\d)/);if(mm)return +(mm[1].replace(/\./g,'')+'.'+mm[2])}return a.valor_extrato};
   tb.innerHTML=rows.length?rows.map(a=>{const dep=/^Depósito de cliente/.test(a.status),ve=vext(a),d=(+ve||0)-(+a.valor_base||0);
     return `<tr><td>${dt(a.data).slice(0,5)}</td><td class="txt">${esc(/^Total de recebimentos/.test(a.status)?'Total de depósitos de clientes no mês':nm(a.historico_extrato)||'—')}</td><td class="n">${ve==null?'—':I0(ve)}</td><td class="det">${esc(nm(a.lancamentos_base)||'—')}${a.qtd_lancamentos>1?` (${a.qtd_lancamentos})`:''}</td>
     <td class="n">${dep?'<span class="cxa-q">no total</span>':a.valor_base==null?'—':I0(a.valor_base)}</td><td class="n ${dep?'':Math.abs(d)<1?'pos':'neg'}">${dep?'<span class="cxa-q">no total</span>':I0(d)}</td><td>${chip(STN[a.status]||a.status,STC[a.status])}</td></tr>`}).join(''):'<tr><td colspan="7">Nada nesta conta com esse filtro.</td></tr>';
-  document.getElementById('cxaMais').textContent=tot>400?`Mostrando 400 de ${num.format(tot)} linhas. Use a busca ou clique num status para filtrar.`:`${num.format(tot)} linha${tot===1?'':'s'}. Depósitos de clientes são conferidos pelo total do mês, porque o extrato traz os créditos sem centavos.`}
+  document.getElementById('cxaMais').innerHTML=(npl>1?`<div class="cxa-pg" data-nao-imprime><button type="button" class="btn ghost" data-cxalpg="${X.lpg-1}" ${X.lpg?'':'disabled'}>‹ Anterior</button><span>Linhas ${num.format(X.lpg*LP+1)}–${num.format(Math.min(tot,X.lpg*LP+LP))} de ${num.format(tot)}</span><button type="button" class="btn ghost" data-cxalpg="${X.lpg+1}" ${X.lpg<npl-1?'':'disabled'}>Próxima ›</button></div>`:'')+`<p class="cxa-mais">${num.format(tot)} linha${tot===1?'':'s'}. Depósitos de clientes são conferidos pelo total do mês, porque o extrato traz os créditos sem centavos.</p>`}
 
 // ---------- 4. Confronto planilhas × FLUXO do cliente
 function telaConfronto(o){const f=(o.res.fluxo_v07||[]).map(r=>({...r,base_teste:+r.base_teste||0,real_out26_v07:+r.real_out26_v07||0}));
@@ -376,6 +403,8 @@ async function vCaixa(){
    ${alerta}${barraFiltros(o0)}${['visao','drill','auditoria','confronto'].includes(X.tab)?avisoADM(o):''}${o0.grupo&&!o.mov.length?vazio('Nada com esse filtro','<p style="margin:0">Troque ou limpe os filtros.</p>'):corpo}
    <p class="cxa-mais">Fonte: ${esc(o.res.fonte||o.resumo?.fonte||'planilhas do cliente')}. Atualizado em ${dt((o.resumo?.atualizado_em||'').slice(0,10))}.</p></div>`}
 
+document.addEventListener('click',ev=>{const u=ev.target.closest('button[data-cxaau],[data-cxalpg]');if(u&&document.querySelector('.cxa')){if(u.dataset.cxalpg!=null){X.lpg=+u.dataset.cxalpg;pintarAud();document.getElementById('cxaDet')?.scrollIntoView({block:'start'});return}
+    const A=X.au=X.au||{},k_=u.dataset.cxaau;if(k_==='limpa')X.au={bco:'',sit:'',qc:'',pg:0};else if(k_==='pg')A.pg=+u.dataset.v;else if(k_==='sit')A.sit=A.sit===u.dataset.v?'':u.dataset.v,A.pg=0;render(true);return}});
 document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],[data-cxast],[data-cxaconta],[data-cxadr],[data-cxadn],[data-cxadrill],[data-cxatodos],[data-cxaexp],[data-cxafset],[data-cxaflimpa],[data-cxams],[data-cxaap],[data-cxaapall],[data-cxadpok],[data-cxadpall],[data-cxadpxls]');if(!t||!document.querySelector('.cxa'))return;
   if(t.dataset.cxaap){X.apAb=X.apAb===t.dataset.cxaap?null:t.dataset.cxaap;render(true);return}
   if(t.dataset.cxaapall){X.apAll=1;render(true);return}
@@ -396,8 +425,8 @@ document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],
   else if(t.dataset.cxadr){const a=X.dAb=X.dAb||new Set();a.has(t.dataset.cxadr)?a.delete(t.dataset.cxadr):a.add(t.dataset.cxadr);render(true)}
   else if(t.dataset.cxatodos){X.dTodos=t.dataset.cxatodos;render(true)}
   else if(t.dataset.cxadrill){const c=t.dataset.cxadrill,tipo=c.startsWith('1')?'1. ENTRADAS (+)':'2. SAÍDAS (-)';X.dNivel=1;X.dAb=null;X.dFoco=tipo+'›'+c;X.tab='drill';render(true)}
-  else if(t.dataset.cxaconta){X.conta=t.dataset.cxaconta;X.status='';X.tab='auditoria';render(true)}});
-document.addEventListener('change',ev=>{const t=ev.target;if(t.dataset&&t.dataset.cxamsv!=null){const v=t.dataset.cxamsv,e=X.f.emp;X.f.emp=t.checked?[...new Set([...e,v])]:e.filter(x=>x!==v);X.f.obra='';X.msOpen=true;X.dAb=null;X.conta=null;const sc=document.querySelector('.cxa-msl')?.scrollTop||0;render(true);setTimeout(()=>{const l=document.querySelector('.cxa-msl');if(l)l.scrollTop=sc},0);return}
+  else if(t.dataset.cxaconta){const ja=X.tab==='auditoria';X.conta=t.dataset.cxaconta;X.status='';X.lpg=0;X.tab='auditoria';render(true);if(ja)setTimeout(()=>document.getElementById('cxaDet')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}});
+document.addEventListener('change',ev=>{const t=ev.target;if(t.dataset&&t.dataset.cxaau&&t.tagName==='SELECT'){const k_=t.dataset.cxaau,A=X.au=X.au||{};if(k_==='conta'){X.conta=t.value;X.status='';X.lpg=0}else{A[k_]=t.value;A.pg=0}render(true);return}if(t.dataset&&t.dataset.cxamsv!=null){const v=t.dataset.cxamsv,e=X.f.emp;X.f.emp=t.checked?[...new Set([...e,v])]:e.filter(x=>x!==v);X.f.obra='';X.msOpen=true;X.dAb=null;X.conta=null;const sc=document.querySelector('.cxa-msl')?.scrollTop||0;render(true);setTimeout(()=>{const l=document.querySelector('.cxa-msl');if(l)l.scrollTop=sc},0);return}
   if(t.dataset&&t.dataset.cxaf){const k_=t.dataset.cxaf,i=FIL.findIndex(f=>f[0]===k_);X.f[k_]=t.value;
     // mantém os filtros seguintes que ainda existem no novo recorte (ex.: empresa escolhida antes da cidade)
     const o0=X.p&&X.p[X.per];for(const [k2] of FIL.slice(i+1)){const op=o0?opcoes(o0)[k2]:new Map();if(k2==='emp')X.f.emp=X.f.emp.filter(v=>op.has(v));else if(X.f[k2]&&!op.has(X.f[k2]))X.f[k2]=''}
@@ -415,10 +444,10 @@ async function subirPainel(f){try{const j=JSON.parse(await f.text());
 document.addEventListener('change',ev=>{if(ev.target.id==='cxaArq'&&ev.target.files[0])subirPainel(ev.target.files[0])});
 document.addEventListener('toggle',ev=>{if(ev.target.id==='cxaMs')X.msOpen=ev.target.open},true);
 document.addEventListener('click',ev=>{const d=document.getElementById('cxaMs');if(d&&d.open&&!d.contains(ev.target)){d.open=false;X.msOpen=false}});
-document.addEventListener('input',ev=>{if(ev.target.id==='cxaBusca'){X.q=ev.target.value;pintarAud()}
+document.addEventListener('input',ev=>{if(ev.target.id==='cxaBusca'){X.q=ev.target.value;X.lpg=0;pintarAud()}
   else if(ev.target.id==='cxaMsQ'){X.empQ=ev.target.value;const q=norm(X.empQ);document.querySelectorAll('.cxa-msl label').forEach(l=>{l.hidden=!!q&&!norm(l.querySelector('input').dataset.cxamsv).includes(q)})}
   else if(ev.target.id==='cxaDpQ'){X.dpQ=ev.target.value;clearTimeout(X._tq2);X._tq2=setTimeout(pintarDP,250)}
-  else if(ev.target.id==='cxaBuscaC'){X.qc=ev.target.value;clearTimeout(X._tq);X._tq=setTimeout(()=>{render(true);setTimeout(()=>{const i=document.getElementById('cxaBuscaC');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)},350)}});
+  else if(ev.target.id==='cxaBuscaC'){(X.au=X.au||{}).qc=ev.target.value;X.au.pg=0;clearTimeout(X._tq);X._tq=setTimeout(()=>{render(true);setTimeout(()=>{const i=document.getElementById('cxaBuscaC');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)},350)}});
 
 if(!ROTAS.some(x=>x[0]==='caixa'))ROTAS.push(['caixa','Caixa e auditoria']);
 TITULOS.caixa='Caixa e auditoria';VIEWS.caixa=vCaixa;
