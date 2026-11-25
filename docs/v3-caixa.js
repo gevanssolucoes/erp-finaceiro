@@ -57,7 +57,10 @@ const css=document.createElement('style');css.textContent=`
 @media print{.cxa-aud{grid-template-columns:1fr!important}.cxa-accs{display:none}.cxa .tbl-wrap,.cxa-dw{max-height:none!important;overflow:visible!important}.cxa-g2,.cxa-g3{grid-template-columns:1fr 1fr!important}}
 .cxa-fg{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}.cxa-fg select{min-width:150px;max-width:260px}.cxa-fg .chip{cursor:pointer}
 .cxa-rk td{font-size:12.5px}.cxa-rk tr.l2 td:first-child{padding-left:22px;color:var(--ink-2)}
-.cxa-dv{border-bottom:1px solid var(--surface-2);padding:6px 0}.cxa-dv summary{cursor:pointer;font-size:12.5px;list-style:none}.cxa-dv .dd{display:block;color:var(--ink-2);font-size:12px;margin-top:3px}
+.cxa-dv{border-bottom:1px solid var(--surface-2);padding:6px 0}
+.cxa-alerta{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:13px;border-left:4px solid var(--warn,#c98a00);background:color-mix(in srgb,var(--warn,#c98a00) 9%,var(--surface))}
+.cxa-dp td{font-size:12px;white-space:normal;vertical-align:top}.cxa-dp td.k{font-family:var(--f-num,monospace);font-size:11px;color:var(--ink-3)}.cxa-dp select{max-width:280px;font-size:12px}.cxa-dp input{font-size:12px;width:150px}
+.cxa-ap td{white-space:nowrap}.cxa-ap tr.l2 td:first-child{padding-left:24px;color:var(--ink-2)}.cxa-dv summary{cursor:pointer;font-size:12.5px;list-style:none}.cxa-dv .dd{display:block;color:var(--ink-2);font-size:12px;margin-top:3px}
 `;document.head.appendChild(css);
 
 const R=v=>v==null||v===''?'':brl2.format(+v);
@@ -73,8 +76,12 @@ async function carregar(emp){
   if(X.cache[emp])return X.cache[emp];
   const {data,error}=await sb.from('dados_paineis').select('periodo,parte,titulo,fonte,conteudo,atualizado_em').eq('empresa_id',emp).order('periodo',{ascending:false});
   if(error)throw error;const p={};for(const r of data){(p[r.periodo]=p[r.periodo]||{})[r.parte]=r}
-  for(const per of Object.keys(p)){const o=p[per];o.mov=abrir(o.movimentos?.conteudo);o.aud=abrir(o.auditoria?.conteudo);o.res=o.resumo?.conteudo||{};o._v={};o.grupo=o.mov.some(x=>x.empresa)}
+  let dp=[];try{const r=await sb.from('dados_depara').select('*').eq('empresa_id',emp);if(!r.error)dp=r.data||[]}catch(e){}
+  const DP=new Map(dp.map(d=>[d.chave,d]));p._dp=DP;p._dpOk=true;
+  for(const per of Object.keys(p)){if(per[0]==='_')continue;const o=p[per];o.mov=abrir(o.movimentos?.conteudo);o.aud=abrir(o.auditoria?.conteudo);o.res=o.resumo?.conteudo||{};o._v={};o.grupo=o.mov.some(x=>x.empresa);aplicaDP(o,DP)}
   return X.cache[emp]=p}
+const DPC=['fluxo_tipo','fluxo_conta','fluxo_subconta','fluxo_descricao','base_apresentacao','resumo_servico','servico_resumo'];
+function aplicaDP(o,DP){for(const x of o.mov){const d=x.chave&&DP.get(x.chave);if(d){if(!x._orig)x._orig=DPC.reduce((a,c)=>(a[c]=x[c],a),{classificacao:x.classificacao});for(const c of DPC)x[c]=d[c]||'';x.classificacao='de-para'}}o._v={}}
 // ---------- grupo: filtros Regional › Cidade › Empresa › Obra (o painel traz várias empresas no mesmo cadastro)
 const FIL=[['reg','Regional','regional'],['cid','Cidade','cidade'],['emp','Empresa','empresa'],['obra','Obra','centro_custo']];
 function opcoes(o){const f=X.f,r={};for(const [k,,c] of FIL)r[k]=new Map();
@@ -265,30 +272,97 @@ function telaConfronto(o){const f=(o.res.fluxo_v07||[]).map(r=>({...r,base_teste
    <div class="cxa-sec" style="gap:14px"><div class="panel cxa-sec"><h3>Conferência de cada aba</h3><p>Quantas linhas acharam par no extrato e se o total bate com o FLUXO.</p><div class="tbl-wrap"><table><thead><tr><th>Aba</th><th class="n">Linhas</th><th class="n">No extrato</th><th class="n">Total</th><th class="n">No FLUXO</th><th>Observação</th></tr></thead><tbody>${abas}</tbody></table></div></div>
    <div class="panel cxa-sec"><h3>Divergências encontradas</h3><p>Clique num tipo para ver as linhas.</p>${divs}</div></div></div>`}
 
+// ---------- 5. Aplicações: rendimento e imposto sobre aplicação por empresa e conta, % sobre o saldo inicial, mês a mês
+const ehApl=x=>x.grupo==='Tarifas e ajustes bancários'&&/aplicação/i.test(x.categoria||'');
+function telaAplic(p,o){const pers=Object.keys(p).filter(k_=>k_[0]!=='_').sort();
+  const lin={},emps=new Set(o.mov.map(x=>x.empresa||'Empresa'));
+  for(const per of pers){const v=vista(p[per]);const si={};for(const c of v.res.conciliacao||[]){const e=c.empresa||'Empresa';si[e]=(si[e]||0)+(+c.saldo_inicial||0)}
+    for(const x of v.mov){if(!ehApl(x))continue;const e=x.empresa||'Empresa';const L=lin[e]||(lin[e]={c:{},m:{}});const M=L.m[per]||(L.m[per]={r:0,i:0,si:si[e]||0});
+      if(/Receita/i.test(x.categoria))M.r+=x.valor;else M.i+=x.valor;const C_=L.c[x.conta_bancaria]||(L.c[x.conta_bancaria]={});const cm=C_[per]||(C_[per]={r:0,i:0});if(/Receita/i.test(x.categoria))cm.r+=x.valor;else cm.i+=x.valor}
+    for(const e of Object.keys(lin))if(lin[e].m[per])lin[e].m[per].si=si[e]||0}
+  const es=Object.entries(lin).filter(([e])=>emps.has(e)).sort((a,b)=>sum(Object.values(b[1].m).map(m=>m.r))-sum(Object.values(a[1].m).map(m=>m.r)));
+  const pc=(v,b)=>b>0.5?(v/b*100).toFixed(2).replace('.',',')+'%':'—';
+  const tot={};for(const [,L] of es)for(const [per,m] of Object.entries(L.m)){const t=tot[per]||(tot[per]={r:0,i:0,si:0});t.r+=m.r;t.i+=m.i;t.si+=m.si}
+  const cel=m=>m?`<td class="n">${I0(m.si)}</td><td class="n pos">${I0(m.r)}</td><td class="n neg">${I0(m.i)}</td><td class="n"><b>${I0(m.r+m.i)}</b></td><td class="n">${pc(m.r,m.si)}</td><td class="n"><b>${pc(m.r+m.i,m.si)}</b></td>`:'<td colspan="6"></td>';
+  const hd=pers.map(per=>`<th colspan="6" style="text-align:center">${MES(per)}</th>`).join(''),hd2=pers.map(()=>'<th class="n">Saldo inicial</th><th class="n">Rendimento</th><th class="n">Imposto</th><th class="n">Líquido</th><th class="n">% bruto</th><th class="n">% líquido</th>').join('');
+  const lim=X.apAll?es.length:40;let h=`<tr class="tot"><td>Total (${es.length} empresas)</td>${pers.map(per=>cel(tot[per])).join('')}</tr>`;
+  for(const [e,L] of es.slice(0,lim)){const ab=X.apAb===e;h+=`<tr class="click" data-cxaap="${esc(e)}"><td><span class="cxa-tg">${ab?'▾':'▸'}</span>${esc(nm(e)||e)}</td>${pers.map(per=>cel(L.m[per])).join('')}</tr>`;
+    if(ab)h+=Object.entries(L.c).map(([c,ms])=>`<tr class="l2"><td>${esc(banco(c))}</td>${pers.map(per=>ms[per]?`<td></td><td class="n pos">${I0(ms[per].r)}</td><td class="n neg">${I0(ms[per].i)}</td><td class="n">${I0(ms[per].r+ms[per].i)}</td><td></td><td></td>`:'<td colspan="6"></td>').join('')}</tr>`).join('')}
+  if(es.length>lim)h+=`<tr class="click" data-cxaapall="1"><td colspan="${1+pers.length*6}" class="cxa-mais2">+ ${es.length-lim} empresas · ver todas</td></tr>`;
+  const T=tot[X.per]||{r:0,i:0,si:0};
+  return `<p class="cxa-lead">Empresas com movimento de aplicação no mês: rendimento (entradas de aplicação na aba Tarifas) e imposto (IR e IOF sobre aplicação). O % é sobre o saldo inicial de todas as contas da empresa no dia 1, porque o extrato traz as contas de aplicação sem saldo anterior. Cada mês novo que subir vira mais uma coluna.</p>
+  <div class="v3-cards cxa-cards"><div class="v3-k cxa-k"><span class="t">Empresas com aplicação</span><span class="v">${es.length}</span><span class="d">${MES(X.per)}</span></div><div class="v3-k cxa-k"><span class="t">Rendimento bruto</span><span class="v pos">R$ ${I0(T.r)}</span><span class="d">${pc(T.r,T.si)} do saldo inicial</span></div><div class="v3-k cxa-k"><span class="t">Imposto sobre aplicação</span><span class="v neg">R$ ${I0(T.i)}</span><span class="d">IR e IOF</span></div><div class="v3-k cxa-k"><span class="t">Rendimento líquido</span><span class="v">R$ ${I0(T.r+T.i)}</span><span class="d">${pc(T.r+T.i,T.si)} do saldo inicial de R$ ${I0(T.si)}</span></div></div>
+  <div class="panel cxa-sec"><h3>Aplicações por empresa · % sobre o saldo inicial</h3><p>Clique numa empresa para ver as contas.</p><div class="tbl-wrap"><table class="cxa-ap"><thead><tr><th rowspan="2">Empresa</th>${hd}</tr><tr>${hd2}</tr></thead><tbody>${h}</tbody></table></div></div>`}
+
+// ---------- 6. De-para: chave Empresa-Obra-Produto-Serviço-Insumo → estrutura do fluxo; alerta de chave nova
+function chavesDP(o){if(o._ch)return o._ch;const m=new Map();
+  for(const x of o.mov){if(x.origem!=='Contas Pagas'||!x.chave)continue;let c=m.get(x.chave);
+    if(!c){const pt=x.chave.split('-');c={chave:x.chave,regional:x.regional||'',empresa:x.empresa||'',obra:x.centro_custo||'',produto:x.produto||'',servico:[pt[3],x.categoria].filter(Boolean).join(' · '),insumo:[pt[4],x.insumo].filter(Boolean).join(' · '),valor:0,n:0,classificacao:x.classificacao,pre:{}};
+      const b=x._orig||x;for(const k_ of DPC)c.pre[k_]=b[k_]||'';c.pre.classificacao=b.classificacao;m.set(x.chave,c)}c.valor+=x.valor;c.n++}
+  return o._ch=[...m.values()]}
+function pendDP(o){if(!o||!o.grupo&&!o.mov.some(x=>x.chave))return [];const DP=X.p&&X.p._dp||new Map();return chavesDP(o).filter(c=>!DP.has(c.chave)&&c.pre.classificacao!=='V07')}
+function opcoesFluxo(o){if(o._of)return o._of;const m=new Map();
+  for(const x of o.mov)if(x.fluxo_descricao&&/^[12]/.test(x.fluxo_tipo||'')&&!m.has(x.fluxo_descricao))m.set(x.fluxo_descricao,DPC.reduce((a,c)=>(a[c]=x[c]||'',a),{}));
+  for(const l of o.res.forecast?.linhas||[])if(l.descricao&&/^[12]/.test(l.tipo)&&!m.has(l.descricao))m.set(l.descricao,{fluxo_tipo:l.tipo,fluxo_conta:l.conta,fluxo_subconta:(o.res.subcontas||{})[cod(l.descricao)]||l.descricao,fluxo_descricao:l.descricao,base_apresentacao:'',resumo_servico:'',servico_resumo:''});
+  return o._of=[...m.values()].sort((a,b)=>cod(a.fluxo_descricao).localeCompare(cod(b.fluxo_descricao),undefined,{numeric:true}))}
+const DPST={validado:['Validado','good'],v07:['Da V07 (não validado)','info'],pre:['Pré-preenchido · validar','warn'],sem:['Sem classificação','bad']};
+function stDP(c){const DP=X.p&&X.p._dp||new Map();return DP.has(c.chave)?'validado':c.pre.classificacao==='V07'?'v07':c.pre.fluxo_descricao?'pre':'sem'}
+function telaDepara(o){const cs=chavesDP(o),n={validado:0,v07:0,pre:0,sem:0};for(const c of cs)n[stDP(c)]++;if(X.dpSt==null)X.dpSt=n.pre+n.sem?'pendentes':'';
+  const ed=podeEditar(X.emp);
+  return `<p class="cxa-lead">Cada chave <b>Empresa-Obra-Produto-Serviço-Insumo</b> das contas pagas aponta para uma linha do fluxo (Tipo, Conta, Sub conta, Descrição e o Resumo). Chave nova ou que não está na V07 já vem com uma sugestão: confira, ajuste se precisar e valide. O que é validado passa a valer em todas as abas e nos próximos meses.</p>
+  <div class="v3-cards cxa-cards"><div class="v3-k cxa-k"><span class="t">Chaves no mês</span><span class="v">${num.format(cs.length)}</span><span class="d">contas pagas</span></div><div class="v3-k cxa-k"><span class="t">Validadas</span><span class="v pos">${num.format(n.validado)}</span><span class="d">gravadas no de-para</span></div><div class="v3-k cxa-k"><span class="t">Da V07</span><span class="v">${num.format(n.v07)}</span><span class="d">classificadas pela base, sem validação</span></div><div class="v3-k cxa-k"><span class="t">A validar</span><span class="v ${n.pre+n.sem?'neg':''}">${num.format(n.pre+n.sem)}</span><span class="d">${num.format(n.pre)} pré-preenchidas · ${num.format(n.sem)} sem sugestão</span></div></div>
+  <div class="panel cxa-sec"><div class="v3-bar"><div class="cxa-fg"><label class="hint">Mostrar<br><select id="cxaDpSt" class="v3-sel"><option value="pendentes" ${X.dpSt==='pendentes'?'selected':''}>A validar (${n.pre+n.sem})</option><option value="" ${X.dpSt===''?'selected':''}>Todas (${cs.length})</option>${Object.entries(DPST).map(([k_,[t]])=>`<option value="${k_}" ${X.dpSt===k_?'selected':''}>${t} (${n[k_]})</option>`).join('')}</select></label>
+     <label class="hint">Buscar<br><input id="cxaDpQ" class="v3-sel" type="search" value="${esc(X.dpQ||'')}" placeholder="chave, serviço, insumo, obra"></label></div>
+    <span class="v3-acts">${ed?`<button type="button" class="btn" data-cxadpall="1">Validar as visíveis</button>`:''}<button type="button" class="btn ghost" data-cxadpxls="1">Excel do de-para</button></span></div>
+   <div class="tbl-wrap"><table class="cxa-dp"><thead><tr><th>Chave</th><th>Empresa / obra</th><th>Serviço / insumo</th><th class="n">Valor no mês</th><th>Classificação no fluxo</th><th>Resumo</th><th>Status</th><th></th></tr></thead><tbody id="cxaDp"></tbody></table></div><p class="cxa-mais" id="cxaDpMais"></p></div>`}
+function linhasDP(){const o=X.atual;const q=norm(X.dpQ||'');return chavesDP(o).filter(c=>{const s_=stDP(c);return (X.dpSt==='pendentes'?s_==='pre'||s_==='sem':!X.dpSt||s_===X.dpSt)&&(!q||norm([c.chave,c.servico,c.insumo,c.obra,c.empresa,c.produto].join(' ')).includes(q))}).sort((a,b)=>a.valor-b.valor)}
+function pintarDP(){const tb=document.getElementById('cxaDp');if(!tb)return;const ls=linhasDP(),op=opcoesFluxo(X.atual),DP=X.p._dp,ed=podeEditar(X.emp);
+  const opt=sel=>`<option value="">— escolher —</option>`+op.map(f=>`<option value="${esc(f.fluxo_descricao)}" ${f.fluxo_descricao===sel?'selected':''}>${esc(nm(f.fluxo_conta))} › ${esc(nm(f.fluxo_descricao))}</option>`).join('');
+  tb.innerHTML=ls.slice(0,150).map(c=>{const d=DP.get(c.chave),cur=d||c.pre,s_=stDP(c);
+    return `<tr data-ch="${esc(c.chave)}"><td class="k">${esc(c.chave)}</td><td>${esc(nm(c.empresa)||c.empresa)}<br><span class="cxa-q">${esc(nm(c.obra))}${c.produto?' · '+esc(nm(c.produto)):''}</span></td><td>${esc(c.servico)}<br><span class="cxa-q">${esc(c.insumo)}</span></td><td class="n">${I0(c.valor)}<br><span class="cxa-q">${c.n} lanç.</span></td>
+      <td><select data-dpf="${esc(c.chave)}" ${ed?'':'disabled'}>${opt(cur.fluxo_descricao)}</select></td><td><input data-dpr="${esc(c.chave)}" value="${esc(cur.servico_resumo||cur.resumo_servico||'')}" ${ed?'':'disabled'} placeholder="resumo"></td><td>${chip(DPST[s_][0],DPST[s_][1])}</td><td>${ed?`<button type="button" class="btn ghost" data-cxadpok="${esc(c.chave)}">${s_==='validado'?'Salvar':'Validar'}</button>`:''}</td></tr>`}).join('')||'<tr><td colspan="8">Nada com esse filtro.</td></tr>';
+  document.getElementById('cxaDpMais').textContent=ls.length>150?`Mostrando 150 de ${num.format(ls.length)} chaves, as de maior valor. "Validar as visíveis" grava só estas 150.`:`${num.format(ls.length)} chave${ls.length===1?'':'s'}.`}
+async function gravarDP(chs){const o=X.atual,op=new Map(opcoesFluxo(o).map(f=>[f.fluxo_descricao,f])),cs=new Map(chavesDP(o).map(c=>[c.chave,c]));const rows=[];
+  for(const ch of chs){const c=cs.get(ch);const sel=document.querySelector(`[data-dpf="${CSS.escape(ch)}"]`),inp=document.querySelector(`[data-dpr="${CSS.escape(ch)}"]`);
+    const f=op.get(sel?sel.value:c.pre.fluxo_descricao);if(!f)continue;const pt=ch.split('-'),r_=inp?inp.value.trim():'';
+    rows.push({empresa_id:X.emp,chave:ch,regional:c.regional,empresa_origem:c.empresa,obra:c.obra,produto:c.produto,servico:c.servico,insumo:c.insumo,...f,servico_resumo:r_||f.servico_resumo,resumo_servico:f.resumo_servico||r_,atualizado_em:new Date().toISOString()})}
+  if(!rows.length)return toast('Escolha a classificação no fluxo antes de validar.');
+  for(let i=0;i<rows.length;i+=500){const {error}=await sb.from('dados_depara').upsert(rows.slice(i,i+500),{onConflict:'empresa_id,chave'});if(error){if(/dados_depara/.test(error.message||''))return toast('Falta aplicar no banco a atualização 0034 (de-para).');throw error}}
+  const DP=X.p._dp;for(const r of rows)DP.set(r.chave,r);for(const per of Object.keys(X.p))if(per[0]!=='_'){const pp=X.p[per];aplicaDP(pp,DP);pp._ch=null;pp._of=null}
+  toast(rows.length+' chave'+(rows.length>1?'s validadas':' validada')+' no de-para.');render(true)}
+
 async function vCaixa(){
   const emps=S.empresas;if(!emps.length)return semEmpresa();
   let p;try{
-    if(!emps.some(e=>e.id===X.emp)){X.emp=null;for(const e of [...selEmp(),...emps]){const r=await carregar(e.id);if(Object.keys(r).length){X.emp=e.id;break}}X.emp=X.emp||(selEmp()[0]||emps[0]).id}
+    if(!emps.some(e=>e.id===X.emp)){X.emp=null;for(const e of [...selEmp(),...emps]){const r=await carregar(e.id);if(Object.keys(r).some(k_=>k_[0]!=='_')){X.emp=e.id;break}}X.emp=X.emp||(selEmp()[0]||emps[0]).id}
     p=await carregar(X.emp)}
   catch(e){if(/dados_paineis/.test(e?.message||''))return vazio('Caixa e auditoria ainda não ativado','<p style="margin:0">Falta aplicar no banco a atualização 0033.</p>');throw e}
-  const pers=Object.keys(p).sort().reverse();
+  const pers=Object.keys(p).filter(k_=>k_[0]!=='_').sort().reverse();X.p=p;
   const subir=podeEditar(X.emp)?`<label class="btn ghost" style="cursor:pointer">Subir painel<input id="cxaArq" type="file" accept=".json,application/json" hidden></label>`:'';
   const selE=`<label class="hint">Empresa<br><select id="cxaEmp" class="v3-sel">${emps.map(e=>`<option value="${e.id}" ${e.id===X.emp?'selected':''}>${esc(nomeEmp(e))}</option>`).join('')}</select></label>`;
   if(!pers.length)return `<div class="v3"><div class="v3-bar"><span></span><div class="v3-fl">${selE}</div></div>${vazio('Nenhum painel de caixa nesta empresa','<p style="margin:0">Envie as planilhas do mês (receitas, contas pagas, transferências, tarifas e o extrato) para a Gevans montar o caixa e a auditoria por conta. Com o arquivo do painel em mãos (.json), use Subir painel.</p>',subir)}</div>`;
   if(!pers.includes(X.per))X.per=pers[0];const o0=p[X.per];if(!o0.grupo)X.f={reg:'',cid:'',emp:'',obra:''};const o=X.atual=vista(o0);
-  const tabs=[['visao','Visão geral'],['drill','Fluxo de caixa (drill)'],['auditoria','Auditoria por conta'],['confronto','Confronto planilhas × FLUXO']];
+  const tabs=[['visao','Visão geral'],['drill','Fluxo de caixa (drill)'],['auditoria','Auditoria por conta'],['confronto','Confronto planilhas × FLUXO'],['aplic','Aplicações'],['depara','De-para']];
   if(!tabs.some(t=>t[0]===X.tab))X.tab='visao';
-  const corpo=!o.mov.length&&o0.grupo?'':X.tab==='drill'?telaDrill(o):X.tab==='auditoria'?telaAud(o):X.tab==='confronto'?telaConfronto(o):telaVisao(o);
+  const corpo=!o.mov.length&&o0.grupo?'':X.tab==='drill'?telaDrill(o):X.tab==='auditoria'?telaAud(o):X.tab==='confronto'?telaConfronto(o):X.tab==='aplic'?telaAplic(p,o):X.tab==='depara'?telaDepara(o):telaVisao(o);
+  if(X.tab==='depara')setTimeout(pintarDP,0);
+  const nDP=pendDP(o0).length,alerta=nDP&&X.tab!=='depara'?`<div class="panel cxa-alerta" role="status"><b>⚠ ${num.format(nDP)} chave${nDP>1?'s':''} sem classificação validada</b> no de-para (itens novos ou pré-classificados). Já vêm pré-preenchidas, só falta validar. <button type="button" class="btn ghost" data-cxatab="depara">Abrir de-para</button></div>`:'';
   if(X.tab==='auditoria')setTimeout(pintarAud,0);
   return `<div class="v3 cxa"><div class="v3-bar"><div class="v3-seg" role="tablist">${tabs.map(([k_,n])=>`<button type="button" aria-pressed="${X.tab===k_}" data-cxatab="${k_}">${n}</button>`).join('')}</div>
    <div class="v3-fl">${emps.length>1?selE:''}<span class="v3-acts" data-nao-imprime><button class="btn ghost" type="button" data-cxaexp="pdf">Exportar PDF</button><button class="btn ghost" type="button" data-cxaexp="excel">Excel</button></span>${subir}<label class="hint">Mês<br><select id="cxaPer" class="v3-sel">${pers.map(x=>`<option value="${x}" ${x===X.per?'selected':''}>${MES(x)}</option>`).join('')}</select></label></div></div>
-   ${barraFiltros(o0)}${o0.grupo&&!o.mov.length?vazio('Nada com esse filtro','<p style="margin:0">Troque ou limpe os filtros.</p>'):corpo}
+   ${alerta}${barraFiltros(o0)}${o0.grupo&&!o.mov.length?vazio('Nada com esse filtro','<p style="margin:0">Troque ou limpe os filtros.</p>'):corpo}
    <p class="cxa-mais">Fonte: ${esc(o.res.fonte||o.resumo?.fonte||'planilhas do cliente')}. Atualizado em ${dt((o.resumo?.atualizado_em||'').slice(0,10))}.</p></div>`}
 
-document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],[data-cxast],[data-cxaconta],[data-cxadr],[data-cxadn],[data-cxadrill],[data-cxatodos],[data-cxaexp],[data-cxafset],[data-cxaflimpa]');if(!t||!document.querySelector('.cxa'))return;
+document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],[data-cxast],[data-cxaconta],[data-cxadr],[data-cxadn],[data-cxadrill],[data-cxatodos],[data-cxaexp],[data-cxafset],[data-cxaflimpa],[data-cxaap],[data-cxaapall],[data-cxadpok],[data-cxadpall],[data-cxadpxls]');if(!t||!document.querySelector('.cxa'))return;
+  if(t.dataset.cxaap){X.apAb=X.apAb===t.dataset.cxaap?null:t.dataset.cxaap;render(true);return}
+  if(t.dataset.cxaapall){X.apAll=1;render(true);return}
+  if(t.dataset.cxadpok){gravarDP([t.dataset.cxadpok]).catch(e=>toast(traduz(e)));return}
+  if(t.dataset.cxadpall){const ls=linhasDP().slice(0,150).map(c=>c.chave);if(confirm('Validar '+ls.length+' chaves com a classificação mostrada?'))gravarDP(ls).catch(e=>toast(traduz(e)));return}
+  if(t.dataset.cxadpxls){const DP=X.p._dp;const ls=chavesDP(X.atual).map(c=>{const d=DP.get(c.chave)||c.pre;return {Chave:c.chave,Regional:c.regional,Empresa:c.empresa,Obra:c.obra,Produto:c.produto,'Serviço':c.servico,Insumo:c.insumo,Fluxo_Tipo:d.fluxo_tipo,Fluxo_Conta:d.fluxo_conta,Fluxo_SubConta:d.fluxo_subconta,Fluxo_Descricao:d.fluxo_descricao,'Base Apresentação':d.base_apresentacao,'RESUMO - SERVIÇO':d.resumo_servico,'Serviço - Resumo':d.servico_resumo,Status:DPST[stDP(c)][0],'Valor no mês':Math.round(c.valor*100)/100}});
+    if(window.XLSX){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(ls),'De-para');XLSX.writeFile(wb,'de-para-'+X.per+'.xlsx')}else toast('Recarregue a página para exportar.');return}
   if(t.dataset.cxaflimpa){X.f={reg:'',cid:'',emp:'',obra:''};X.dAb=null;X.conta=null;render(true);return}
   if(t.dataset.cxafset){X.f[t.dataset.cxafset]=t.dataset.v;if(t.dataset.cxafset==='reg'){X.f.cid='';X.f.emp='';X.f.obra=''}else X.f.obra='';X.dAb=null;X.conta=null;render(true);return}
-  if(t.dataset.cxaexp){const nomes={visao:'Visão geral',drill:'Fluxo de caixa (drill)',auditoria:'Auditoria por conta',confronto:'Confronto planilhas × FLUXO'};
+  if(t.dataset.cxaexp){const nomes={visao:'Visão geral',drill:'Fluxo de caixa (drill)',auditoria:'Auditoria por conta',confronto:'Confronto planilhas × FLUXO',aplic:'Aplicações',depara:'De-para'};
     const sub=(nomes[X.tab]||'')+' · '+MES(X.per)+(filtroTxt()?' · '+filtroTxt():'')+(X.tab==='auditoria'&&X.conta?' · '+banco(X.conta)+(X.status?' · '+(STN[X.status]||X.status):''):'');
     const f=t.dataset.cxaexp==='pdf'?window.relatorioPDF:window.relatorioExcel;if(f)f({sub});else toast('Recarregue a página para exportar.');return}
   if(t.dataset.cxatab){X.tab=t.dataset.cxatab;render(true)}
@@ -299,6 +373,7 @@ document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],
   else if(t.dataset.cxadrill){const c=t.dataset.cxadrill,tipo=c.startsWith('1')?'1. ENTRADAS (+)':'2. SAÍDAS (-)';X.dNivel=1;X.dAb=null;X.dFoco=tipo+'›'+c;X.tab='drill';render(true)}
   else if(t.dataset.cxaconta){X.conta=t.dataset.cxaconta;X.status='';X.tab='auditoria';render(true)}});
 document.addEventListener('change',ev=>{const t=ev.target;if(t.dataset&&t.dataset.cxaf){const k_=t.dataset.cxaf,i=FIL.findIndex(f=>f[0]===k_);X.f[k_]=t.value;FIL.slice(i+1).forEach(([k2])=>X.f[k2]='');X.dAb=null;X.conta=null;render(true);return}
+  if(t.id==='cxaDpSt'){X.dpSt=t.value;pintarDP();return}
   if(t.id==='cxaEmp'){X.emp=t.value;X.per=null;X.dAb=null;X.f={reg:'',cid:'',emp:'',obra:''};render(true)}else if(t.id==='cxaPer'){X.per=t.value;X.dAb=null;render(true)}});
 // arquivo do painel: {periodo:'AAAA-MM', fonte, resumo, movimentos, auditoria} montado pela Gevans a partir das planilhas
 async function subirPainel(f){try{const j=JSON.parse(await f.text());
@@ -310,6 +385,7 @@ async function subirPainel(f){try{const j=JSON.parse(await f.text());
  catch(e){console.warn(e);toast(traduz(e))}}
 document.addEventListener('change',ev=>{if(ev.target.id==='cxaArq'&&ev.target.files[0])subirPainel(ev.target.files[0])});
 document.addEventListener('input',ev=>{if(ev.target.id==='cxaBusca'){X.q=ev.target.value;pintarAud()}
+  else if(ev.target.id==='cxaDpQ'){X.dpQ=ev.target.value;clearTimeout(X._tq2);X._tq2=setTimeout(pintarDP,250)}
   else if(ev.target.id==='cxaBuscaC'){X.qc=ev.target.value;clearTimeout(X._tq);X._tq=setTimeout(()=>{render(true);setTimeout(()=>{const i=document.getElementById('cxaBuscaC');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)},350)}});
 
 if(!ROTAS.some(x=>x[0]==='caixa'))ROTAS.push(['caixa','Caixa e auditoria']);
