@@ -174,8 +174,11 @@ eval(base+`
       pj.resumo.conciliacao=(pj.resumo.conciliacao||[]).map((c,i)=>({...c,empresa:i%2?'2 - EMPRESA B':'1 - EMPRESA A'}));fs.writeFileSync(OUTD+'/painel_grupo.json',JSON.stringify(pj));
       await pg.setInputFiles('#cxaArq',OUTD+'/painel_grupo.json');await pg.waitForTimeout(1500);await pg.click('[data-cxatab=visao]');await pg.waitForTimeout(800);
       if(!(await pg.$('.cxa-fg')))errs.push('grupo sem filtros');if(!/Regionais › empresas/.test(await pg.textContent('#view')))errs.push('grupo sem ranking por regional');
-      const n0=await pg.evaluate(()=>S.cxa.atual.mov.length);await pg.selectOption('[data-cxaf=emp]','2 - EMPRESA B');await pg.waitForTimeout(800);
+      const n0=await pg.evaluate(()=>S.cxa.atual.mov.length);await pg.click('#cxaMs summary');await pg.check('[data-cxamsv="2 - EMPRESA B"]');await pg.waitForTimeout(800);
+      if(!/EMPRESA B/.test(await pg.textContent('#cxaMs summary')))errs.push('nome da empresa fora do filtro');
       const n1=await pg.evaluate(()=>S.cxa.atual.mov.length);console.log('GRUPO filtro empresa',n0,n1);if(!(n1>0&&n1<n0))errs.push('filtro de empresa não filtrou');
+      await pg.check('[data-cxamsv="1 - EMPRESA A"]');await pg.waitForTimeout(800);const n2=await pg.evaluate(()=>S.cxa.atual.mov.length);console.log('GRUPO duas empresas',n2);if(n2!==n0)errs.push('duas empresas marcadas não somaram');
+      await pg.uncheck('[data-cxamsv="1 - EMPRESA A"]');await pg.waitForTimeout(800);await pg.click('.cxa-lead');await pg.waitForTimeout(300);if(await pg.evaluate(()=>document.getElementById('cxaMs')?.open))errs.push('lista de empresas não fechou ao clicar fora');
       for(const tb of ['drill','auditoria','confronto','aplic','depara']){await pg.click('[data-cxatab='+tb+']');await pg.waitForTimeout(600)}
       {const t=await pg.textContent('#view');if(!/Chaves no mês/.test(t))errs.push('de-para sem resumo');await pg.selectOption('#cxaDpSt','');await pg.waitForTimeout(400);
        const nl=await pg.$$eval('#cxaDp tr[data-ch]',x=>x.length);console.log('DE-PARA linhas',nl);if(!nl)errs.push('de-para vazio');
