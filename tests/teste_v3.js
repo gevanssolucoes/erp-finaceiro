@@ -180,10 +180,13 @@ eval(base+`
       await pg.check('[data-cxamsv="1 - EMPRESA A"]');await pg.waitForTimeout(800);const n2=await pg.evaluate(()=>S.cxa.atual.mov.length);console.log('GRUPO duas empresas',n2);if(n2!==n0)errs.push('duas empresas marcadas não somaram');
       await pg.uncheck('[data-cxamsv="1 - EMPRESA A"]');await pg.waitForTimeout(800);await pg.click('.cxa-lead');await pg.waitForTimeout(300);if(await pg.evaluate(()=>document.getElementById('cxaMs')?.open))errs.push('lista de empresas não fechou ao clicar fora');
       for(const tb of ['drill','auditoria','confronto','aplic','depara']){await pg.click('[data-cxatab='+tb+']');await pg.waitForTimeout(600)}
-      {const t=await pg.textContent('#view');if(!/Chaves no mês/.test(t))errs.push('de-para sem resumo');await pg.selectOption('#cxaDpSt','');await pg.waitForTimeout(400);
+      {const t=await pg.textContent('#view');if(!/A validar/.test(t))errs.push('de-para sem resumo');await pg.click('[data-dpst=""]');await pg.waitForTimeout(400);
        const nl=await pg.$$eval('#cxaDp tr[data-ch]',x=>x.length);console.log('DE-PARA linhas',nl);if(!nl)errs.push('de-para vazio');
        const ch=await pg.$eval('#cxaDp tr[data-ch]',x=>x.dataset.ch);const sv=await pg.$$eval('#cxaDp select option',o=>o.map(x=>x.value).filter(Boolean));await pg.selectOption('#cxaDp select',sv[0]);
        await pg.click('[data-cxadpok]');await pg.waitForTimeout(900);if(!DB.dados_depara.some(d=>d.chave===ch))errs.push('de-para não gravou');
+       {const ch2=await pg.$$eval('#cxaDp tr[data-ch]',x=>x.map(r=>r.dataset.ch));const alvo=ch2.filter(c=>c!==ch).slice(0,2);for(const c of alvo)await pg.check('[data-dpsel="'+c+'"]');await pg.waitForTimeout(200);
+        if(alvo.length){if(!await pg.isVisible('#cxaDpLote'))errs.push('barra de lote não apareceu');const sv2=await pg.$$eval('#cxaDpLoteF option',o=>o.map(x=>x.value).filter(Boolean));await pg.selectOption('#cxaDpLoteF',sv2[0]);await pg.click('[data-dplote=como]');await pg.waitForTimeout(900);
+        if(!alvo.every(c=>DB.dados_depara.some(d=>d.chave===c)))errs.push('lote do de-para não gravou');console.log('DE-PARA lote',alvo.length)}}
        const cl=await pg.evaluate(c=>S.cxa.atual.mov.filter(x=>x.chave===c).map(x=>x.classificacao),ch);console.log('DE-PARA aplicado',cl.slice(0,2));if(!cl.length||cl.some(x=>x!=='de-para'))errs.push('de-para não aplicado nos movimentos');
        await pg.screenshot({path:OUTD+'/dados-caixa-depara.png',fullPage:true});await pg.click('[data-cxatab=aplic]');await pg.waitForTimeout(500);{const a=await pg.$('[data-cxaap]');if(a){await a.click();await pg.waitForTimeout(500);if(!/Por obra/.test(await pg.textContent('#view')))errs.push('aplicações sem nível obra')}}await pg.screenshot({path:OUTD+'/dados-caixa-aplic.png',fullPage:true})}
       await pg.click('[data-cxaflimpa]');await pg.waitForTimeout(600);if(await pg.evaluate(()=>S.cxa.atual.mov.length)!==n0)errs.push('limpar filtros não voltou');

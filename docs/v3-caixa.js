@@ -71,7 +71,8 @@ const css=document.createElement('style');css.textContent=`
 .cxa-rk td{font-size:12.5px}.cxa-rk tr.l2 td:first-child{padding-left:22px;color:var(--ink-2)}
 .cxa-dv{border-bottom:1px solid var(--surface-2);padding:6px 0}
 .cxa-alerta{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:13px;border-left:4px solid var(--warn,#c98a00);background:color-mix(in srgb,var(--warn,#c98a00) 9%,var(--surface))}
-.cxa-dp td{font-size:12px;white-space:normal;vertical-align:top}.cxa-dp td.k{font-family:var(--f-num,monospace);font-size:11px;color:var(--ink-3)}.cxa-dp select{max-width:280px;font-size:12px}.cxa-dp input{font-size:12px;width:150px}
+.cxa-dp td{font-size:12px;white-space:normal;vertical-align:top}.cxa-dp td:nth-child(2){min-width:180px;max-width:240px}.cxa-dp td:nth-child(3){max-width:170px;font-size:11.5px}.cxa-dp td:last-child .btn{padding:5px 10px;white-space:nowrap}.cxa-dp .k{font-family:var(--f-num,monospace);font-size:10.5px;color:var(--ink-3)}.cxa-dp select{max-width:250px;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:7px;background:var(--surface)}.cxa-dp select.mud{border-color:var(--warn,#c98a00);box-shadow:inset 0 0 0 1px var(--warn,#c98a00)}.cxa-dp input:not([type=checkbox]){font-size:12px;width:140px;display:block;margin-bottom:4px;padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}.cxa-dp tr.sel td{background:color-mix(in srgb,var(--accent,#0d5f73) 8%,var(--surface))}
+.cxa-lote{position:sticky;top:0;z-index:3;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;background:var(--ink,#16202a);color:#fff;border-radius:10px;padding:8px 12px;margin-bottom:8px}.cxa-lote .hint{color:#cfd6dc}.cxa-lote .btn.ghost{color:#fff;border-color:#ffffff55}.cxa-lote select{max-width:320px}
 .cxa-ap td{white-space:nowrap}.cxa-ap tr.l2 td:first-child{padding-left:24px;color:var(--ink-2)}.cxa-dv summary{cursor:pointer;font-size:12.5px;list-style:none}.cxa-dv .dd{display:block;color:var(--ink-2);font-size:12px;margin-top:3px}
 `;document.head.appendChild(css);
 
@@ -129,11 +130,11 @@ function msel(k,t,it,sel,o={}){const q=norm((X.msQ||{})[k]||''),um=o.um,tp=um?'r
 // etiquetas do que está selecionado, com × para tirar
 function chipsSel(ks){const on=ks.filter(([k,,arr])=>arr.length);if(!on.length)return '';
   return `<div class="cxa-chs" data-nao-imprime><span class="hint">Selecionado:</span>${on.map(([k,t,arr])=>arr.slice(0,6).map(v=>`<button type="button" class="cxa-ch" data-mschip="${k}" data-v="${esc(v)}" title="Tirar do filtro">${esc(t)}: <b>${esc((LBL[k]||(x=>x))(v))}</b> <span aria-hidden="true">×</span></button>`).join('')+(arr.length>6?`<span class="cxa-ch more">+${arr.length-6} ${esc(t.toLowerCase())}</span>`:'')).join('')}<button type="button" class="btn ghost" data-mslimpa="${ks.map(x=>x[0]).join(',')}">Limpar tudo</button></div>`}
-function setMS(k,arr){if(k==='bco'){(X.au=X.au||{}).bco=arr;X.au.pg=0;return}if(k==='conta'){X.conta=arr[0]||null;X.status='';X.lpg=0;return}
+function setMS(k,arr){if(k.startsWith('dp')){dpF()[k]=arr;X.dpPg=0;return}if(k==='bco'){(X.au=X.au||{}).bco=arr;X.au.pg=0;return}if(k==='conta'){X.conta=arr[0]||null;X.status='';X.lpg=0;return}
   const i=FIL.findIndex(f=>f[0]===k);if(i<0)return;X.f[k]=arr;const o0=X.p&&X.p[X.per];
   for(const [k2] of FIL.slice(i+1)){const op=o0?opcoes(o0)[k2]:new Map();X.f[k2]=X.f[k2].filter(v=>op.has(v))}
   X.dAb=null;X.conta=null}
-const getMS=k=>k==='bco'?((X.au||{}).bco||[]):k==='conta'?(X.conta?[X.conta]:[]):X.f[k]||[];
+const getMS=k=>k.startsWith('dp')?dpF()[k]:k==='bco'?((X.au||{}).bco||[]):k==='conta'?(X.conta?[X.conta]:[]):X.f[k]||[];
 function barraFiltros(o){if(!o.grupo)return '';const op=opcoes(o),nE=new Set(o.mov.map(x=>x.empresa)).size;
   const sel=([k,t])=>{const it=[...op[k].entries()].sort((a,b)=>k==='obra'?b[1]-a[1]:k==='emp'?nomeE(a[0]).localeCompare(nomeE(b[0]),'pt-BR'):a[0].localeCompare(b[0],'pt-BR',{numeric:true})).map(([v])=>[v,k==='emp'?codE(v):'']);
     return msel(k,t==='Empresa'?'Empresas':t,it,X.f[k],{id:k==='emp'?'cxaMs':'',todas:k==='emp'?'Todas as empresas':'Todas',plural:k==='emp'?'empresas marcadas':'marcadas'})};
@@ -371,29 +372,55 @@ function opcoesFluxo(o){if(o._of)return o._of;const m=new Map();
   return o._of=[...m.values()].sort((a,b)=>cod(a.fluxo_descricao).localeCompare(cod(b.fluxo_descricao),undefined,{numeric:true}))}
 const DPST={validado:['Validado','good'],v07:['Da V07 (não validado)','info'],pre:['Pré-preenchido · validar','warn'],sem:['Sem classificação','bad']};
 function stDP(c){const DP=X.p&&X.p._dp||new Map();return DP.has(c.chave)?'validado':c.pre.classificacao==='V07'?'v07':c.pre.fluxo_descricao?'pre':'sem'}
-function telaDepara(o){const cs=chavesDP(o),n={validado:0,v07:0,pre:0,sem:0};for(const c of cs)n[stDP(c)]++;if(X.dpSt==null)X.dpSt=n.pre+n.sem?'pendentes':'';
-  const ed=podeEditar(X.emp);
-  return `<p class="cxa-lead">Cada chave <b>Empresa-Obra-Produto-Serviço-Insumo</b> das contas pagas aponta para uma linha do fluxo (Tipo, Conta, Sub conta, Descrição e o Resumo). Chave nova ou que não está na V07 já vem com uma sugestão: confira, ajuste se precisar e valide. O que é validado passa a valer em todas as abas e nos próximos meses.</p>
-  <div class="v3-cards cxa-cards"><div class="v3-k cxa-k"><span class="t">Chaves no mês</span><span class="v">${num.format(cs.length)}</span><span class="d">contas pagas</span></div><div class="v3-k cxa-k"><span class="t">Validadas</span><span class="v pos">${num.format(n.validado)}</span><span class="d">gravadas no de-para</span></div><div class="v3-k cxa-k"><span class="t">Da V07</span><span class="v">${num.format(n.v07)}</span><span class="d">classificadas pela base, sem validação</span></div><div class="v3-k cxa-k"><span class="t">A validar</span><span class="v ${n.pre+n.sem?'neg':''}">${num.format(n.pre+n.sem)}</span><span class="d">${num.format(n.pre)} pré-preenchidas · ${num.format(n.sem)} sem sugestão</span></div></div>
-  <div class="panel cxa-sec"><div class="v3-bar"><div class="cxa-fg"><label class="hint">Mostrar<br><select id="cxaDpSt" class="v3-sel"><option value="pendentes" ${X.dpSt==='pendentes'?'selected':''}>A validar (${n.pre+n.sem})</option><option value="" ${X.dpSt===''?'selected':''}>Todas (${cs.length})</option>${Object.entries(DPST).map(([k_,[t]])=>`<option value="${k_}" ${X.dpSt===k_?'selected':''}>${t} (${n[k_]})</option>`).join('')}</select></label>
-     <label class="hint">Buscar<br><input id="cxaDpQ" class="v3-sel" type="search" value="${esc(X.dpQ||'')}" placeholder="chave, serviço, insumo, obra"></label></div>
-    <span class="v3-acts">${ed?`<button type="button" class="btn" data-cxadpall="1">Validar as visíveis</button>`:''}<button type="button" class="btn ghost" data-cxadpxls="1">Excel do de-para</button></span></div>
-   <div class="tbl-wrap"><table class="cxa-dp"><thead><tr><th>Chave</th><th>Empresa / obra</th><th>Serviço / insumo</th><th class="n">Valor no mês</th><th>Classificação no fluxo</th><th>Resumo</th><th>Status</th><th></th></tr></thead><tbody id="cxaDp"></tbody></table></div><p class="cxa-mais" id="cxaDpMais"></p></div>`}
-function linhasDP(){const o=X.atual;const q=norm(X.dpQ||'');return chavesDP(o).filter(c=>{const s_=stDP(c);return (X.dpSt==='pendentes'?s_==='pre'||s_==='sem':!X.dpSt||s_===X.dpSt)&&(!q||norm([c.chave,c.servico,c.insumo,c.obra,c.empresa,c.produto].join(' ')).includes(q))}).sort((a,b)=>a.valor-b.valor)}
-function pintarDP(){const tb=document.getElementById('cxaDp');if(!tb)return;const ls=linhasDP(),op=opcoesFluxo(X.atual),DP=X.p._dp,ed=podeEditar(X.emp);
-  const opt=sel=>`<option value="">— escolher —</option>`+op.map(f=>`<option value="${esc(f.fluxo_descricao)}" ${f.fluxo_descricao===sel?'selected':''}>${esc(nm(f.fluxo_conta))} › ${esc(nm(f.fluxo_descricao))}</option>`).join('');
-  tb.innerHTML=ls.slice(0,150).map(c=>{const d=DP.get(c.chave),cur=d||c.pre,s_=stDP(c);
-    return `<tr data-ch="${esc(c.chave)}"><td class="k">${esc(c.chave)}</td><td>${esc(nomeE(c.empresa)||c.empresa)}<br><span class="cxa-q">${esc(nm(c.obra))}${c.produto?' · '+esc(nm(c.produto)):''}</span></td><td>${esc(c.servico)}<br><span class="cxa-q">${esc(c.insumo)}</span></td><td class="n">${I0(c.valor)}<br><span class="cxa-q">${c.n} lanç.</span></td>
-      <td><select data-dpf="${esc(c.chave)}" ${ed?'':'disabled'}>${opt(cur.fluxo_descricao)}</select></td><td><input data-dpr="${esc(c.chave)}" value="${esc(cur.servico_resumo||cur.resumo_servico||'')}" ${ed?'':'disabled'} placeholder="resumo"></td><td>${chip(DPST[s_][0],DPST[s_][1])}</td><td>${ed?`<button type="button" class="btn ghost" data-cxadpok="${esc(c.chave)}">${s_==='validado'?'Salvar':'Validar'}</button>`:''}</td></tr>`}).join('')||'<tr><td colspan="8">Nada com esse filtro.</td></tr>';
-  document.getElementById('cxaDpMais').textContent=ls.length>150?`Mostrando 150 de ${num.format(ls.length)} chaves, as de maior valor. "Validar as visíveis" grava só estas 150.`:`${num.format(ls.length)} chave${ls.length===1?'':'s'}.`}
-async function gravarDP(chs){const o=X.atual,op=new Map(opcoesFluxo(o).map(f=>[f.fluxo_descricao,f])),cs=new Map(chavesDP(o).map(c=>[c.chave,c]));const rows=[];
-  for(const ch of chs){const c=cs.get(ch);const sel=document.querySelector(`[data-dpf="${CSS.escape(ch)}"]`),inp=document.querySelector(`[data-dpr="${CSS.escape(ch)}"]`);
-    const f=op.get(sel?sel.value:c.pre.fluxo_descricao);if(!f)continue;const pt=ch.split('-'),r_=inp?inp.value.trim():'';
-    rows.push({empresa_id:X.emp,chave:ch,regional:c.regional,empresa_origem:c.empresa,obra:c.obra,produto:c.produto,servico:c.servico,insumo:c.insumo,...f,servico_resumo:r_||f.servico_resumo,resumo_servico:f.resumo_servico||r_,atualizado_em:new Date().toISOString()})}
+// ---------- 6. De-para: pendentes primeiro, filtros com pesquisa, edição em linha, aceitar sugestão, lote, Excel de ida e volta
+const DPF=[['dpreg','Regional','regional'],['dpemp','Empresa','empresa'],['dpobra','Obra','obra'],['dpconta','Conta do fluxo','_conta']];
+Object.assign(LBL,{dpreg:v=>v,dpemp:v=>nomeE(v)||v,dpobra:v=>nm(v)||v,dpconta:v=>nm(v)||v});
+const dpF=()=>X.dpf||(X.dpf={dpreg:[],dpemp:[],dpobra:[],dpconta:[]});
+const dpCur=c=>{const e=(X.dpEd||{})[c.chave],d=X.p._dp.get(c.chave)||c.pre;return e?{...d,...e}:d};
+function dpOp(){const o=X.atual;return new Map(opcoesFluxo(o).map(f=>[f.fluxo_descricao,f]))}
+function dpBase(){const o=X.atual,f=dpF();return chavesDP(o).map(c=>(c._conta=dpCur(c).fluxo_conta||'Sem classificação',c)).filter(c=>DPF.every(([k,,col])=>!f[k].length||f[k].includes(c[col])))}
+function telaDepara(o){const f=dpF(),all=chavesDP(o).map(c=>(c._conta=dpCur(c).fluxo_conta||'Sem classificação',c)),base=dpBase(),n={validado:0,v07:0,pre:0,sem:0};for(const c of base)n[stDP(c)]++;
+  if(X.dpSt==null)X.dpSt=n.pre+n.sem?'pendentes':'';const ed=podeEditar(X.emp);
+  const op={};for(const [k,,col] of DPF){op[k]=new Map();for(const c of all)if(DPF.every(([k2,,c2])=>k2===k||!f[k2].length||f[k2].includes(c[c2])))op[k].set(c[col],(op[k].get(c[col])||0)+1)}
+  const it=k=>[...op[k].entries()].sort((a,b)=>String(LBL[k](a[0])).localeCompare(String(LBL[k](b[0])),'pt-BR',{numeric:true})).map(([v,q])=>[v,q+' chaves']);
+  const kp=(t,v,d,st,c)=>`<button type="button" class="v3-k cxa-k cxa-kb" data-dpst="${st}" aria-pressed="${X.dpSt===st}"><span class="t">${t}</span><span class="v ${c||''}">${num.format(v)}</span><span class="d">${d}</span></button>`;
+  return `<div class="v3-cards cxa-cards cxa-ak">${kp('A validar',n.pre+n.sem,num.format(n.pre)+' com sugestão · '+num.format(n.sem)+' sem','pendentes',n.pre+n.sem?'neg':'')}${kp('Com sugestão',n.pre,'pré-preenchidas, 1 clique para aceitar','pre')}${kp('Sem classificação',n.sem,'escolher a conta do fluxo','sem',n.sem?'neg':'')}${kp('Da V07',n.v07,'classificadas pela base','v07')}${kp('Validadas',n.validado,'gravadas no de-para','validado','pos')}${kp('Todas',base.length,'chaves no filtro','')}</div>
+  <div class="panel cxa-af" data-nao-imprime><div class="cxa-fgr">${DPF.map(([k,t])=>msel(k,t,it(k),f[k],{plural:'marcadas'})).join('')}
+    <label class="hint" style="flex:1;min-width:200px">Pesquisar<br><input id="cxaDpQ" class="v3-sel" type="search" value="${esc(X.dpQ||'')}" placeholder="chave, serviço, insumo, obra" style="width:100%"></label>
+    <span class="v3-acts"><button type="button" class="btn ghost" data-cxadpxls="1">Baixar Excel</button>${ed?`<label class="btn ghost" style="cursor:pointer">Subir Excel<input id="cxaDpArq" type="file" accept=".xlsx,.xls,.csv" hidden></label>`:''}</span></div>
+    ${chipsSel(DPF.map(([k,t])=>[k,t,f[k]]))}</div>
+  <div class="panel cxa-sec"><div id="cxaDpLote" class="cxa-lote" hidden></div>
+   <div class="tbl-wrap cxa-ct"><table class="cxa-dp"><thead><tr>${ed?'<th><input type="checkbox" id="cxaDpTodas" title="Marcar as desta página"></th>':''}<th>Serviço · insumo</th><th>Empresa · obra</th><th class="n">Valor</th><th>Classificação no fluxo</th><th>Resumo</th><th>Status</th>${ed?'<th></th>':''}</tr></thead><tbody id="cxaDp"></tbody></table></div><div id="cxaDpMais"></div>
+   <p class="cxa-mais">Chave = Empresa-Obra-Produto-Serviço-Insumo das contas pagas. O que você valida vale em todas as abas e nos próximos meses. No Excel, preencha a coluna Fluxo_Descricao (e os resumos, se quiser) e suba de volta.</p></div>`}
+function linhasDP(){const q=norm(X.dpQ||'');return dpBase().filter(c=>{const s_=stDP(c);return (X.dpSt==='pendentes'?s_==='pre'||s_==='sem':!X.dpSt||s_===X.dpSt)&&(!q||norm([c.chave,c.servico,c.insumo,c.obra,c.empresa,c.produto].join(' ')).includes(q))}).sort((a,b)=>a.valor-b.valor)}
+function optFluxo(sel){const g={};for(const f of opcoesFluxo(X.atual))(g[f.fluxo_conta]=g[f.fluxo_conta]||[]).push(f);
+  return `<option value="">— escolher —</option>`+Object.entries(g).map(([c,fs])=>`<optgroup label="${esc(nm(c))}">${fs.map(f=>`<option value="${esc(f.fluxo_descricao)}" ${f.fluxo_descricao===sel?'selected':''}>${esc(nm(f.fluxo_descricao))}</option>`).join('')}</optgroup>`).join('')}
+function pintarDP(){const tb=document.getElementById('cxaDp');if(!tb)return;const ls=linhasDP(),ed=podeEditar(X.emp),sel=X.dpSel||(X.dpSel=new Set());
+  const PG=100,np=Math.max(1,Math.ceil(ls.length/PG));X.dpPg=Math.min(X.dpPg||0,np-1);const pag=ls.slice(X.dpPg*PG,X.dpPg*PG+PG);X._dpPag=pag.map(c=>c.chave);
+  tb.innerHTML=pag.map(c=>{const cur=dpCur(c),s_=stDP(c),mud=!!(X.dpEd||{})[c.chave],sug=c.pre.fluxo_descricao;
+    return `<tr data-ch="${esc(c.chave)}" class="${sel.has(c.chave)?'sel':''}">${ed?`<td><input type="checkbox" data-dpsel="${esc(c.chave)}" ${sel.has(c.chave)?'checked':''}></td>`:''}<td><b>${esc(c.servico||'—')}</b><br><span class="cxa-q">${esc(c.insumo)}</span><br><span class="k">${esc(c.chave)}</span></td>
+      <td>${esc(nomeE(c.empresa)||c.empresa)}<br><span class="cxa-q">${esc(nm(c.obra))}${c.produto?' · '+esc(nm(c.produto)):''}</span></td><td class="n">${I0(c.valor)}<br><span class="cxa-q">${c.n} lanç.</span></td>
+      <td><select data-dpf="${esc(c.chave)}" ${ed?'':'disabled'} class="${mud?'mud':''}">${optFluxo(cur.fluxo_descricao)}</select><br><span class="cxa-q">${esc(nm(cur.fluxo_conta||''))}${cur.fluxo_subconta?' › '+esc(nm(cur.fluxo_subconta)):''}</span>${s_!=='validado'&&sug&&sug!==cur.fluxo_descricao?`<br><span class="cxa-q">Sugestão: ${esc(nm(sug))}</span>`:''}</td>
+      <td><input data-dpr="${esc(c.chave)}" value="${esc(cur.servico_resumo||'')}" ${ed?'':'disabled'} placeholder="Serviço - resumo" list="cxaDpRes"><input data-dpb="${esc(c.chave)}" value="${esc(cur.base_apresentacao||'')}" ${ed?'':'disabled'} placeholder="Base apresentação" list="cxaDpBas"></td>
+      <td>${chip(mud?'Alterado · validar':DPST[s_][0],mud?'warn':DPST[s_][1])}</td>${ed?`<td><button type="button" class="btn ${s_==='validado'&&!mud?'ghost':''}" data-cxadpok="${esc(c.chave)}">${s_==='validado'&&!mud?'Salvar':'✓ Validar'}</button></td>`:''}</tr>`}).join('')||`<tr><td colspan="8">Nada com esse filtro. ${X.dpSt==='pendentes'?'Tudo validado aqui.':''}</td></tr>`;
+  const vals=k=>[...new Set(opcoesFluxo(X.atual).map(f=>f[k]).concat([...X.p._dp.values()].map(d=>d[k])).filter(Boolean))].sort();
+  document.getElementById('cxaDpMais').innerHTML=`<datalist id="cxaDpRes">${vals('servico_resumo').map(v=>`<option value="${esc(v)}">`).join('')}</datalist><datalist id="cxaDpBas">${vals('base_apresentacao').map(v=>`<option value="${esc(v)}">`).join('')}</datalist>`+
+    (np>1?`<div class="cxa-pg"><button type="button" class="btn ghost" data-dppg="${X.dpPg-1}" ${X.dpPg?'':'disabled'}>‹ Anterior</button><span>Chaves ${num.format(X.dpPg*PG+1)}–${num.format(Math.min(ls.length,X.dpPg*PG+PG))} de ${num.format(ls.length)} · maiores valores primeiro</span><button type="button" class="btn ghost" data-dppg="${X.dpPg+1}" ${X.dpPg<np-1?'':'disabled'}>Próxima ›</button></div>`:`<p class="cxa-mais">${num.format(ls.length)} chave${ls.length===1?'':'s'}.</p>`);
+  const t=document.getElementById('cxaDpTodas');if(t)t.checked=pag.length>0&&pag.every(c=>sel.has(c.chave));pintarLote()}
+function pintarLote(){const b=document.getElementById('cxaDpLote');if(!b)return;const sel=X.dpSel||new Set();b.hidden=!sel.size;if(!sel.size)return;
+  b.innerHTML=`<b>${num.format(sel.size)} chave${sel.size>1?'s':''} marcada${sel.size>1?'s':''}</b><button type="button" class="btn" data-dplote="sug">✓ Aceitar a sugestão de cada uma</button><span class="hint">ou classificar todas como</span><select id="cxaDpLoteF" class="v3-sel">${optFluxo('')}</select><button type="button" class="btn" data-dplote="como">Aplicar e validar</button><button type="button" class="btn ghost" data-dplote="limpa">Desmarcar</button>`}
+async function gravarDP(chs,como){const o=X.atual,op=dpOp(),cs=new Map(chavesDP(o).map(c=>[c.chave,c]));const rows=[];
+  for(const ch of chs){const c=cs.get(ch);if(!c)continue;const cur=como?{...dpCur(c),fluxo_descricao:como}:dpCur(c);const f=op.get(cur.fluxo_descricao);if(!f)continue;
+    rows.push({empresa_id:X.emp,chave:ch,regional:c.regional,empresa_origem:c.empresa,obra:c.obra,produto:c.produto,servico:c.servico,insumo:c.insumo,...f,
+      servico_resumo:cur.servico_resumo||f.servico_resumo||'',resumo_servico:cur.resumo_servico||f.resumo_servico||'',base_apresentacao:cur.base_apresentacao||f.base_apresentacao||'',atualizado_em:new Date().toISOString()})}
   if(!rows.length)return toast('Escolha a classificação no fluxo antes de validar.');
   for(let i=0;i<rows.length;i+=500){const {error}=await sb.from('dados_depara').upsert(rows.slice(i,i+500),{onConflict:'empresa_id,chave'});if(error){if(/dados_depara/.test(error.message||''))return toast('Falta aplicar no banco a atualização 0034 (de-para).');throw error}}
-  const DP=X.p._dp;for(const r of rows)DP.set(r.chave,r);for(const per of Object.keys(X.p))if(per[0]!=='_'){const pp=X.p[per];aplicaDP(pp,DP);pp._ch=null;pp._of=null}
-  toast(rows.length+' chave'+(rows.length>1?'s validadas':' validada')+' no de-para.');render(true)}
+  const DP=X.p._dp;for(const r of rows){DP.set(r.chave,r);if(X.dpEd)delete X.dpEd[r.chave];X.dpSel&&X.dpSel.delete(r.chave)}for(const per of Object.keys(X.p))if(per[0]!=='_'){const pp=X.p[per];aplicaDP(pp,DP);pp._ch=null;pp._of=null}
+  toast(rows.length+' chave'+(rows.length>1?'s validadas':' validada')+' no de-para.'+(rows.length<chs.length?` ${chs.length-rows.length} sem classificação ficaram de fora.`:''));render(true)}
+async function subirDP(f){const wb=XLSX.read(await f.arrayBuffer());const ls=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});const op=dpOp(),cs=new Set(chavesDP(X.atual).map(c=>c.chave));
+  const ed=X.dpEd=X.dpEd||{};let ok=0,ruim=0;for(const l of ls){const ch=String(l.Chave||'').trim(),fd=String(l.Fluxo_Descricao||'').trim();if(!ch||!cs.has(ch))continue;
+    if(fd&&!op.has(fd)){ruim++;continue}ed[ch]={...(fd?{fluxo_descricao:fd}:{}),servico_resumo:String(l['Serviço - Resumo']||''),resumo_servico:String(l['RESUMO - SERVIÇO']||''),base_apresentacao:String(l['Base Apresentação']||'')};ok++}
+  X.dpSel=new Set(Object.keys(ed));X.dpSt='';toast(`${ok} chaves lidas do Excel${ruim?`, ${ruim} com Fluxo_Descricao que não existe no fluxo`:''}. Confira e clique em "Aceitar" no lote para gravar.`);render(true)}
 
 async function vCaixa(){
   const emps=S.empresas;if(!emps.length)return semEmpresa();
@@ -417,13 +444,18 @@ async function vCaixa(){
    ${alerta}${barraFiltros(o0)}${['visao','drill','auditoria','confronto'].includes(X.tab)?avisoADM(o):''}${o0.grupo&&!o.mov.length?vazio('Nada com esse filtro','<p style="margin:0">Troque ou limpe os filtros.</p>'):corpo}
    <p class="cxa-mais">Fonte: ${esc(o.res.fonte||o.resumo?.fonte||'planilhas do cliente')}. Atualizado em ${dt((o.resumo?.atualizado_em||'').slice(0,10))}.</p></div>`}
 
+document.addEventListener('click',ev=>{const b=ev.target.closest('[data-dpst],[data-dppg],[data-dplote]');if(!b||!document.querySelector('.cxa'))return;
+  if(b.dataset.dpst!=null){X.dpSt=X.dpSt===b.dataset.dpst&&b.dataset.dpst!==''?'':b.dataset.dpst;X.dpPg=0;render(true);return}
+  if(b.dataset.dppg!=null){X.dpPg=+b.dataset.dppg;pintarDP();document.querySelector('.cxa-dp')?.scrollIntoView({block:'start'});return}
+  const sel=[...(X.dpSel||[])];if(b.dataset.dplote==='limpa'){X.dpSel=new Set();pintarDP();return}
+  if(b.dataset.dplote==='sug')return gravarDP(sel).catch(e=>toast(traduz(e)));
+  if(b.dataset.dplote==='como'){const v=document.getElementById('cxaDpLoteF').value;if(!v)return toast('Escolha a conta do fluxo para as marcadas.');return gravarDP(sel,v).catch(e=>toast(traduz(e)))}});
 document.addEventListener('click',ev=>{const u=ev.target.closest('button[data-cxaau],[data-cxalpg]');if(u&&document.querySelector('.cxa')){if(u.dataset.cxalpg!=null){X.lpg=+u.dataset.cxalpg;pintarAud();document.getElementById('cxaDet')?.scrollIntoView({block:'start'});return}
     const A=X.au=X.au||{},k_=u.dataset.cxaau;if(k_==='limpa')X.au={bco:[],sit:'',qc:'',pg:0};else if(k_==='pg')A.pg=+u.dataset.v;else if(k_==='sit')A.sit=A.sit===u.dataset.v?'':u.dataset.v,A.pg=0;render(true);return}});
 document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],[data-cxast],[data-cxaconta],[data-cxadr],[data-cxadn],[data-cxadrill],[data-cxatodos],[data-cxaexp],[data-cxafset],[data-cxaflimpa],[data-cxams],[data-cxaap],[data-cxaapall],[data-cxadpok],[data-cxadpall],[data-cxadpxls]');if(!t||!document.querySelector('.cxa'))return;
   if(t.dataset.cxaap){X.apAb=X.apAb===t.dataset.cxaap?null:t.dataset.cxaap;render(true);return}
   if(t.dataset.cxaapall){X.apAll=1;render(true);return}
   if(t.dataset.cxadpok){gravarDP([t.dataset.cxadpok]).catch(e=>toast(traduz(e)));return}
-  if(t.dataset.cxadpall){const ls=linhasDP().slice(0,150).map(c=>c.chave);if(confirm('Validar '+ls.length+' chaves com a classificação mostrada?'))gravarDP(ls).catch(e=>toast(traduz(e)));return}
   if(t.dataset.cxadpxls){const DP=X.p._dp;const ls=chavesDP(X.atual).map(c=>{const d=DP.get(c.chave)||c.pre;return {Chave:c.chave,Regional:c.regional,Empresa:c.empresa,Obra:c.obra,Produto:c.produto,'Serviço':c.servico,Insumo:c.insumo,Fluxo_Tipo:d.fluxo_tipo,Fluxo_Conta:d.fluxo_conta,Fluxo_SubConta:d.fluxo_subconta,Fluxo_Descricao:d.fluxo_descricao,'Base Apresentação':d.base_apresentacao,'RESUMO - SERVIÇO':d.resumo_servico,'Serviço - Resumo':d.servico_resumo,Status:DPST[stDP(c)][0],'Valor no mês':Math.round(c.valor*100)/100}});
     if(window.XLSX){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(ls),'De-para');XLSX.writeFile(wb,'de-para-'+X.per+'.xlsx')}else toast('Recarregue a página para exportar.');return}
   if(t.dataset.cxaflimpa){X.f={reg:[],cid:[],emp:[],obra:[]};X.dAb=null;X.conta=null;render(true);return}
@@ -441,7 +473,11 @@ document.addEventListener('click',ev=>{const t=ev.target.closest('[data-cxatab],
   else if(t.dataset.cxaconta){const ja=X.tab==='auditoria';X.conta=t.dataset.cxaconta;X.status='';X.lpg=0;X.tab='auditoria';render(true);if(ja)setTimeout(()=>document.getElementById('cxaDet')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}});
 document.addEventListener('change',ev=>{const t=ev.target;if(t.dataset&&t.dataset.cxaau&&t.tagName==='SELECT'){const k_=t.dataset.cxaau,A=X.au=X.au||{};if(k_==='conta'){X.conta=t.value;X.status='';X.lpg=0}else{A[k_]=t.value;A.pg=0}render(true);return}if(t.dataset&&t.dataset.msv){const k_=t.dataset.msv,cur=getMS(k_),v=t.value;setMS(k_,t.type==='radio'?[v]:t.checked?[...new Set([...cur,v])]:cur.filter(x=>x!==v));X.msOpen=t.type==='radio'?null:k_;const sc=document.querySelector(`[data-ms="${k_}"] .cxa-msl`)?.scrollTop||0;render(true);setTimeout(()=>{const l=document.querySelector(`[data-ms="${k_}"] .cxa-msl`);if(l)l.scrollTop=sc},0);return}
 
-  if(t.id==='cxaDpSt'){X.dpSt=t.value;pintarDP();return}
+  if(t.dataset&&t.dataset.dpf){const ch=t.dataset.dpf,ed=X.dpEd=X.dpEd||{},f=dpOp().get(t.value);ed[ch]={...(ed[ch]||{}),fluxo_descricao:t.value,...(f?{fluxo_conta:f.fluxo_conta,fluxo_subconta:f.fluxo_subconta,fluxo_tipo:f.fluxo_tipo}:{})};pintarDP();return}
+  if(t.dataset&&(t.dataset.dpr||t.dataset.dpb)){const ch=t.dataset.dpr||t.dataset.dpb,ed=X.dpEd=X.dpEd||{};ed[ch]={...(ed[ch]||{}),[t.dataset.dpr?'servico_resumo':'base_apresentacao']:t.value};return}
+  if(t.dataset&&t.dataset.dpsel){const s_=X.dpSel=X.dpSel||new Set();t.checked?s_.add(t.dataset.dpsel):s_.delete(t.dataset.dpsel);t.closest('tr').classList.toggle('sel',t.checked);pintarLote();return}
+  if(t.id==='cxaDpTodas'){const s_=X.dpSel=X.dpSel||new Set();for(const ch of X._dpPag||[])t.checked?s_.add(ch):s_.delete(ch);pintarDP();return}
+  if(t.id==='cxaDpArq'&&t.files[0]){subirDP(t.files[0]).catch(e=>toast(traduz(e)));t.value='';return}
   if(t.id==='cxaEmp'){X.emp=t.value;X.per=null;X.dAb=null;X.f={reg:[],cid:[],emp:[],obra:[]};render(true)}else if(t.id==='cxaPer'){X.per=t.value;X.dAb=null;render(true)}});
 // arquivo do painel: {periodo:'AAAA-MM', fonte, resumo, movimentos, auditoria} montado pela Gevans a partir das planilhas
 async function subirPainel(f){try{const j=JSON.parse(await f.text());
@@ -460,7 +496,7 @@ document.addEventListener('click',ev=>{document.querySelectorAll('details.cxa-ms
   const k_=b.dataset.ms,its=[...document.querySelectorAll(`[data-ms="${k_}"] [data-msv]`)];setMS(k_,b.dataset.msa==='limpa'?[]:b.dataset.msa==='busca'?its.filter(i=>!i.closest('label').hidden).map(i=>i.value):[]);X.msOpen=k_;render(true)});
 document.addEventListener('input',ev=>{if(ev.target.id==='cxaBusca'){X.q=ev.target.value;X.lpg=0;pintarAud()}
   else if(ev.target.dataset&&ev.target.dataset.msq){const k_=ev.target.dataset.msq;(X.msQ=X.msQ||{})[k_]=ev.target.value;const q=norm(ev.target.value);ev.target.closest('.cxa-msb').querySelectorAll('.cxa-msl label').forEach(l=>{l.hidden=!!q&&!norm(l.textContent+' '+l.querySelector('input').value).includes(q)})}
-  else if(ev.target.id==='cxaDpQ'){X.dpQ=ev.target.value;clearTimeout(X._tq2);X._tq2=setTimeout(pintarDP,250)}
+  else if(ev.target.id==='cxaDpQ'){X.dpQ=ev.target.value;X.dpPg=0;clearTimeout(X._tq2);X._tq2=setTimeout(pintarDP,250)}
   else if(ev.target.id==='cxaBuscaC'){(X.au=X.au||{}).qc=ev.target.value;X.au.pg=0;clearTimeout(X._tq);X._tq=setTimeout(()=>{render(true);setTimeout(()=>{const i=document.getElementById('cxaBuscaC');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},0)},350)}});
 
 if(!ROTAS.some(x=>x[0]==='caixa'))ROTAS.push(['caixa','Caixa e auditoria']);
