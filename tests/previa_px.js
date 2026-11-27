@@ -16,6 +16,7 @@ eval(base+`
   const en=await pg.$('[data-entra="'+empresas[0].id+'"]');if(en){await en.click();await pg.waitForTimeout(800)}
   await pg.evaluate(()=>location.hash='perguntas');await pg.waitForTimeout(2500);
   await pg.screenshot({path:OUTX+'/px-'+nm+'.png',fullPage:true});
+  if(nm==='desk'){await pg.click('[data-pqx="cen:pess"]');await pg.waitForTimeout(1200);await pg.screenshot({path:OUTX+'/px-pess.png',fullPage:true})}
   console.log(nm,'overflow',await pg.evaluate(()=>document.documentElement.scrollWidth-innerWidth));await ctx.close()}
   await b.close();srv.close()})();
 `);
