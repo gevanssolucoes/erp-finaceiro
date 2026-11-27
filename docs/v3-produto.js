@@ -20,10 +20,19 @@ telaAuth=function(modo,aviso){ta(modo,aviso);const a=document.getElementById('au
 
 // ---------- modo Dados depois de carregar as empresas
 const cc=carregarCadastros;
-carregarCadastros=async function(){await cc.apply(this,arguments);
-  S.modoDados=!S.master&&S.empresas.length>0&&S.empresas.every(e=>e.produto==='dados');
+const NOME_GESTOR=APP_NOME;
+// Quem tem empresas dos dois produtos (ex.: a Gevans com os clientes do Dados) trabalha em um bloco por vez:
+// as empresas do Gestor juntas (com "Todas as empresas") ou um cliente do Dados sozinho, no modo Dados.
+function aplicarProduto(escolha){
+  const todas=S.todasEmp||S.empresas,cli=todas.filter(e=>e.produto==='dados'),ges=todas.filter(e=>e.produto!=='dados');
+  if(cli.length&&ges.length){const d=cli.find(e=>e.id===escolha);S.empresas=d?[d]:ges;
+    const ks=new Set(unidades().map(u=>u.key)),sel=new Set([...(S.sel||[])].filter(k=>ks.has(k)));S.sel=sel.size?sel:ks}
+  else S.empresas=todas;
+  S.modoDados=S.empresas.length>0&&S.empresas.every(e=>e.produto==='dados')&&(!S.master||cli.length&&ges.length);
   lsSet('gg_produto',S.modoDados?'dados':'gestor');document.body.classList.toggle('modo-dados',!!S.modoDados);
-  if(S.modoDados){APP_NOME=NOME_DADOS;document.title=NOME_DADOS;const n=document.getElementById('brandNome');if(n)n.textContent=NOME_DADOS}};
+  APP_NOME=S.modoDados?NOME_DADOS:NOME_GESTOR;if(S.modoDados){document.title=NOME_DADOS;const n=document.getElementById('brandNome');if(n)n.textContent=NOME_DADOS}}
+window.aplicarProduto=aplicarProduto;
+carregarCadastros=async function(){await cc.apply(this,arguments);S.todasEmp=S.empresas.slice();aplicarProduto(lsGet('gg_emp'))};
 const pv=podeVer;podeVer=function(r){if(S.modoDados&&!PERMITIDAS.has(r))return false;return pv(r)};
 const ro=rota;rota=function(){if(!S.modoDados)return ro();const h=location.hash.slice(1);
   if(h==='fluxo-bi'||h==='gestao'){S.indic=S.indic||{};S.indic.tab=h;history.replaceState(null,'','#indicadores');return 'indicadores'}
