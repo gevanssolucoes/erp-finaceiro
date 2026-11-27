@@ -275,6 +275,7 @@ img.selo{background:#fff;padding:2px;box-sizing:border-box;border:1px solid var(
 @keyframes carr{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
 @media (prefers-reduced-motion:reduce){.carregando span{animation:none;width:100%}}
 .emp-lista{display:flex;flex-direction:column;gap:8px}
+.emp-bloco{display:flex;flex-direction:column;gap:2px;margin-top:6px;padding-top:12px;border-top:1px solid var(--line)}.emp-bloco b{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2,#5b6470)}.emp-bloco small{font-size:12px;color:var(--muted,#7a828c)}
 .emp-op{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:10px;padding:10px 12px;cursor:pointer;color:var(--ink);font:inherit}
 .emp-op:hover,.emp-op:focus-visible{border-color:var(--c);box-shadow:0 0 0 1px var(--c);outline:none}
 .emp-tx{flex:1;min-width:0;display:flex;flex-direction:column}
@@ -2237,7 +2238,9 @@ function ativarEmpresa(id){
 
 // tela de entrada: "Olá, Maya" + a empresa que ela está acessando
 function escolherEmpresa(trocando){
-  const es=S.empresas;if(!es.length)return Promise.resolve();
+  const es=S.todasEmp||S.empresas;if(!es.length)return Promise.resolve();
+  // clientes do Gevans Dados ficam num bloco próprio e fora do "Todas as empresas"
+  const cli=es.filter(e=>e.produto==='dados'),ges=es.filter(e=>e.produto!=='dados'),misto=cli.length>0&&ges.length>0,base=misto?ges:es;
   const app=document.getElementById('app'),a=document.getElementById('auth');
   const ult=lsGet('gg_emp');
   const topo=`<div class="marca-v">${LOGO_V}<small>${APP_NOME}</small></div>`;
@@ -2246,14 +2249,17 @@ function escolherEmpresa(trocando){
     a.style.setProperty('--emp',corEmp(e));app.hidden=true;a.hidden=false;
     return new Promise(res=>setTimeout(()=>{ativarEmpresa(e.id);a.hidden=true;app.hidden=false;res()},1100));
   }
+  const nUn=l=>S.predios.filter(p=>l.some(e=>e.id===p.empresa_id)).length||l.length;
+  const opE=e=>op(e.id,seloEmp(e,40),nomeEmp(e),`${docTipo(e)} <span class="mono">${esc(fmtCnpj(e.cnpj))}</span> · ${esc(papelTxt(e.id))}`,corEmp(e));
   const op=(id,selo,nome,info,marca)=>`<button class="emp-op" data-entra="${id}" style="--c:${marca}">${selo}<span class="emp-tx"><b>${esc(nome)}</b><small>${info}</small></span>${ult===id?'<span class="chip info">último acesso</span>':''}<span class="emp-seta" aria-hidden="true">›</span></button>`;
   a.innerHTML=`<div class="auth-card entrada largo">${topo}<div><p class="ola">Olá, ${esc(primeiroNome())}</p><h1>${trocando?'Trocar de empresa':'Em qual empresa você vai trabalhar?'}</h1></div>
-    <div class="emp-lista">${es.map(e=>op(e.id,seloEmp(e,40),nomeEmp(e),`${docTipo(e)} <span class="mono">${esc(fmtCnpj(e.cnpj))}</span> · ${esc(papelTxt(e.id))}`,corEmp(e))).join('')}
-    ${es.length>1?op('*',`<span class="selo" style="width:40px;height:40px;background:var(--side);font-size:15px">${es.length}</span>`,'Todas as empresas','Visão consolidada · '+S.predios.length+' unidades','var(--side)'):''}</div>
+    <div class="emp-lista">${base.map(e=>opE(e)).join('')}
+    ${base.length>1?op('*',`<span class="selo" style="width:40px;height:40px;background:var(--side);font-size:15px">${base.length}</span>`,'Todas as empresas','Visão consolidada · '+base.length+' empresas · '+nUn(base)+' unidade'+(nUn(base)===1?'':'s'),'var(--side)'):''}</div>
+    ${misto?`<div class="emp-bloco"><b>Clientes Gevans Dados</b><small>Indicadores montados pela Gevans. Não entram no "Todas as empresas".</small></div><div class="emp-lista">${cli.map(e=>opE(e)).join('')}</div>`:''}
     <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">${trocando?'<button class="linkbtn small" data-volta="1">Voltar sem trocar</button>':'<span></span>'}<button class="linkbtn small" data-acao="sair">Sair</button></div></div>`;
   app.hidden=true;a.hidden=false;a.style.removeProperty('--emp');
   a.querySelector(`[data-entra="${ult}"]`)?.focus();
-  return new Promise(res=>{a.onclick=ev=>{const b=ev.target.closest('[data-entra],[data-volta]');if(!b)return;a.onclick=null;if(b.dataset.entra)ativarEmpresa(b.dataset.entra);a.hidden=true;app.hidden=false;res()}});
+  return new Promise(res=>{a.onclick=ev=>{const b=ev.target.closest('[data-entra],[data-volta]');if(!b)return;a.onclick=null;if(b.dataset.entra){if(misto&&typeof aplicarProduto==='function')aplicarProduto(b.dataset.entra);ativarEmpresa(b.dataset.entra)}a.hidden=true;app.hidden=false;res()}});
 }
 
 // login: lembra a última empresa acessada neste aparelho
@@ -3357,7 +3363,7 @@ function rota(){const h=location.hash.slice(1);return TITULOS[h]&&podeVer(h)?h:'
 function renderNav(r){
   const gv=document.getElementById('gvAssina');if(gv&&!gv.firstChild)gv.innerHTML=`${LOGO}<span class="gv-ouro"></span><div><b>Gevans Gestor</b><small>por Gevans Soluções</small></div>`;
   document.getElementById('nav').innerHTML=ROTAS.filter(x=>x[0]==='g'||podeVer(x[0])).filter((x,i,a)=>x[0]!=='g'||(a[i+1]&&a[i+1][0]!=='g')).map(([id,n,soon])=>id==='g'?`<div class="nav-group">${n}</div>`:`<a href="#${id}" class="${id===r?'on':''}" title="${esc(n)}"><span class="nl">${icone(id)}<span>${n}</span></span>${soon?'<span class="soon">em breve</span>':''}${S.navCount?.[id]?`<span class="count" title="${S.navCount[id]} pendente${S.navCount[id]>1?'s':''}">${S.navCount[id]}</span>`:''}</a>`).join('');
-  document.getElementById('sideFoot').innerHTML=`<div style="display:flex;flex-direction:column;gap:4px"><span style="overflow-wrap:anywhere">${esc(S.perfil?.nome||'')}${S.master?' · master':''}<br>${esc(S.user?.email||'')}</span>${S.empresas.length>1?'<span><button class="linkbtn small" data-acao="trocar-empresa" style="color:var(--side-ink)">Trocar empresa</button></span>':''}${S.master?'<span><a class="linkbtn small" href="master.html" target="_blank" rel="noopener" style="color:var(--side-ink)">Portal master (clientes e mensalidades)</a></span>':''}<span><button class="linkbtn small" data-acao="alterar-senha" style="color:var(--side-ink)">Alterar senha</button> · <button class="linkbtn small" data-acao="sair" style="color:var(--side-ink)">Sair</button></span></div>`;
+  document.getElementById('sideFoot').innerHTML=`<div style="display:flex;flex-direction:column;gap:4px"><span style="overflow-wrap:anywhere">${esc(S.perfil?.nome||'')}${S.master?' · master':''}<br>${esc(S.user?.email||'')}</span>${(S.todasEmp||S.empresas).length>1?'<span><button class="linkbtn small" data-acao="trocar-empresa" style="color:var(--side-ink)">Trocar empresa</button></span>':''}${S.master?'<span><a class="linkbtn small" href="master.html" target="_blank" rel="noopener" style="color:var(--side-ink)">Portal master (clientes e mensalidades)</a></span>':''}<span><button class="linkbtn small" data-acao="alterar-senha" style="color:var(--side-ink)">Alterar senha</button> · <button class="linkbtn small" data-acao="sair" style="color:var(--side-ink)">Sair</button></span></div>`;
 }
 function txtFiltro(){const es=selEmp(),us=selUn(),all=unidades();if(!S.empresas.length)return 'Sem empresas';
   return es.length===S.empresas.length&&us.length===all.length?(S.empresas.length>1?`Todas as empresas <small>${S.empresas.length} empresas · ${S.predios.length} unidades</small>`:esc(nomeEmp(es[0]))+' <small>todas as unidades</small>'):es.length===1?`${esc(nomeEmp(es[0]))} <small>${us.length} unidade${us.length>1?'s':''}</small>`:`${es.map(e=>esc(nomeEmp(e))).join(' + ')} <small>${us.length} unidades</small>`}

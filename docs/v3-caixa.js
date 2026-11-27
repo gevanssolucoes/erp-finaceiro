@@ -456,49 +456,115 @@ async function vPerguntas(){const emps=S.empresas;if(!emps.length)return semEmpr
   const it=k=>[...op[k].keys()].sort((a,b)=>String(LBL[k](a)).localeCompare(String(LBL[k](b)),'pt-BR')).map(v=>[v,'']);
   const ls=L.filter(l=>PQF.every(([k,,i])=>!f[k].length||f[k].includes(l[['r','c','e'][i]])));
   const empsF=new Set(ls.map(l=>l.e)),cod=e=>String(e).split('-')[0];
-  const saldo=[...empsF].reduce((a,e)=>a+(pq.saldo_out26[cod(e)]||0),0);
-  const agr=(key,ser,cls,ms)=>{const m=new Map();for(const l of ls){if(cls&&!cls.includes(l.k))continue;const a=l[ser];let v=0;for(const i of ms)v+=a[i]||0;const kk=key(l);m.set(kk,(m.get(kk)||0)+v)}return m};
-  const R10=[...Array(10).keys()],F24=[...Array(24).keys()],FUT=[...Array(26).keys()].map(i=>i+10),OP=['rec','cus','obra'];
-  // 1 caixa
-  const net={fc:Array(36).fill(0),orc:Array(36).fill(0)};for(const l of ls){somar(net.fc,l.fc);somar(net.orc,l.orc)}
-  const traj=k=>{let s_=saldo;return FUT.map(i=>(s_+=net[k][i],s_))},tf=traj('fc'),to=traj('orc');const acaba=tf.findIndex(v=>v<0),acabaO=to.findIndex(v=>v<0);
-  const W=1000,H=140,mx=Math.max(1,...tf.map(Math.abs),...to.map(Math.abs)),yy=v=>H/2-v/mx*(H/2-8),pts=a=>a.map((v,i)=>`${(i*W/(a.length-1)).toFixed(0)},${yy(v).toFixed(0)}`).join(' ');
-  const spark=`<svg viewBox="0 0 ${W} ${H+18}" width="100%" class="pq-sp"><line x1="0" x2="${W}" y1="${H/2}" y2="${H/2}" class="z"/><polyline points="${pts(to)}" class="o"/><polyline points="${pts(tf)}" class="f"/>${FUT.filter((_,j)=>j%3===0).map(i=>`<text x="${((i-10)*W/25).toFixed(0)}" y="${H+14}" ${i===10?'style="text-anchor:start"':''}>${mesI(i)}</text>`).join('')}</svg>`;
-  // 2 retorno e 5 custo até receber, por empresa
-  const pe=new Map();for(const l of ls){if(!OP.includes(l.k))continue;const t=pe.get(l.e)||{rec:Array(36).fill(0),cus:Array(36).fill(0)};somar(l.k==='rec'?t.rec:t.cus,l.fc);pe.set(l.e,t)}
-  const EM=[...pe.entries()].map(([e,t])=>{const pc=t.cus.findIndex(v=>v<-1),pr=t.rec.findIndex(v=>v>1);let acc=0,neg=false,pb=-1;for(let i=0;i<36;i++){acc+=t.rec[i]+t.cus[i];if(acc<-1)neg=true;if(neg&&acc>=0&&pb<0)pb=i}return {e,pc,pr,gap:pc>=0&&pr>pc?pr-pc:null,pb,neg,acc}});
-  const pb=EM.filter(x=>x.pb>=0).sort((a,b)=>a.pb-b.pb),nunca=EM.filter(x=>x.neg&&x.pb<0),gap=EM.filter(x=>x.gap).sort((a,b)=>b.gap-a.gap);
-  // 3 lucro e 7 custo-benefício por cidade
-  const cid=new Map();for(const [ser,ms] of [['real',R10],['orc',R10],['fc',F24]])for(const l of ls){if(!OP.includes(l.k))continue;const t=cid.get(l.c)||{};const o=t[ser]||(t[ser]={rec:0,cus:0});let v=0;for(const i of ms)v+=l[ser][i]||0;if(l.k==='rec')o.rec+=v;else o.cus+=v;cid.set(l.c,t)}
-  const C_=[...cid.entries()].map(([c,t])=>{const lu=s_=>t[s_]?t[s_].rec+t[s_].cus:0,cb=s_=>t[s_]&&t[s_].cus<-1?t[s_].rec/-t[s_].cus:null;return {c,lr:lu('real'),lo:lu('orc'),lf:lu('fc'),br:cb('real'),bo:cb('orc'),bf:cb('fc'),rec:t.real?.rec||0}});
-  const luc=C_.slice().sort((a,b)=>b.lr-a.lr),cbs=C_.filter(x=>x.br!=null&&x.rec>Math.max(1000,0.002*Math.max(...C_.map(y=>y.rec)))).sort((a,b)=>b.br-a.br);
-  // 4 obra em aberto
-  const ob=[...agr(l=>l.c,'fc',['obra'],FUT).entries()].map(([c,v])=>({c,v:-v})).filter(x=>x.v>1).sort((a,b)=>b.v-a.v);
-  // 6 regional 5 anos
+  const saldo=PQF.some(([k])=>f[k].length)?[...empsF].reduce((a,e)=>a+(pq.saldo_out26[cod(e)]||0),0):Object.values(pq.saldo_out26).reduce((a,v)=>a+(+v||0),0);
+  const nomeEm=e=>String(e).replace(/^\d+-/,'').toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase()).replace(/\b(Ltda|Spe|Eireli|S\/a)\b/gi,m=>m.toUpperCase()).slice(0,38);
+  const PCT=v=>v==null||!isFinite(v)?'—':(v>0?'+':v<0?'−':'')+Math.abs(v*100).toLocaleString('pt-BR',{maximumFractionDigits:0})+'%';
+  const PC1=v=>v==null||!isFinite(v)?'—':(v*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%';
+  // período escolhido (o orçado de jan–out/26 vem somado no 1º mês, por isso os períodos começam em jan/26 ou depois de out/26)
+  const PER={r26:['Real jan–out/26',0,10],a26:['2026',0,12],a27:['2027',12,24],a28:['2028',24,36],prox:['nov/26 a dez/28',10,36]};
+  const pk=PER[X.pqPer]?X.pqPer:'a26',[pNome,i0,i1]=PER[pk],soma=a=>{let v=0;for(let i=i0;i<i1;i++)v+=a[i]||0;return v};
+  const pTipo=i1<=10?'realizado':i0>=10?'forecast':'real até out + forecast';
+  const vazioT=()=>({rec:0,cus:0,obra:0,fin:0,orec:0,ocus:0,oobra:0,ofin:0});
+  const agg=key=>{const m=new Map();for(const l of ls){const kk=key(l);const t=m.get(kk)||vazioT();t[l.k]+=soma(l.fc);t['o'+l.k]+=soma(l.orc);m.set(kk,t)}
+    for(const t of m.values()){t.res=t.rec+t.cus+t.obra;t.ores=t.orec+t.ocus+t.oobra;t.ger=t.res+t.fin;t.mg=t.rec>1?t.res/t.rec:null;t.omg=t.orec>1?t.ores/t.orec:null;t.cb=t.cus+t.obra<-1?t.rec/-(t.cus+t.obra):null;t.dv=t.res-t.ores}return m};
+  const T=agg(()=>'*').get('*')||{...vazioT(),res:0,ores:0,ger:0,mg:null,omg:null,cb:null,dv:0};
+  const dlt=(v,o)=>Math.abs(o)>1?(v-o)/Math.abs(o):null;
+  // séries mensais (36 meses: real jan–out/26 + forecast)
+  const M={rec:Array(36).fill(0),cus:Array(36).fill(0),obra:Array(36).fill(0),fin:Array(36).fill(0),orc:Array(36).fill(0)};for(const l of ls){somar(M[l.k],l.fc);somar(M.orc,l.orc)}
+  const net=M.rec.map((v,i)=>v+M.cus[i]+M.obra[i]+M.fin[i]),res=M.rec.map((v,i)=>v+M.cus[i]+M.obra[i]);
+  const FUT=[...Array(26).keys()].map(i=>i+10);let s_=saldo;const traj=FUT.map(i=>(s_+=net[i],s_));const acaba=traj.findIndex(v=>v<0);
+  let so=saldo;const trajO=FUT.map(i=>(so+=M.orc[i],so));const acabaO=trajO.findIndex(v=>v<0);
+  const minS=Math.min(...traj),minI=traj.indexOf(minS);
+  // mini gráfico de barras dos 36 meses, com o período em destaque
+  const mini=(a,cls)=>{const mx=Math.max(1,...a.map(Math.abs));return `<svg viewBox="0 0 144 30" class="px-mini" preserveAspectRatio="none">${a.map((v,i)=>{const h=Math.max(1,Math.abs(v)/mx*28);return `<rect x="${i*4}" y="${30-h}" width="3" height="${h}" class="${i>=i0&&i<i1?'on':''} ${i>=10?'fc':''} ${cls||''}"/>`}).join('')}</svg>`};
+  const card=(t,v,sub,dv,bom,sp,tip)=>`<div class="px-k" title="${esc(tip||'')}"><span class="px-kt">${t}</span><b class="px-kv">${v}</b>${sp||''}<span class="px-ks">${sub}${dv!=null?` <em class="${dv===0?'':bom?'g':'r'}">${PCT(dv)}</em>`:''}</span></div>`;
+  const custoT=T.cus+T.obra,ocustoT=T.ocus+T.oobra;
+  const K=[
+    card('Recebimentos',MI(T.rec),'vs orçado '+MI(T.orec),dlt(T.rec,T.orec),T.rec>=T.orec,mini(M.rec,'g'),'Entradas de vendas e aluguéis no período'),
+    card('Custos e despesas',MI(-T.cus),'vs orçado '+MI(-T.ocus),dlt(-T.cus,-T.ocus),-T.cus<=-T.ocus,mini(M.cus,'r'),'Custos operacionais e despesas administrativas'),
+    card('Obra',MI(-T.obra),'vs orçado '+MI(-T.oobra),dlt(-T.obra,-T.oobra),-T.obra<=-T.oobra,mini(M.obra,'r'),'Pagamentos de obra e infraestrutura'),
+    card('Resultado operacional',MI(T.res),'margem '+PC1(T.mg)+' · orçado '+PC1(T.omg),null,true,mini(res,'n'),'Recebimentos − custos, despesas e obra'),
+    card('Financeiro',MI(T.fin),'empréstimos, aportes e distribuições',null,true,mini(M.fin,'n'),'Movimentos financeiros fora da operação'),
+    card('Caixa em out/26',MI(saldo),acaba>=0?`fica negativo em <b class="r">${mesI(acaba+10)}</b>`:`positivo até dez/28 · mínimo ${MI(minS)}`,null,true,'','Saldo dos bancos no extrato de out/26 e projeção pelo forecast')];
+  // por regional, cidade e empresa
+  const RGm=[...agg(l=>l.r).entries()].map(([r,t])=>({r,...t})).sort((a,b)=>b.res-a.res);
+  const CDm=[...agg(l=>l.c).entries()].map(([c,t])=>({c,...t}));
+  const EMm=[...agg(l=>l.e).entries()].map(([e,t])=>({e,cid:(ls.find(l=>l.e===e)||{}).c,...t}));
+  // retorno (mês em que o acumulado volta a ficar positivo) por empresa, com real + forecast
+  const pbE=new Map();{const pe=new Map();for(const l of ls){if(l.k==='fin')continue;const a=pe.get(l.e)||Array(36).fill(0);somar(a,l.fc);pe.set(l.e,a)}
+    for(const [e,a] of pe){let acc=0,neg=false,pb=-1;for(let i=0;i<36;i++){acc+=a[i];if(acc<-1)neg=true;if(neg&&acc>=0&&pb<0)pb=i}pbE.set(e,neg?(pb>=0?pb:99):-1)}}
+  for(const x of EMm)x.pb=pbE.get(x.e)??-1;
+  // destaques executivos
+  const topC=CDm.slice().sort((a,b)=>b.res-a.res),posRes=CDm.reduce((a,x)=>a+Math.max(0,x.res),0);
+  const obraF=CDm.map(x=>({c:x.c,v:0}));{const mo=new Map();for(const l of ls)if(l.k==='obra')for(const i of FUT)mo.set(l.c,(mo.get(l.c)||0)-(l.fc[i]||0));obraF.length=0;for(const [c,v] of mo)if(v>1)obraF.push({c,v});obraF.sort((a,b)=>b.v-a.v)}
+  const obraTot=obraF.reduce((a,x)=>a+x.v,0),pior=EMm.slice().sort((a,b)=>a.dv-b.dv)[0],melhor=EMm.slice().sort((a,b)=>b.dv-a.dv)[0];
+  const D=[];
+  D.push(`<b>Resultado operacional de ${MI(T.res)}</b> em ${pNome} (${pTipo}), margem de ${PC1(T.mg)}${T.omg!=null?` contra ${PC1(T.omg)} no orçado`:''}.`);
+  if(acaba>=0)D.push(`<b>Caixa fica negativo em ${mesI(acaba+10)}</b> pelo forecast${acabaO>=0?` (orçado: ${mesI(acabaO+10)})`:''}. Menor saldo: ${MI(minS)} em ${mesI(minI+10)}.`);else D.push(`<b>Caixa segue positivo até dez/28</b> pelo forecast. Menor saldo: ${MI(minS)} em ${mesI(minI+10)}.`);
+  if(topC[0]&&posRes>1)D.push(`<b>${esc(topC[0].c)}</b> gera ${PC1(Math.max(0,topC[0].res)/posRes)} do resultado positivo${topC[1]?`; com <b>${esc(topC[1].c)}</b> chega a ${PC1((Math.max(0,topC[0].res)+Math.max(0,topC[1].res))/posRes)}`:''}.`);
+  if(obraF[0])D.push(`<b>${MI(obraTot)} de obra a pagar</b> de nov/26 a dez/28; <b>${esc(obraF[0].c)}</b> concentra ${PC1(obraF[0].v/obraTot)}.`);
+  if(pior&&pior.dv<-1)D.push(`Maior desvio negativo contra o orçado: <b>${esc(nomeEm(pior.e))}</b> (${MI(pior.dv)}).${melhor&&melhor.dv>1?` Maior ganho: <b>${esc(nomeEm(melhor.e))}</b> (+${MI(melhor.dv)}).`:''}`);
+  // gráfico principal: entradas e saídas por mês + saldo projetado
+  const inn=M.rec.map((v,i)=>v+Math.max(0,M.fin[i])),out=M.rec.map((_,i)=>M.cus[i]+M.obra[i]+Math.min(0,M.fin[i]));
+  const W=1000,H=230,pad=26,mxB=Math.max(1,...inn,...out.map(v=>-v)),bw=W/36,yb=v=>H/2-v/mxB*(H/2-pad);
+  const sMx=Math.max(1,...traj.map(Math.abs),Math.abs(saldo)),ys=v=>H/2-v/sMx*(H/2-pad);
+  const graf=`<svg viewBox="0 0 ${W} ${H+20}" width="100%" class="px-g" role="img" aria-label="Entradas, saídas e saldo projetado por mês">
+    <rect x="${i0*bw}" y="0" width="${(i1-i0)*bw}" height="${H}" class="band"/><line x1="0" x2="${W}" y1="${H/2}" y2="${H/2}" class="z"/><line x1="${10*bw}" x2="${10*bw}" y1="4" y2="${H}" class="hoje"/><text x="${10*bw+4}" y="14" class="lb">forecast →</text>
+    ${inn.map((v,i)=>`<rect x="${i*bw+2}" y="${yb(Math.max(0,v))}" width="${bw-4}" height="${Math.abs(yb(v)-yb(0))}" class="in ${i>=10?'fc':''}"><title>${mesI(i)} · entradas ${MI(v)}</title></rect><rect x="${i*bw+2}" y="${H/2}" width="${bw-4}" height="${Math.abs(yb(out[i])-yb(0))}" class="ou ${i>=10?'fc':''}"><title>${mesI(i)} · saídas ${MI(out[i])}</title></rect>`).join('')}
+    <polyline points="${[[9.5,saldo],...traj.map((v,j)=>[j+10.5,v])].map(([x,v])=>`${(x*bw).toFixed(0)},${ys(v).toFixed(0)}`).join(' ')}" class="sl"/>
+    ${[...Array(12).keys()].map(j=>`<text x="${j?(j*3+.5)*bw:2}" y="${H+15}" class="ax" ${j?'':'style="text-anchor:start"'}>${mesI(j*3)}</text>`).join('')}</svg>`;
+  // tabelas por regional e por cidade, com barra e clique para filtrar
+  const bar=(v,mx,cls)=>`<i class="px-b"><b class="${v<0?'r':cls||''}" style="width:${Math.min(100,Math.abs(v)/Math.max(1,mx)*100).toFixed(1)}%"></b></i>`;
+  const mxR=Math.max(1,...RGm.map(x=>Math.abs(x.res)));
+  const tRg=`<div class="px-tw"><table class="px-t"><thead><tr><th>Regional</th><th>Receita</th><th>Resultado</th><th class="w">Margem</th><th>vs orçado</th></tr></thead><tbody>${RGm.map(x=>`<tr data-pqx="f:pqreg:${esc(x.r)}" title="Filtrar ${esc(x.r)}"><td>${esc(x.r)}</td><td>${MI(x.rec)}</td><td><div class="px-bc">${bar(x.res,mxR)}<span class="${x.res<0?'neg':''}">${MI(x.res)}</span></div></td><td>${PC1(x.mg)}</td><td class="${x.dv<0?'neg':'pos'}">${x.dv>=0?'+':''}${MI(x.dv)}</td></tr>`).join('')}</tbody></table></div>`;
+  const MET={res:['Resultado',x=>x.res,MI],rec:['Receita',x=>x.rec,MI],obra:['Obra',x=>-x.obra,MI],cb:['Recebido por R$ 1 gasto',x=>x.cb??0,v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})]};
+  const mk=MET[X.pqMet]?X.pqMet:'res',[mNome,mVal,mFmt]=MET[mk];
+  const recMax=Math.max(1,...CDm.map(x=>x.rec)),cdL=CDm.filter(x=>mk!=='cb'||x.rec>0.002*recMax).sort((a,b)=>mVal(b)-mVal(a)).slice(0,12),mxC=Math.max(1e-9,...cdL.map(x=>Math.abs(mVal(x))));
+  const tCd=`<div class="px-seg" role="group" aria-label="Métrica das cidades">${Object.entries(MET).map(([k,[n]])=>`<button type="button" data-pqx="met:${k}" class="${k===mk?'on':''}">${n}</button>`).join('')}</div>
+    <div class="px-cl">${cdL.map(x=>`<button type="button" class="px-cr" data-pqx="f:pqcid:${esc(x.c)}" title="Filtrar ${esc(x.c)}"><span>${esc(x.c)}</span>${bar(mVal(x),mxC,mk==='obra'?'o':'')}<em class="${mVal(x)<0?'neg':''}">${mFmt(mVal(x))}</em></button>`).join('')||'<p class="hint">Sem cidades no filtro.</p>'}</div>`;
+  const SO={e:['Empresa',x=>nomeEm(x.e),1],cid:['Cidade',x=>x.cid||'',1],rec:['Receita',x=>x.rec],cus:['Custos',x=>-x.cus],obra:['Obra',x=>-x.obra],res:['Resultado',x=>x.res],mg:['Margem',x=>x.mg??-9],dv:['vs orçado',x=>x.dv],pb:['Retorno',x=>x.pb<0?-1:x.pb]};
+  const [sk,sd]=(X.pqSort||'res:d').split(':'),sf=(SO[sk]||SO.res)[1],txt=(SO[sk]||SO.res)[2];
+  const EMo=EMm.slice().sort((a,b)=>{const va=sf(a),vb=sf(b);const c=txt?String(va).localeCompare(String(vb),'pt-BR'):va-vb;return sd==='a'?c:-c});
+  const nV=X.pqAll?EMo.length:12,pbTxt=v=>v<0?'<span class="muted">sempre positiva</span>':v===99?'<span class="neg">após dez/28</span>':mesI(v);
+  const tEm=`<div class="px-tw"><table class="px-t px-te"><thead><tr>${Object.entries(SO).map(([k,[n]])=>`<th data-pqx="sort:${k}:${sk===k&&sd==='d'?'a':'d'}" class="${sk===k?'on':''}" aria-sort="${sk===k?(sd==='a'?'ascending':'descending'):'none'}">${n}${sk===k?(sd==='a'?' ▲':' ▼'):''}</th>`).join('')}</tr></thead><tbody>
+    ${EMo.slice(0,nV).map(x=>`<tr><td title="${esc(x.e)}">${esc(nomeEm(x.e))}</td><td>${esc(x.cid||'')}</td><td>${MI(x.rec)}</td><td>${MI(-x.cus)}</td><td>${MI(-x.obra)}</td><td class="${x.res<0?'neg':''}"><b>${MI(x.res)}</b></td><td>${PC1(x.mg)}</td><td class="${x.dv<0?'neg':'pos'}">${x.dv>=0?'+':''}${MI(x.dv)}</td><td>${pbTxt(x.pb)}</td></tr>`).join('')}</tbody></table></div>
+    ${EMo.length>12?`<button type="button" class="linkbtn" data-pqx="all">${X.pqAll?'Mostrar só as 12 primeiras':'Ver todas as '+EMo.length+' empresas'}</button>`:''}`;
+  // perguntas-chave (respostas curtas)
+  const gap=[];{const pe=new Map();for(const l of ls){if(l.k==='fin')continue;const t=pe.get(l.e)||{rec:Array(36).fill(0),cus:Array(36).fill(0)};somar(l.k==='rec'?t.rec:t.cus,l.fc);pe.set(l.e,t)}for(const [e,t] of pe){const pc=t.cus.findIndex(v=>v<-1),pr=t.rec.findIndex(v=>v>1);if(pc>=0&&pr>pc)gap.push({e,g:pr-pc})}gap.sort((a,b)=>b.g-a.g)}
   const ry=new Map();for(const l of ls){if(l.k!=='rec')continue;const t=ry.get(l.r)||[0,0,0];for(let y=0;y<3;y++)for(let m=0;m<12;m++)t[y]+=l.fc[y*12+m]||0;ry.set(l.r,t)}
-  const RG=[...ry.entries()].map(([r,t])=>({r,t,p:Math.max(0,t[2]+1.5*(t[2]-t[0]))})).sort((a,b)=>b.p-a.p);
-  const cb2=v=>v==null?'—':v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const nomeEm=e=>String(e).replace(/^\d+-/,'').toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase()).slice(0,34);
-  const Q=[
-   ['Quando meu caixa vai acabar?',acaba>=0?`<b>${mesI(acaba+10)}</b> pelo forecast, se nada mudar${acabaO>=0?` · pelo orçado: ${mesI(acabaO+10)}`:' · pelo orçado não acaba até dez/28'}`:`Não acaba até dez/28 pelo forecast · menor saldo ${MI(Math.min(...tf))}`,
-    `Saldo dos bancos em out/26: <b>${MI(saldo)}</b>. Linhas: saldo projetado mês a mês. <span class="pq-lg"><i class="f"></i>Forecast</span><span class="pq-lg"><i class="o"></i>Orçado</span>${spark}`,'Extrato out/26 + Forecast e Orçado da V07','saldo dos bancos de jan a set/26 e separar aplicações do caixa livre',1],
-   ['Qual o tempo de retorno?',pb.length?`<b>${pb.length}</b> empresa${pb.length>1?'s':''} volta${pb.length>1?'m':''} a ficar positiva${pb.length>1?'s':''} até dez/28${nunca.length?` · <b>${nunca.length}</b> ainda não`:''}`:'Nenhuma empresa fecha o retorno até dez/28',
-    'Mês em que o acumulado (recebimentos − custos e despesas) volta a ficar positivo, contando de jan/26:'+(pb.length?'':'<p class="hint">Nenhuma empresa no filtro recupera o que gastou até dez/28.</p>')+hbar(pb.slice(0,8),x=>nomeEm(x.e),x=>x.pb+1,'',v=>mesI(v-1)),'Real jan–out/26 + Forecast','investimento feito antes de 2026 (terreno, obra anterior); sem ele o retorno sai mais curto'],
-   ['Quais cidades mais me dão lucro?',luc[0]?`<b>${esc(luc[0].c)}</b>${luc[1]?` e <b>${esc(luc[1].c)}</b>`:''}`:'—',
-    'Lucro operacional jan–out/26 (recebimentos − custos e despesas, sem empréstimos e dividendos):'+`<table class="pq-t"><tr><th>Cidade</th><th>Real</th><th>Orçado</th><th>Forecast 26+27</th></tr>${luc.slice(0,8).map(x=>`<tr><td>${esc(x.c)}</td><td class="${x.lr<0?'neg':''}"><b>${MI(x.lr)}</b></td><td>${MI(x.lo)}</td><td>${MI(x.lf)}</td></tr>`).join('')}</table>`,'Real · Orçado · Forecast','rateio das despesas da Matriz por cidade (hoje ficam na cidade da holding)'],
-   ['Quais cidades têm mais custo de obra em aberto?',ob[0]?`<b>${esc(ob[0].c)}</b> (${MI(ob[0].v)})${ob[1]?` e <b>${esc(ob[1].c)}</b>`:''}`:'Sem custo de obra a pagar no filtro',
-    'Custo de obra ainda a pagar de nov/26 a dez/28:'+hbar(ob.slice(0,8),x=>x.c,x=>x.v,'r'),'Forecast V07','contratos de obra assinados e % executado, para separar o que está contratado do que é só orçado'],
-   ['Quanto tempo cada empresa gera custo até começar a receber?',gap.length?`<b>${gap.length}</b> empresa${gap.length>1?'s':''} começa${gap.length>1?'m':''} a receber depois de 2026 · maior espera: <b>${gap[0].gap} meses</b>`:'Todas já recebiam em jan/26',
-    'Meses entre o primeiro custo e o primeiro recebimento:'+hbar(gap.slice(0,8),x=>nomeEm(x.e),x=>x.gap,'',v=>v+' meses'),'Real + Forecast','data de início de cada empreendimento (quem já vendia antes de 2026 não aparece aqui)'],
-   ['Qual regional vai trazer mais receita daqui a 5 anos?',RG[0]?`<b>${esc(RG[0].r)}</b>`:'—',
-    'Receita projetada para 2031 seguindo a tendência 2026→2028:'+`<table class="pq-t"><tr><th>Regional</th><th>2026</th><th>2028</th><th>2031 (projeção)</th></tr>${RG.slice(0,8).map(x=>`<tr><td>${esc(x.r)}</td><td>${MI(x.t[0])}</td><td>${MI(x.t[2])}</td><td><b>${MI(x.p)}</b></td></tr>`).join('')}</table>`,'Orçado + Forecast até 2028 · projeção','premissas de 2029 a 2031 (lançamentos e vendas previstas); a V07 vai só até dez/28'],
-   ['Qual o melhor custo-benefício por cidade?',cbs[0]?`<b>${esc(cbs[0].c)}</b>: R$ ${cb2(cbs[0].br)} recebidos para cada R$ 1 gasto`:'—',
-    'Recebido ÷ gasto (custos, despesas e obra):'+`<table class="pq-t"><tr><th>Cidade</th><th>Real</th><th>Orçado</th><th>Forecast</th></tr>${cbs.slice(0,8).map(x=>`<tr><td>${esc(x.c)}</td><td><b>${cb2(x.br)}</b></td><td>${cb2(x.bo)}</td><td>${cb2(x.bf)}</td></tr>`).join('')}</table>`,'Real · Orçado · Forecast','área vendável e lotes por cidade, para custo por m² e por lote']];
-  return `<div class="v3 cxa pq"><p class="cxa-lead">Respostas diretas com o real (jan–out/26), o orçado e o forecast do FLUXO até dez/28. Cada pergunta mostra de onde vem o número e o que falta para ficar completa. Valores em R$.</p>
-   <div class="panel cxa-af" data-nao-imprime><div class="cxa-fgr">${PQF.map(([k,t])=>msel(k,t,it(k),f[k],{plural:'marcadas'})).join('')}<span class="v3-acts"><button class="btn ghost" type="button" onclick="window.print()">Imprimir / PDF</button>${subirPQ}</span></div>${chipsSel(PQF.map(([k,t])=>[k,t,f[k]]))}</div>
-   <div class="pq-g">${Q.map(([t,a,b,base,falta,larga],i)=>`<section class="panel pq-q ${larga?'w':''}"><div class="pq-h"><span>${i+1}</span><h3>${t}</h3></div><div class="pq-a">${a}</div><div class="pq-b">${b}</div><div class="pq-f"><span class="ok">✓ Base: ${base}</span><span class="fa">Para ficar completo: ${falta}</span></div></section>`).join('')}</div>
-   <p class="cxa-mais">Fonte: ${esc(pq.fonte||'')}. ${empsF.size} empresas no filtro.</p></div>`}
-const cssPQ=document.createElement('style');cssPQ.textContent=`.pq-vz{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;margin-bottom:14px}.pq-ex{opacity:.78}.pq-ex .pq-a{font-size:15px;color:var(--ink-2)}.pq-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}@media(max-width:900px){.pq-g{grid-template-columns:1fr}}.pq-q{display:flex;flex-direction:column;gap:8px}.pq-q.w{grid-column:1/-1}
+  const RG5=[...ry.entries()].map(([r,t])=>({r,p:Math.max(0,t[2]+1.5*(t[2]-t[0]))})).sort((a,b)=>b.p-a.p);
+  const cbC=CDm.filter(x=>x.cb!=null&&x.rec>0.002*recMax).sort((a,b)=>b.cb-a.cb),pbN=EMm.filter(x=>x.pb>=0&&x.pb<99).length,pbNo=EMm.filter(x=>x.pb===99).length;
+  const PQ=[['Quando o caixa acaba?',acaba>=0?mesI(acaba+10):'Não acaba até dez/28'],['Retorno do investimento',`${pbN} empresas fecham até dez/28${pbNo?` · ${pbNo} depois`:''}`],['Cidades que mais lucram',topC.slice(0,2).map(x=>x.c).join(' e ')||'—'],['Mais obra em aberto',obraF[0]?`${obraF[0].c} (${MI(obraF[0].v)})`:'—'],['Maior espera até receber',gap[0]?`${gap[0].g} meses · ${nomeEm(gap[0].e)}`:'—'],['Regional que mais cresce (5 anos)',RG5[0]?.r||'—'],['Melhor custo-benefício',cbC[0]?`${cbC[0].c} · R$ ${cbC[0].cb.toLocaleString('pt-BR',{maximumFractionDigits:2})} por R$ 1`:'—']];
+  const ativos=PQF.some(([k])=>f[k].length);
+  return `<div class="v3 cxa pq px">
+   <div class="panel cxa-af" data-nao-imprime><div class="cxa-fgr">${PQF.map(([k,t])=>msel(k,t,it(k),f[k],{plural:'marcadas'})).join('')}
+     <div class="hint">Período<br><div class="px-seg">${Object.entries(PER).map(([k,[n]])=>`<button type="button" data-pqx="per:${k}" class="${k===pk?'on':''}">${n}</button>`).join('')}</div></div>
+     <span class="v3-acts"><button class="btn ghost" type="button" onclick="window.print()">Imprimir / PDF</button>${subirPQ}</span></div>${chipsSel(PQF.map(([k,t])=>[k,t,f[k]]))}</div>
+   <div class="px-hd"><div><h2>${ativos?esc(PQF.filter(([k])=>f[k].length).map(([k])=>f[k].length===1?LBL[k](f[k][0]):f[k].length+' '+(k==='pqreg'?'regionais':k==='pqcid'?'cidades':'empresas')).join(' · ')):'Visão do grupo'}</h2><p>${pNome} · ${pTipo} · ${empsF.size} empresas · valores em R$</p></div></div>
+   <div class="px-ks6">${K.join('')}</div>
+   <section class="panel px-dest"><h3>Destaques</h3><ul>${D.map(x=>`<li>${x}</li>`).join('')}</ul></section>
+   <section class="panel"><div class="px-sh"><h3>Entradas, saídas e saldo projetado</h3><span class="px-lg"><i class="in"></i>Entradas <i class="ou"></i>Saídas <i class="sl"></i>Saldo de caixa <i class="fc"></i>Forecast</span></div>${graf}</section>
+   <div class="px-2"><section class="panel"><div class="px-sh"><h3>Por regional</h3><span class="hint">clique para filtrar</span></div>${tRg}</section>
+     <section class="panel"><div class="px-sh"><h3>Por cidade · ${esc(mNome)}</h3><span class="hint">top 12 · clique para filtrar</span></div>${tCd}</section></div>
+   <section class="panel"><div class="px-sh"><h3>Por empresa</h3><span class="hint">clique no título da coluna para ordenar</span></div>${tEm}</section>
+   <section class="panel"><div class="px-sh"><h3>Perguntas-chave</h3><span class="hint">respostas pelo forecast, com o filtro atual</span></div><div class="px-pq">${PQ.map(([q,a])=>`<div><span>${q}</span><b>${esc(a)}</b></div>`).join('')}</div></section>
+   <p class="cxa-mais">Fonte: ${esc(pq.fonte||'')}. Real até out/26; depois, forecast. Orçado de jan–out/26 comparado no total do período.</p></div>`}
+const cssPQ=document.createElement('style');cssPQ.textContent=`.px-hd h2{margin:0;font-size:20px;letter-spacing:-.01em}.px-hd p{margin:2px 0 12px;color:var(--ink-3);font-size:12.5px}
+.px-ks6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:14px}@media(max-width:1200px){.px-ks6{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:640px){.px-ks6{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.px-k{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}.px-kt{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:600}.px-kv{font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:var(--ink)}.px-ks{font-size:11.5px;color:var(--ink-3)}.px-ks em{font-style:normal;font-weight:700;margin-left:4px}.px-ks em.g,.px-ks b.g{color:var(--good,#1f8a5b)}.px-ks em.r,.px-ks b.r{color:var(--bad,#c0392b)}
+.px-mini{width:100%;height:26px}.px-mini rect{fill:var(--line)}.px-mini rect.on{fill:var(--accent,#0d5f73)}.px-mini rect.on.g{fill:var(--good,#1f8a5b)}.px-mini rect.on.r{fill:#c96a5a}.px-mini rect.fc{opacity:.55}
+.px-dest h3,.px-sh h3{margin:0;font-size:14px}.px-dest ul{margin:8px 0 0;padding-left:18px;display:grid;gap:6px;font-size:13.5px;line-height:1.45}.px-dest li::marker{color:var(--accent,#0d5f73)}.px-dest{margin-bottom:14px}
+.px-sh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}.px-lg{display:flex;gap:6px 12px;flex-wrap:wrap;align-items:center;font-size:11.5px;color:var(--ink-3)}.px-lg i{display:inline-block;width:12px;height:8px;border-radius:2px;margin-right:-6px}.px-lg i.in{background:var(--good,#1f8a5b)}.px-lg i.ou{background:#c96a5a}.px-lg i.sl{height:3px;background:var(--ink)}.px-lg i.fc{background:var(--ink-3);opacity:.4}
+.px-g .band{fill:var(--accent,#0d5f73);opacity:.06}.px-g .z{stroke:var(--line)}.px-g .hoje{stroke:var(--ink-3);stroke-dasharray:4 4}.px-g .lb,.px-g .ax{font-size:11px;fill:var(--ink-3)}.px-g .ax{text-anchor:middle}.px-g .in{fill:var(--good,#1f8a5b)}.px-g .ou{fill:#c96a5a}.px-g .fc{opacity:.45}.px-g .sl{fill:none;stroke:var(--ink);stroke-width:2.5;stroke-linejoin:round}
+.px .panel+.panel,.px-2+.panel{margin-top:14px}.px-2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;margin-top:14px}.px-2 .panel{margin:0!important}@media(max-width:1000px){.px-2{grid-template-columns:1fr}}
+.px-t{width:100%;border-collapse:collapse;font-size:12.5px}.px-t th,.px-t td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.px-t th:first-child,.px-t td:first-child{text-align:left}.px-t th{font-size:11px;color:var(--ink-3);font-weight:600}.px-t tbody tr[data-pqx]{cursor:pointer}.px-t tbody tr:hover{background:var(--surface-2)}.px-t .neg,.px-cr em.neg{color:var(--bad,#c0392b)}.px-t .pos{color:var(--good,#1f8a5b)}
+.px-te th{cursor:pointer;user-select:none}.px-te th.on{color:var(--ink)}.px-g{display:block;min-width:0}.px-2>.panel,.px>.panel{min-width:0}.px-te td:first-child{max-width:260px;overflow:hidden;text-overflow:ellipsis}.px-tw{overflow-x:auto}
+.px-bc{display:flex;align-items:center;gap:8px;justify-content:flex-end}.px-bc span{min-width:62px}.px-b{display:inline-block;width:90px;height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;flex:none}.px-b b{display:block;height:100%;background:var(--accent,#0d5f73);border-radius:4px}.px-b b.r{background:var(--bad,#c0392b)}.px-b b.o{background:#c98a2e}
+.px-seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:8px}.px-seg button{border:0;background:var(--surface);padding:5px 10px;font:inherit;font-size:12px;color:var(--ink-2);cursor:pointer}.px-seg button+button{border-left:1px solid var(--line)}.px-seg button.on{background:var(--accent,#0d5f73);color:#fff}
+.px-cl{display:flex;flex-direction:column;gap:2px}.px-cr{display:grid;grid-template-columns:minmax(90px,1fr) minmax(60px,1.3fr) 92px;gap:8px;align-items:center;border:0;background:none;padding:5px 4px;font:inherit;font-size:12.5px;text-align:left;cursor:pointer;border-radius:6px;color:var(--ink)}.px-cr:hover{background:var(--surface-2)}.px-cr span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.px-cr .px-b{width:100%}.px-cr em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums}
+.px-pq{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}.px-pq div{border-left:3px solid var(--accent,#0d5f73);padding:4px 10px;display:flex;flex-direction:column;gap:2px}.px-pq span{font-size:11.5px;color:var(--ink-3)}.px-pq b{font-size:13.5px}
+@media print{.px-ks6{grid-template-columns:repeat(3,1fr)}.px-2{grid-template-columns:1fr 1fr}}
+.pq-vz{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;margin-bottom:14px}.pq-ex{opacity:.78}.pq-ex .pq-a{font-size:15px;color:var(--ink-2)}.pq-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}@media(max-width:900px){.pq-g{grid-template-columns:1fr}}.pq-q{display:flex;flex-direction:column;gap:8px}.pq-q.w{grid-column:1/-1}
 .pq-h{display:flex;gap:10px;align-items:center}.pq-h span{width:24px;height:24px;border-radius:50%;background:var(--accent,#0d5f73);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}.pq-h h3{margin:0;font-size:15px}
 .pq-a{font-size:17px}.pq-a b{color:var(--accent,#0d5f73)}.pq-b{font-size:12.5px;color:var(--ink-2)}.pq-hb{display:grid;grid-template-columns:minmax(120px,210px) 1fr 84px;gap:8px;align-items:center;margin:5px 0}.pq-hb span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}.pq-hb i{background:var(--surface-2);border-radius:4px;height:10px}.pq-hb i b{display:block;height:10px;border-radius:4px;background:var(--good,#1f8a5b)}.pq-hb i b.r{background:var(--bad,#c0392b)}.pq-hb em{font-style:normal;font-variant-numeric:tabular-nums;text-align:right;color:var(--ink)}
 .pq-t{width:100%;border-collapse:collapse;margin-top:6px}.pq-t th,.pq-t td{text-align:right;padding:4px 6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;font-size:12px}.pq-t th:first-child,.pq-t td:first-child{text-align:left}.pq-t th{color:var(--ink-3);font-weight:600;font-size:11px}.pq-t td.neg{color:var(--bad)}
@@ -569,6 +635,8 @@ async function subirPQ(f){try{const j=JSON.parse(await f.text());
   toast('Subindo a base das perguntas…');const {error}=await sb.from('dados_paineis').upsert([{empresa_id:X.emp,periodo:j.periodo,parte:'perguntas',titulo:'Perguntas do negócio',fonte:j.fonte||f.name,conteudo:j,atualizado_em:new Date().toISOString()}],{onConflict:'empresa_id,periodo,parte'});if(error)throw error;
   delete X.cache[X.emp];toast('Base das perguntas carregada.');render(true)}
  catch(e){console.warn(e);toast(traduz(e))}}
+document.addEventListener('click',ev=>{const b=ev.target.closest('[data-pqx]');if(!b||!document.querySelector('.px'))return;const [t,a,c]=b.dataset.pqx.split(/:(.*)/s)[0]==='f'?['f',...b.dataset.pqx.slice(2).split(/:(.*)/s)]:b.dataset.pqx.split(':');
+  if(t==='per')X.pqPer=a;else if(t==='met')X.pqMet=a;else if(t==='sort')X.pqSort=a+':'+c;else if(t==='all')X.pqAll=!X.pqAll;else if(t==='f'){const F=pqF();F[a]=F[a].length===1&&F[a][0]===c?[]:[c]}render(true)});
 document.addEventListener('change',ev=>{if(ev.target.id==='pqArq'&&ev.target.files[0])subirPQ(ev.target.files[0])});
 async function subirPainel(f){try{const j=JSON.parse(await f.text());
   if(!/^\d{4}-\d{2}$/.test(j.periodo||'')||!j.resumo||!j.movimentos?.rows||!j.auditoria?.rows)throw new Error('Arquivo não é um painel de caixa da Gevans.');
@@ -591,7 +659,7 @@ document.addEventListener('input',ev=>{if(ev.target.id==='cxaBusca'){X.q=ev.targ
 
 if(!ROTAS.some(x=>x[0]==='caixa'))ROTAS.push(['caixa','Caixa e auditoria']);
 if(!ROTAS.some(x=>x[0]==='depara'))ROTAS.push(['depara','De-para']);
-if(!ROTAS.some(x=>x[0]==='perguntas'))ROTAS.push(['perguntas','Perguntas do negócio']);
+if(!ROTAS.some(x=>x[0]==='perguntas'))ROTAS.push(['perguntas','Visão executiva']);
 IC.depara='<path d="M4 7h11l-3-3M20 17H9l3 3"/>';IC.perguntas='<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/>';
-TITULOS.caixa='Caixa e auditoria';VIEWS.caixa=vCaixa;TITULOS.depara='De-para do fluxo';VIEWS.depara=vCaixa;TITULOS.perguntas='Perguntas do negócio';VIEWS.perguntas=vPerguntas;
+TITULOS.caixa='Caixa e auditoria';VIEWS.caixa=vCaixa;TITULOS.depara='De-para do fluxo';VIEWS.depara=vCaixa;TITULOS.perguntas='Visão executiva';VIEWS.perguntas=vPerguntas;
 })();

@@ -140,7 +140,11 @@ eval(base+`
     for(const r of ['cadastros','plano']){await pg.evaluate(h=>location.hash=h,r);await pg.waitForTimeout(800);if((await pg.evaluate(()=>location.hash)).includes(r))errs.push('Dados ainda mostra a tela '+r)}
     {const L=[];const RG=['Norte','Sul'],CD=['Palmas','Belém','Curitiba'];for(let e=1;e<=4;e++)for(const k of ['rec','cus','obra','fin']){const sg=k==='rec'?1:-1;const pre=e===4&&k==='rec'?20:0;L.push([RG[e%2],CD[e%3],e+'-EMPRESA '+e,k,Array.from({length:10},(_,i)=>i<pre?0:sg*(100+e*10+i)),Array.from({length:36},(_,i)=>i<pre?0:sg*(110+e*10)),Array.from({length:36},(_,i)=>i<pre?0:sg*(105+e*12+(k==='obra'?50:0)))])}
      DB.dados_paineis.push({id:id(),empresa_id:e0d,periodo:'2026-10',parte:'perguntas',conteudo:{unid:'mil',saldo_out26:{'1':500,'2':300,'3':200,'4':100},linhas:L,fonte:'teste'},atualizado_em:'2026-11-25T10:00:00Z'})}
-    await pg.evaluate(()=>location.hash='perguntas');await pg.waitForTimeout(1500);{const t=await pg.textContent('#view');for(const w of ['caixa vai acabar','tempo de retorno','mais me dão lucro','obra em aberto','começar a receber','5 anos','custo-benefício'])if(!t.includes(w))errs.push('Perguntas sem: '+w);
+    await pg.evaluate(()=>location.hash='perguntas');await pg.waitForTimeout(1500);{const t=await pg.textContent('#view');for(const w of ['Recebimentos','Resultado operacional','Caixa em out/26','Destaques','Entradas, saídas e saldo','Por regional','Por cidade','Por empresa','Perguntas-chave','Quando o caixa acaba'])if(!t.includes(w))errs.push('Visão executiva sem: '+w);
+     await pg.click('[data-pqx="per:a27"]');await pg.waitForTimeout(600);if(!(await pg.textContent('.px-hd')).includes('2027'))errs.push('período 2027 não aplicou');
+     await pg.click('[data-pqx="met:obra"]');await pg.waitForTimeout(500);await pg.click('.px-te th[data-pqx^="sort:rec"]');await pg.waitForTimeout(500);
+     {const r=await pg.$('tr[data-pqx^="f:pqreg:"]');if(r){await r.click();await pg.waitForTimeout(700);if(!(await pg.evaluate(()=>S.cxa.pqf.pqreg.length)))errs.push('clique na regional não filtrou');await pg.evaluate(()=>{S.cxa.pqf.pqreg=[]})}else errs.push('sem tabela por regional')}
+     await pg.click('[data-pqx="per:a26"]');await pg.waitForTimeout(600);
      await pg.screenshot({path:OUTD+'/dados-perguntas.png',fullPage:true});await pg.click('#ms-pqreg summary, [data-ms=pqreg] summary').catch(()=>{});await pg.waitForTimeout(300);const cb=await pg.$('[data-msv=pqreg]');if(cb){await cb.click();await pg.waitForTimeout(900);if(!/1 regional|Regional:/i.test(await pg.textContent('#view'))&&!(await pg.evaluate(()=>S.cxa.pqf.pqreg.length)))errs.push('filtro de regional nas perguntas não marcou')}else errs.push('Perguntas sem filtro de regional');
      const ov=await pg.evaluate(()=>document.documentElement.scrollWidth-innerWidth);if(ov>0)errs.push('perguntas com overflow '+ov);DB.dados_paineis.splice(DB.dados_paineis.findIndex(x=>x.parte==='perguntas'),1);await pg.evaluate(()=>{S.cxa.p=null;S.cxa.emp=null;S.cxa.cache&&(S.cxa.cache={})})}
     if(!(await pg.$$eval('#nav a',a=>a.map(x=>x.getAttribute('href')))).includes('#depara'))errs.push('Dados sem De-para no menu');
@@ -208,6 +212,22 @@ eval(base+`
     await pg.evaluate(()=>location.hash='lancamentos');await pg.waitForTimeout(700);if(await pg.textContent('#title')!=='Indicadores')errs.push('tela do ERP abriu no Dados: '+await pg.textContent('#title'));
     if(!/Gevans Dados/.test(await pg.textContent('#nav')+await pg.textContent('.brand')))errs.push('marca Gevans Dados fora do menu');
     await ctx.close();empresas.forEach(e=>delete e.produto)}
+  // empresas dos dois produtos: o cliente do Dados fica num bloco próprio e fora do Todas as empresas
+  { const ed=empresas[empresas.length-1];ed.produto='dados';
+    const ctx=await b.newContext({viewport:{width:1366,height:900},deviceScaleFactor:1});const pg=await ctx.newPage();pg.on('pageerror',e=>errs.push('misto: '+e.message));
+    await pg.route('https://vovomhtwqfnlidqlmycu.supabase.co/**',rotear);await pg.route('https://fonts.googleapis.com/**',r=>r.abort());
+    await pg.route('**/rest/v1/rpc/meu_acesso_suspenso',r=>r.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:'null'}));
+    await pg.goto('http://localhost:8765/?p=gestor');await pg.waitForTimeout(600);
+    await pg.fill('#aEmail','evaldoalves561@gmail.com');await pg.fill('#aSenha','x12345678');await pg.click('form[data-form=login] button');await pg.waitForSelector('[data-entra]',{timeout:8000});
+    const ta=await pg.textContent('#auth');if(!ta.includes('Clientes Gevans Dados'))errs.push('misto: sem o bloco de clientes');
+    if(await pg.$('[data-entra="*"]'))errs.push('misto: Todas as empresas aparece com uma empresa só do Gestor');
+    await pg.screenshot({path:OUTD+'/misto-entrada.png'});
+    await pg.click('[data-entra="'+ed.id+'"]');await pg.waitForTimeout(1200);
+    let links=await pg.$$eval('#nav a',a=>a.map(x=>x.getAttribute('href')));if(links.includes('#dre')||!links.includes('#indicadores'))errs.push('misto: cliente do Dados abriu com o ERP: '+links.join(','));
+    await pg.click('[data-acao=trocar-empresa]');await pg.waitForSelector('[data-entra="'+empresas[0].id+'"]');await pg.click('[data-entra="'+empresas[0].id+'"]');await pg.waitForTimeout(1200);
+    links=await pg.$$eval('#nav a',a=>a.map(x=>x.getAttribute('href')));if(!links.includes('#dre'))errs.push('misto: Todas as empresas sem o ERP');
+    const ids=await pg.evaluate(()=>S.empresas.map(e=>e.id));if(ids.includes(ed.id)||ids.length!==empresas.length-1)errs.push('misto: Todas as empresas inclui o cliente do Dados');
+    await ctx.close();delete ed.produto}
   await b.close();srv.close();
   console.log('ERROS',errs.length?errs.join(' || '):'nenhum')})();
 `);
