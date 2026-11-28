@@ -3437,7 +3437,10 @@ function telaAuth(modo,aviso=''){
   a.innerHTML=`<div class="auth-card">${marca}${T[modo]}</div>`;
   a.querySelector('input:not([readonly])')?.focus();
 }
+// convidado que ainda não criou a senha (ex.: abriu o link duas vezes ou fechou a tela): pede a senha antes de entrar
+const precisaSenha=u=>!!(u&&u.invited_at&&!u.user_metadata?.senha_definida&&new Date(u.invited_at)>new Date('2026-11-27T00:00:00Z'));
 async function entrar(user){
+  if(precisaSenha(user)&&!window.DEMO){telaAuth('senha');return}
   S.user=user;
   const {data:perfil,error}=await sb.from('perfis').select('*').eq('usuario_id',user.id).maybeSingle();
   if(error){telaAuth('login',traduz(error));return}
@@ -3459,7 +3462,7 @@ async function iniciar(){
   if(window.DEMO){document.getElementById('filtros').insertAdjacentHTML('afterbegin','<span class="demo">Demonstração · dados fictícios</span>');const {data,error}=await sb.auth.signInWithPassword({email:MASTER_EMAIL,password:'demo'});if(!error)return entrar(data.user)}
   const {data:{session}}=await sb.auth.getSession();
   if(/access_token|error_description/.test(location.hash))history.replaceState(null,'',BASE_URL);
-  if(LINK_ERRO){telaAuth('login',/expired|invalid/i.test(decodeURIComponent(LINK_ERRO))?'O link do e-mail expirou ou já foi usado. Peça um novo em “Esqueci minha senha”.':decodeURIComponent(LINK_ERRO.replace(/\+/g,' ')));return}
+  if(LINK_ERRO&&!session){telaAuth('login',/expired|invalid/i.test(decodeURIComponent(LINK_ERRO))?'O link do e-mail expirou ou já foi usado. Peça um novo em “Esqueci minha senha”.':decodeURIComponent(LINK_ERRO.replace(/\+/g,' ')));return}
   if(session&&(LINK_TIPO==='invite'||LINK_TIPO==='recovery')){telaAuth('senha');return}
   if(session)entrar(session.user);else telaAuth('login',LINK_TIPO==='signup'?'✓ E-mail confirmado. Entre com sua senha.':'');
   sb.auth.onAuthStateChange((ev)=>{if(ev==='PASSWORD_RECOVERY')telaAuth('senha');if(ev==='SIGNED_OUT'){S.user=null;telaAuth('login')}});
@@ -3479,8 +3482,8 @@ const FORMS={
     if(data.session)return entrar(data.user);
     telaAuth('login','✓ Conta criada. Enviamos um e-mail de confirmação para '+MASTER_EMAIL+'. Clique no link e depois entre com a senha.')},
   async definir(f){if(f.senha.value!==f.senha2.value)return telaAuth('senha','As senhas não são iguais.');
-    const {data,error}=await sb.auth.updateUser({password:f.senha.value});if(error)return telaAuth('senha',traduz(error));toast('Senha salva.');entrar(data.user)},
-  async 'senha-nova'(f){if(f.senha.value!==f.senha2.value)return toast('As senhas não são iguais.');const {error}=await sb.auth.updateUser({password:f.senha.value});if(error)return toast(traduz(error));fecharDrawer();toast('Senha alterada.')},
+    const {data,error}=await sb.auth.updateUser({password:f.senha.value,data:{senha_definida:true}});if(error)return telaAuth('senha',traduz(error));toast('Senha salva.');entrar(data.user)},
+  async 'senha-nova'(f){if(f.senha.value!==f.senha2.value)return toast('As senhas não são iguais.');const {error}=await sb.auth.updateUser({password:f.senha.value,data:{senha_definida:true}});if(error)return toast(traduz(error));fecharDrawer();toast('Senha alterada.')},
   async lanc(f){
     const emp=f.empresa.value,c=conta(f.conta.value);let v=parseValor(f.valor.value);
     if(!c)return toast('Escolha a conta do plano.');if(isNaN(v)||!v)return toast('Informe um valor válido.');
