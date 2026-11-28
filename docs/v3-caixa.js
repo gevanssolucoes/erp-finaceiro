@@ -452,8 +452,7 @@ async function vPerguntas(){const emps=S.empresas;if(!emps.length)return semEmpr
     return `<div class="v3 cxa pq"><div class="panel pq-vz"><div><h3 style="margin:0 0 4px">Perguntas do negócio</h3><p class="cxa-lead" style="margin:0">Sete respostas diretas sobre caixa, retorno e cidades, com o <b>real</b>, o <b>orçado</b> e o <b>forecast</b> lado a lado e filtros por regional, cidade e empresa. A Gevans monta a base a partir do seu FLUXO; você não precisa subir nada. Assim que ela estiver carregada, esta tela abre com os números da sua empresa.</p></div>${subirPQ?`<div class="v3-acts">${subirPQ}</div>`:''}</div>
      <div class="pq-g">${EX.map(([t,a_,c],i)=>`<section class="panel pq-q pq-ex"><div class="pq-h"><span>${i+1}</span><h3>${t}</h3></div><div class="pq-a"><span class="chip info">exemplo</span> ${a_}</div><div class="pq-b">${c}</div></section>`).join('')}</div></div>`}
   const FINK=new Set(['adm','afac','emp','div','fin']),INTRA=new Set(['adm','afac']);
-  const f=pqF(),L=pq.linhas.map(l=>({r:l[0],c:l[1],e:l[2],k:FINK.has(l[3])?'fin':l[3],sub:FINK.has(l[3])?l[3]:'',real:l[4],orc:l[5],fc:l[6],g:l[7]||'',t:l[8]||''}));
-  const GR=pq.grupos||null;
+  const f=pqF(),L=pq.linhas.map(l=>({r:l[0],c:l[1],e:l[2],k:FINK.has(l[3])?'fin':l[3],sub:FINK.has(l[3])?l[3]:'',real:l[4],orc:l[5],fc:l[6]}));
   const temIntra=L.some(l=>INTRA.has(l.sub)),cons=temIntra&&X.pqCons!==false;
   // cenários: mudam só os meses de forecast (nov/26 em diante)
   const CEN={pess:['Pessimista',{rec:-15,cus:10,obra:10,atr:2}],base:['Base',{rec:0,cus:0,obra:0,atr:0}],otim:['Otimista',{rec:10,cus:-5,obra:-5,atr:0}]};
@@ -492,12 +491,7 @@ async function vPerguntas(){const emps=S.empresas;if(!emps.length)return semEmpr
   const card=(t,v,sub,dv,bom,sp,tip)=>`<div class="px-k" title="${esc(tip||'')}"><span class="px-kt">${t}</span><b class="px-kv">${v}</b>${sp||''}<span class="px-ks">${sub}${dv!=null?` <em class="${dv===0?'':bom?'g':'r'}">${PCT(dv)}</em>`:''}</span></div>`;
   const custoT=T.cus+T.obra,ocustoT=T.ocus+T.oobra;
   const FS=[['empréstimos','emp'],['dividendos','div'],['entre empresas','intra']].map(([n_,k])=>[n_,ls.reduce((a,l)=>a+((k==='intra'?INTRA.has(l.sub):l.sub===k)?soma(l.fc):0),0)]).filter(([,v])=>Math.abs(v)>1);
-  const gS=(pre,ser)=>ls.reduce((a,l)=>a+(l.g&&l.g.startsWith(pre)?(ser==='o'?soma(l.orc):soma(l.fc)):0),0),gM=pre=>{const a=Array(36).fill(0);for(const l of ls)if(l.g&&l.g.startsWith(pre))somar(a,l.fc);return a};
-  const KG=GR?[['Custos (obras)','custo','Obras e terraplanagem'],['Comercial e marketing','com','Marketing, corretagem, vendas e distratos'],['Administrativas','adm','Pessoas, gestão de carteira, jurídico, TI, ocupacionais, manutenção e outras'],['Tributos e investimentos',/^(trib|inv)/,'Tributos sobre recebimentos, IPTU de estoque, compra de áreas e máquinas']].map(([t,pre,tip])=>{const f_=l=>l.g&&(pre instanceof RegExp?pre.test(l.g):l.g.startsWith(pre));const v=ls.reduce((a,l)=>a+(f_(l)?soma(l.fc):0),0),o=ls.reduce((a,l)=>a+(f_(l)?soma(l.orc):0),0),a=Array(36).fill(0);for(const l of ls)if(f_(l))somar(a,l.fc);return card(t,MI(-v),`vs orçado ${MI(-o)} · ${PC1(T.rec>1?-v/T.rec:null)} da receita`,dlt(-v,-o),-v<=-o,mini(a,'r'),tip)}):null;
-  const K=KG?[card('Recebimentos',MI(T.rec),'vs orçado '+MI(T.orec),dlt(T.rec,T.orec),T.rec>=T.orec,mini(M.rec,'g'),'Entradas de vendas no período'),...KG,
-    card('Resultado operacional',MI(T.res),'margem '+PC1(T.mg)+' · orçado '+PC1(T.omg),null,true,mini(res,'n'),'Recebimentos − custos e despesas'),
-    card('Financeiro',MI(T.fin),FS.length?FS.map(([n_,v])=>n_+' '+MI(v)).join(' · '):'empréstimos, aportes e distribuições',null,true,mini(M.fin,'n'),cons?'Movimentos financeiros com terceiros; o que é entre empresas do grupo foi eliminado':'Movimentos financeiros fora da operação'),
-    card('Caixa em out/26',MI(saldo),acaba>=0?`fica negativo em <b class="r">${mesI(acaba+10)}</b>`:`positivo até dez/28 · mínimo ${MI(minS)}`,null,true,'','Saldo dos bancos no extrato de out/26 e projeção pelo forecast')]:[
+  const K=[
     card('Recebimentos',MI(T.rec),'vs orçado '+MI(T.orec),dlt(T.rec,T.orec),T.rec>=T.orec,mini(M.rec,'g'),'Entradas de vendas e aluguéis no período'),
     card('Custos e despesas',MI(-T.cus),'vs orçado '+MI(-T.ocus),dlt(-T.cus,-T.ocus),-T.cus<=-T.ocus,mini(M.cus,'r'),'Custos operacionais e despesas administrativas'),
     card('Obra',MI(-T.obra),'vs orçado '+MI(-T.oobra),dlt(-T.obra,-T.oobra),-T.obra<=-T.oobra,mini(M.obra,'r'),'Pagamentos de obra e infraestrutura'),
@@ -524,7 +518,7 @@ async function vPerguntas(){const emps=S.empresas;if(!emps.length)return semEmpr
   const nIn=(k,t,u,mn,mx,st)=>`<label class="px-in"><span>${t}</span><input type="number" id="pqc-${k}" data-pqc="${k}" value="${CV[k]}" min="${mn}" max="${mx}" step="${st}"><em>${u}</em></label>`;
   const tCen=`<section class="panel px-cen" data-nao-imprime><div class="px-sh"><h3>Cenários</h3><span class="hint">mudam o forecast de nov/26 em diante</span></div>
      <div class="px-cenb"><div class="px-seg" role="group" aria-label="Cenário">${Object.entries(CEN).map(([k,[n_]])=>`<button type="button" data-pqx="cen:${k}" class="${CV.k===k?'on':''}">${n_}</button>`).join('')}${CV.k==='pers'?'<button type="button" class="on">Personalizado</button>':''}</div>
-     ${nIn('rec','Vendas','%',-90,200,5)}${nIn('cus',GR?'Despesas':'Custos e despesas','%',-90,200,5)}${nIn('obra',GR?'Custos (obras)':'Obra','%',-90,200,5)}${nIn('atr','Atraso nos recebimentos','meses',0,12,1)}</div>
+     ${nIn('rec','Vendas','%',-90,200,5)}${nIn('cus','Custos e despesas','%',-90,200,5)}${nIn('obra','Obra','%',-90,200,5)}${nIn('atr','Atraso nos recebimentos','meses',0,12,1)}</div>
      ${RB?`<div class="px-cmp"><span>Contra o cenário base:</span><b>Resultado ${MI(T.res)}</b> <em class="${T.res-RB.res<0?'r':'g'}">${T.res-RB.res>=0?'+':''}${MI(T.res-RB.res)}</em><b>Menor saldo ${MI(minS)}</b> <em class="${minS-RB.min<0?'r':'g'}">${minS-RB.min>=0?'+':''}${MI(minS-RB.min)}</em><b>Caixa negativo ${acaba>=0?mesI(acaba+10):'não fica'}</b> <em class="muted">base: ${RB.acaba>=0?mesI(RB.acaba+10):'não fica'}</em></div>`:''}</section>`;
   const D=[];
   if(emCen)D.push(`<b>Cenário ${CV.k==='pers'?'personalizado':CEN[CV.k][0].toLowerCase()}</b>: vendas ${CV.rec>=0?'+':''}${CV.rec}%, custos ${CV.cus>=0?'+':''}${CV.cus}%, obra ${CV.obra>=0?'+':''}${CV.obra}%${CV.atr?`, recebimentos ${CV.atr} ${CV.atr>1?'meses':'mês'} depois`:''}.`);
@@ -556,33 +550,6 @@ async function vPerguntas(){const emps=S.empresas;if(!emps.length)return semEmpr
   const [sk,sd]=(X.pqSort||'res:d').split(':'),sf=(SO[sk]||SO.res)[1],txt=(SO[sk]||SO.res)[2];
   const EMo=EMm.slice().sort((a,b)=>{const va=sf(a),vb=sf(b);const c=txt?String(va).localeCompare(String(vb),'pt-BR'):va-vb;return sd==='a'?c:-c});
   const nV=X.pqAll?EMo.length:12,pbTxt=v=>v<0?'<span class="muted">sempre positiva</span>':v===99?'<span class="neg">após dez/28</span>':mesI(v);
-  let tDesp='';if(GR){
-    const rT=k=>ls.reduce((a,l)=>a+(l.k==='rec'&&(l.t||'outros')===k?soma(l.fc):0),0),rO=k=>ls.reduce((a,l)=>a+(l.k==='rec'&&(l.t||'outros')===k?soma(l.orc):0),0);
-    const linha=f_=>{let tot=0,orc=0;for(const l of ls){if(!f_(l))continue;tot+=soma(l.fc);orc+=soma(l.orc)}return {tot,orc}};
-    const EST=[['Custos (obras)',['custo_obra']],['Comercial e marketing',['com_mkt','com_corr','com_vendas']],['Administrativas',['adm_pessoas','adm_carteira','adm_jur','adm_ti','adm_ocup','adm_manut','adm_outras']],['Tributos e IPTU',['trib']],['Investimentos',['inv']]];
-    const ab=X.pqAb||(X.pqAb={'Administrativas':1});
-    const cel=(v,cls)=>`<td class="${cls||''} ${v<0?'neg':''}">${Math.abs(v)<0.5?'<span class="muted">—</span>':MI(v)}</td>`;
-    const row=(nome,r_,cls)=>`<tr class="${cls||''}"><td>${nome}</td>${cel(r_.tot)}<td>${PC1(T.rec>1?Math.abs(r_.tot)/T.rec:null)}</td>${cel(r_.orc,'muted')}<td class="${r_.tot-r_.orc<0?'neg':'pos'}">${Math.abs(r_.tot-r_.orc)<0.5?'—':(r_.tot-r_.orc>0?'+':'')+MI(r_.tot-r_.orc)}</td></tr>`;
-    let corpo=row('<b>Recebimentos</b>',{tot:T.rec,orc:T.orec},'px-tr-rec');
-    for(const [n_,gs] of EST){const r_=linha(l=>gs.includes(l.g));if(Math.abs(r_.tot)+Math.abs(r_.orc)<1)continue;const sub=gs.length>1;
-      corpo+=row(`${sub?`<button type="button" class="px-ab" data-pqx="ab:${n_}" aria-expanded="${!!ab[n_]}">${ab[n_]?'▾':'▸'}</button>`:''}<b>${n_}</b>`,r_,'px-tr-g');
-      if(sub&&ab[n_])for(const g of gs){const rg=linha(l=>l.g===g);if(Math.abs(rg.tot)+Math.abs(rg.orc)<1)continue;corpo+=row(`<span class="px-ind">${esc(GR[g]||g)}</span>`,rg,'px-tr-s')}}
-    corpo+=row('<b>Resultado operacional</b>',{tot:T.res,orc:T.ores},'px-tr-res');
-    // cada despesa contra a receita que deve cobri-la
-    const pm=Math.max(0,X.pqMan??2),CUD=X.pqCus||(X.pqCus={custas_rec:'adm_carteira',custas_reemb:'adm_jur'});const temTipoCus=ls.some(l=>l.t==='custas_rec'||l.t==='custas_reemb');
-    const par=rT('parcelas'),parO=rO('parcelas'),com=rT('comissoes'),comO=rO('comissoes'),cus=rT('custas'),cusO=rO('custas'),cuF=(g,o)=>temTipoCus?['custas_rec','custas_reemb'].filter(k=>CUD[k]===g).reduce((a,k)=>a+(o?rO(k):rT(k)),0):(o?cusO:cus)/2,cuN=g=>temTipoCus?(['custas_rec','custas_reemb'].filter(k=>CUD[k]===g).map(k=>k==='custas_rec'?'recebimento de custas':'reembolso de custas').join(' + ')||'nenhuma custa'):'metade das custas';
-    const CB=[['Comercial e marketing',['com_mkt','com_corr','com_vendas'],'Comissões sobre vendas',com,comO],
-      ['Administrativas (pessoas, TI, ocupacionais e outras)',['adm_pessoas','adm_ti','adm_ocup','adm_outras'],'Receita de parcelas',par,parO],
-      ['Manutenção de empreendimentos',['adm_manut'],`${pm}% da receita de parcelas`,par*pm/100,parO*pm/100],
-      ['Jurídico',['adm_jur'],cuN('adm_jur').replace(/^./,c=>c.toUpperCase()),cuF('adm_jur'),cuF('adm_jur',1)],
-      ['Gestão de carteira',['adm_carteira'],cuN('adm_carteira').replace(/^./,c=>c.toUpperCase())+' + multa e juros*',cuF('adm_carteira'),cuF('adm_carteira',1)]];
-    const cob=CB.map(([n_,gs,rn,rv,ro])=>{const d=linha(l=>gs.includes(l.g));const c=Math.abs(d.tot)>0.5?rv/-d.tot:null,co=Math.abs(d.orc)>0.5?ro/-d.orc:null;
-      return `<tr><td><b>${n_}</b></td><td>${MI(-d.tot)}</td><td class="muted">${rn}</td><td>${MI(rv)}</td><td><span class="px-cob ${c==null?'':c>=1?'ok':c>=0.7?'med':'bad'}">${c==null?'—':c.toLocaleString('pt-BR',{maximumFractionDigits:2,minimumFractionDigits:2})+'x'}</span></td><td class="${rv+d.tot<0?'neg':'pos'}">${rv+d.tot>=0?'+':''}${MI(rv+d.tot)}</td><td class="muted">${co==null?'—':co.toLocaleString('pt-BR',{maximumFractionDigits:2,minimumFractionDigits:2})+'x'}</td></tr>`}).join('');
-    tDesp=`<section class="panel"><div class="px-sh"><h3>Despesas por tipo</h3><span class="hint">clique em ▸ para abrir os subgrupos</span></div>
-      <div class="px-tw"><table class="px-t px-desp"><thead><tr><th>${pNome}</th><th>Realizado + forecast</th><th>% da receita</th><th>Orçado</th><th>vs orçado</th></tr></thead><tbody>${corpo}</tbody></table></div></section>
-     <section class="panel"><div class="px-sh"><h3>Cada despesa contra a receita que a cobre</h3><div class="px-cfg">${temTipoCus?['custas_rec','custas_reemb'].map(k=>`<label>${k==='custas_rec'?'Recebimento de custas':'Reembolso de custas'} → <select id="pqc-${k}" data-pqcus="${k}"><option value="adm_jur" ${CUD[k]==='adm_jur'?'selected':''}>Jurídico</option><option value="adm_carteira" ${CUD[k]==='adm_carteira'?'selected':''}>Gestão de carteira</option></select></label>`).join(''):''}<label>Manutenção <input type="number" id="pqc-man" data-pqcfg="pqMan" value="${pm}" min="0" max="20" step="0.5">% das parcelas</label></div></div>
-      <div class="px-tw"><table class="px-t px-cobt"><thead><tr><th>Despesa · ${pNome}</th><th>Despesa</th><th>Receita que cobre</th><th>Receita</th><th>Cobertura</th><th>Sobra / falta</th><th>Cobertura orçada</th></tr></thead><tbody>${cob}</tbody></table></div>
-      <p class="hint" style="margin:8px 0 0">Cobertura = receita ÷ despesa. Acima de 1,00x a receita paga a despesa. *Multa e juros por atraso não vêm separados no FLUXO (estão dentro das parcelas).</p></section>`}
   const tEm=`<div class="px-tw"><table class="px-t px-te"><thead><tr>${Object.entries(SO).map(([k,[n]])=>`<th data-pqx="sort:${k}:${sk===k&&sd==='d'?'a':'d'}" class="${sk===k?'on':''}" aria-sort="${sk===k?(sd==='a'?'ascending':'descending'):'none'}">${n}${sk===k?(sd==='a'?' ▲':' ▼'):''}</th>`).join('')}</tr></thead><tbody>
     ${EMo.slice(0,nV).map(x=>`<tr><td title="${esc(x.e)}">${esc(nomeEm(x.e))}</td><td>${esc(x.cid||'')}</td><td>${MI(x.rec)}</td><td>${MI(-x.cus)}</td><td>${MI(-x.obra)}</td><td class="${x.res<0?'neg':''}"><b>${MI(x.res)}</b></td><td>${PC1(x.mg)}</td><td class="${x.dv<0?'neg':'pos'}">${x.dv>=0?'+':''}${MI(x.dv)}</td><td>${pbTxt(x.pb)}</td></tr>`).join('')}</tbody></table></div>
     ${EMo.length>12?`<button type="button" class="linkbtn" data-pqx="all">${X.pqAll?'Mostrar só as 12 primeiras':'Ver todas as '+EMo.length+' empresas'}</button>`:''}`;
@@ -599,9 +566,8 @@ async function vPerguntas(){const emps=S.empresas;if(!emps.length)return semEmpr
      <span class="v3-acts"><button class="btn ghost" type="button" onclick="window.print()">Imprimir / PDF</button>${subirPQ}</span></div>${chipsSel(PQF.map(([k,t])=>[k,t,f[k]]))}</div>
    <div class="px-hd"><div><h2>${ativos?esc(PQF.filter(([k])=>f[k].length).map(([k])=>f[k].length===1?LBL[k](f[k][0]):f[k].length+' '+(k==='pqreg'?'regionais':k==='pqcid'?'cidades':'empresas')).join(' · ')):'Visão do grupo'}</h2><p>${pNome} · ${pTipo} · ${empsF.size} empresas${temIntra?(cons?' · consolidado':' · soma das empresas'):''}${emCen?' · cenário '+(CV.k==='pers'?'personalizado':CEN[CV.k][0].toLowerCase()):''} · valores em R$</p></div></div>
    ${tCen}
-   <div class="px-ks6 ${K.length>6?'px-ks8':''}">${K.join('')}</div>
+   <div class="px-ks6">${K.join('')}</div>
    <section class="panel px-dest"><h3>Destaques</h3><ul>${D.map(x=>`<li>${x}</li>`).join('')}</ul></section>
-   ${tDesp}
    ${tEl}
    <section class="panel"><div class="px-sh"><h3>Entradas, saídas e saldo projetado</h3><span class="px-lg"><i class="in"></i>Entradas <i class="ou"></i>Saídas <i class="sl"></i>Saldo de caixa <i class="fc"></i>Forecast</span></div>${graf}</section>
    <div class="px-2"><section class="panel"><div class="px-sh"><h3>Por regional</h3><span class="hint">clique para filtrar</span></div>${tRg}</section>
@@ -612,10 +578,6 @@ async function vPerguntas(){const emps=S.empresas;if(!emps.length)return semEmpr
 const cssPQ=document.createElement('style');cssPQ.textContent=`.px-cen{margin-bottom:14px}.px-cenb{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end}.px-cenb .px-seg{margin:0}.px-in{display:flex;flex-direction:column;gap:2px;font-size:11.5px;color:var(--ink-3)}.px-in input{width:132px;padding:5px 52px 5px 8px;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:13px;background:var(--surface);color:var(--ink);font-variant-numeric:tabular-nums}.px-in{position:relative}.px-in em{position:absolute;right:8px;bottom:6px;font-style:normal;font-size:11px;color:var(--ink-3);pointer-events:none}
 .px-cmp{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:13px}.px-cmp span{color:var(--ink-3)}.px-cmp em{font-style:normal;font-weight:700;margin-right:10px}.px-cmp em.g{color:var(--good,#1f8a5b)}.px-cmp em.r{color:var(--bad,#c0392b)}
 .px-el{margin-bottom:14px}.px-el .chip.ok{background:#e3f4ea;color:#1f7a4f}.px-el .chip.warn{background:#fff1d6;color:#9a5b00}
-.px-ks6.px-ks8{grid-template-columns:repeat(4,minmax(0,1fr))}@media(max-width:900px){.px-ks6.px-ks8{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.px-desp .px-tr-g td{font-weight:600;background:var(--surface-2)}.px-desp .px-tr-rec td{color:var(--good,#1f8a5b)}.px-desp .px-tr-res td{border-top:2px solid var(--ink-3);font-weight:700}.px-desp .px-tr-mg td{color:var(--ink-3);font-size:11.5px}.px-ind{padding-left:22px;display:inline-block}.px-ab{border:0;background:none;cursor:pointer;color:var(--ink-2);padding:0 6px 0 0;font:inherit}
-.px-cfg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--ink-3)}.px-cfg select{margin-left:4px;padding:3px 6px;border:1px solid var(--line);border-radius:6px;font:inherit;background:var(--surface);color:var(--ink)}.px-cfg input{width:64px;margin:0 4px;padding:3px 6px;border:1px solid var(--line);border-radius:6px;font:inherit;background:var(--surface);color:var(--ink)}
-.px-cob{display:inline-block;padding:2px 8px;border-radius:10px;font-weight:700;font-variant-numeric:tabular-nums}.px-cob.ok{background:#e3f4ea;color:#1f7a4f}.px-cob.med{background:#fff1d6;color:#9a5b00}.px-cob.bad{background:#fde4e1;color:#b2382b}
 .px-hd h2{margin:0;font-size:20px;letter-spacing:-.01em}.px-hd p{margin:2px 0 12px;color:var(--ink-3);font-size:12.5px}
 .px-ks6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:14px}@media(max-width:1200px){.px-ks6{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:640px){.px-ks6{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .px-k{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}.px-kt{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:600}.px-kv{font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:var(--ink)}.px-ks{font-size:11.5px;color:var(--ink-3)}.px-ks em{font-style:normal;font-weight:700;margin-left:4px}.px-ks em.g,.px-ks b.g{color:var(--good,#1f8a5b)}.px-ks em.r,.px-ks b.r{color:var(--bad,#c0392b)}
@@ -703,9 +665,7 @@ async function subirPQ(f){try{const j=JSON.parse(await f.text());
   delete X.cache[X.emp];toast('Base das perguntas carregada.');render(true)}
  catch(e){console.warn(e);toast(traduz(e))}}
 document.addEventListener('click',ev=>{const b=ev.target.closest('[data-pqx]');if(!b||!document.querySelector('.px'))return;const [t,a,c]=b.dataset.pqx.split(/:(.*)/s)[0]==='f'?['f',...b.dataset.pqx.slice(2).split(/:(.*)/s)]:b.dataset.pqx.split(':');
-  if(t==='per')X.pqPer=a;else if(t==='cons')X.pqCons=a==='1';else if(t==='rat')X.pqRat=a==='1';else if(t==='ab'){const A=X.pqAb||(X.pqAb={});A[a]=!A[a]}else if(t==='cen'){const P={pess:{rec:-15,cus:10,obra:10,atr:2},base:{rec:0,cus:0,obra:0,atr:0},otim:{rec:10,cus:-5,obra:-5,atr:0}}[a];if(P)X.pqCen={k:a,...P}}else if(t==='met')X.pqMet=a;else if(t==='sort')X.pqSort=a+':'+c;else if(t==='all')X.pqAll=!X.pqAll;else if(t==='f'){const F=pqF();F[a]=F[a].length===1&&F[a][0]===c?[]:[c]}render(true)});
-document.addEventListener('change',ev=>{const k=ev.target.dataset&&ev.target.dataset.pqcus;if(!k)return;(X.pqCus=X.pqCus||{custas_rec:'adm_carteira',custas_reemb:'adm_jur'})[k]=ev.target.value;render(true)});
-document.addEventListener('change',ev=>{const k=ev.target.dataset&&ev.target.dataset.pqcfg;if(!k)return;X[k]=Math.max(+ev.target.min,Math.min(+ev.target.max,+ev.target.value||0));render(true)});
+  if(t==='per')X.pqPer=a;else if(t==='cons')X.pqCons=a==='1';else if(t==='cen'){const P={pess:{rec:-15,cus:10,obra:10,atr:2},base:{rec:0,cus:0,obra:0,atr:0},otim:{rec:10,cus:-5,obra:-5,atr:0}}[a];if(P)X.pqCen={k:a,...P}}else if(t==='met')X.pqMet=a;else if(t==='sort')X.pqSort=a+':'+c;else if(t==='all')X.pqAll=!X.pqAll;else if(t==='f'){const F=pqF();F[a]=F[a].length===1&&F[a][0]===c?[]:[c]}render(true)});
 document.addEventListener('change',ev=>{const c=ev.target.dataset&&ev.target.dataset.pqc;if(!c)return;const v=Math.max(+ev.target.min,Math.min(+ev.target.max,Math.round(+ev.target.value||0)));X.pqCen={...(X.pqCen||{rec:0,cus:0,obra:0,atr:0}),[c]:v,k:'pers'};render(true)});
 document.addEventListener('change',ev=>{if(ev.target.id==='pqArq'&&ev.target.files[0])subirPQ(ev.target.files[0])});
 async function subirPainel(f){try{const j=JSON.parse(await f.text());
