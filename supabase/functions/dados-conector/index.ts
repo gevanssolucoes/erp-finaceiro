@@ -76,9 +76,24 @@ async function sqlMysql(c: any, sql: string) {
     return limpa(rows as any);
   } finally { await db.end(); }
 }
+// Aceita o servidor como no Power BI/SSMS: "ip\\INSTANCIA,porta" (ex.: 54.0.0.1\\SHOPCONTROL9,1446)
+function separaServidor(c: any) {
+  const m = String(c.host ?? "").trim().replace(/^tcp:/i, "").match(/^([^\\,]+)(?:\\([^,]+))?(?:,(\d+))?$/);
+  if (!m) return;
+  c.host = m[1].trim();
+  if (m[2]) c.instancia = m[2].trim();
+  if (m[3] && !String(c.porta ?? "").trim()) c.porta = m[3];
+}
 async function sqlServer(c: any, sql: string) {
-  const pool = await mssql.connect({ server: c.host, port: +c.porta || 1433, database: c.banco, user: c.usuario, password: c.senha,
-    requestTimeout: TEMPO, connectionTimeout: 15000, options: { encrypt: c.ssl !== false, trustServerCertificate: true } });
+  const cfg = (encrypt: boolean) => ({ server: c.host, ...(+c.porta ? { port: +c.porta } : c.instancia ? {} : { port: 1433 }), database: c.banco, user: c.usuario, password: c.senha,
+    requestTimeout: TEMPO, connectionTimeout: 15000, options: { encrypt, trustServerCertificate: true, ...(c.instancia && !+c.porta ? { instanceName: c.instancia } : {}) } });
+  let pool;
+  try { pool = await new mssql.ConnectionPool(cfg(c.ssl !== false)).connect(); }
+  catch (e) {
+    // servidores antigos (SQL Server 2008/2012) muitas vezes não aceitam conexão criptografada
+    if (c.ssl === false || /login failed|password/i.test(String((e as Error)?.message))) throw e;
+    pool = await new mssql.ConnectionPool(cfg(false)).connect();
+  }
   try {
     const r = await pool.request().query(`select top ${MAX_LINHAS + 1} * from (${sql}) as consulta`);
     return limpa(r.recordset as any);
@@ -112,6 +127,7 @@ Deno.serve(async (req) => {
     if (c.tipo === "web") return json(await web(c));
     if (!["postgres", "mysql", "sqlserver"].includes(c.tipo)) return json({ erro: "Tipo de conexão desconhecido." }, 400);
     if (!c.host || !c.usuario) return json({ erro: "Informe servidor e usuário." }, 400);
+    if (c.tipo === "sqlserver") separaServidor(c);
     await hostLiberado(String(c.host));
     const sql = consultaOk(c.sql);
     const linhas = c.tipo === "postgres" ? await sqlPostgres(c, sql) : c.tipo === "mysql" ? await sqlMysql(c, sql) : await sqlServer(c, sql);
