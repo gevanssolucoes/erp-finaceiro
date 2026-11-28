@@ -7,7 +7,7 @@ if(typeof S==='undefined'||typeof telaAuth!=='function')return;
 const qs=new URLSearchParams(location.search);
 if(qs.get('p')==='dados'||qs.get('p')==='gestor'){lsSet('gg_produto',qs.get('p'));history.replaceState(null,'',location.pathname+location.hash)}
 const portaDados=()=>lsGet('gg_produto')==='dados';
-const PERMITIDAS=new Set(['indicadores','perguntas','caixa','depara','usuarios']);
+const PERMITIDAS=new Set(['indicadores','perguntas','caixa','depara','usuarios','conexoes','cadastros']);
 const NOME_DADOS='Gevans Dados';
 
 // ---------- tela de login com a marca do produto
